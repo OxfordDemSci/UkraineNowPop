@@ -1,0 +1,66 @@
+version: "3.3"
+
+services:
+
+  ics_nginx:
+    container_name: now_pop_web
+    image: nginx:latest
+    volumes:
+      - type: bind
+        source: ./www/conf.d/nginx.conf
+        target: /etc/nginx/conf.d/nginx.conf
+      - type: bind
+        source: ./www/public_html/
+        target: /var/www/public_html/
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - now_pop_net
+    depends_on:
+      - now_pop_flask
+    restart: unless-stopped
+
+
+  ics_flask:
+    container_name: now_pop_api
+    env_file: .env
+    build: ./api/
+    command: >
+      sh -c "find /app -type f -exec sed -i 's/\r$$//' {} + && gunicorn --config gunicorn.config.py wsgi:app"
+    depends_on:
+      - now_pop_postgres
+    networks:
+      - now_pop_net
+    ports:
+      - "5000:5000"
+      - "8000:8000"
+    restart: unless-stopped
+
+
+  ics_memcached:
+    container_name: now_pop_cache
+    image: memcached:latest
+    networks:
+      - now_pop_net
+    ports:
+      - "11211:11211"
+    restart: unless-stopped
+
+
+  ics_postgres:
+    container_name: now_pop_db
+    image: postgres:15.5-bullseye
+    env_file: 
+      .env
+    volumes:
+      - ./sql/init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - now_pop_net
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+
+networks:
+  ics_net:
