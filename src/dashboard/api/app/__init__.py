@@ -6,7 +6,7 @@ from flask_limiter.util import get_remote_address
 from flask_sqlalchemy import SQLAlchemy
 import logging
 import os
-from pathblib import Path
+from pathlib import Path
 import socket
 from datetime import datetime, timezone
 
