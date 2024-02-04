@@ -2,7 +2,7 @@ version: "3.3"
 
 services:
 
-  ics_nginx:
+  now_pop_nginx:
     container_name: now_pop_web
     image: nginx:latest
     volumes:
@@ -22,7 +22,7 @@ services:
     restart: unless-stopped
 
 
-  ics_flask:
+  now_pop_flask:
     container_name: now_pop_api
     env_file: .env
     build: ./api/
@@ -38,7 +38,7 @@ services:
     restart: unless-stopped
 
 
-  ics_memcached:
+  now_pop_memcached:
     container_name: now_pop_cache
     image: memcached:latest
     networks:
@@ -48,7 +48,7 @@ services:
     restart: unless-stopped
 
 
-  ics_postgres:
+  now_pop_postgres:
     container_name: now_pop_db
     image: postgres:15.5-bullseye
     env_file: 
@@ -63,4 +63,4 @@ services:
 
 
 networks:
-  ics_net:
+  now_pop_net:
