@@ -20,6 +20,7 @@ class Configuration:
     ENABLE_CORS = True
     FLASK_APP = "app.wsgi"
     JSON_SORT_KEYS = False
+    SECRET_KEY = os.environ.get("SECRET_KEY")
 
 
 class DevelopmentConfig(Configuration):
@@ -63,6 +64,6 @@ class TestingConfig(Configuration):
 app_config = {
     "development": DevelopmentConfig,
     "local_development": LocalDevelopmentConfig,
-    "production": ProductionConfig,
+    #"production": ProductionConfig,
     "testing": TestingConfig,
 }
