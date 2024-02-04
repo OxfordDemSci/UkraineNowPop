@@ -4,3 +4,4 @@
 *.pyc
 *.py[cod]
 *$py.class
+app/__pycache__/config.cpython-311.pyc
