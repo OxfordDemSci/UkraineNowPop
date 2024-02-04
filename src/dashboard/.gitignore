@@ -1,1 +1,6 @@
 .env
+
+# Byte-compiled / optimized / DLL files
+*.pyc
+*.py[cod]
+*$py.class
