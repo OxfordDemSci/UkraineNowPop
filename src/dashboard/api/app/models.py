@@ -7,7 +7,6 @@ import app
 from .datatypes import UserRoleEnum
 
 Base = declarative_base()
-bcrypt = Bcrypt(app)
 
 
 class User(Base):
@@ -15,11 +14,12 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     username = Column(String(255), nullable=False)
+    password = Column(String(255), nullable=False)
     role = Column(Enum(UserRoleEnum), nullable=False)
 
     def __init__(self, username, password, role):
         self.username = username
-        self.password = bcrypt.generate_password_hash(
+        self.password = app.bcrypt.generate_password_hash(
             password
         ).decode()
         self.role = role

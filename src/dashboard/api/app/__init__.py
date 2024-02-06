@@ -1,5 +1,6 @@
 import connexion
 from flask import Flask, request
+from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -28,7 +29,7 @@ def is_exempt():
     nginx_ip = get_nginx_ip()
     return request.remote_addr == nginx_ip
 
-
+bcrypt = None
 db = SQLAlchemy()
 limiter = Limiter(
     key_func=get_remote_address,
@@ -47,6 +48,7 @@ def create_app(config_name: str) -> Flask:
     app.config.from_object(app_config[config_name])
     app.config["ENV"] = config_name
     db.init_app(app)
+    bcrypt = Bcrypt(app)
     CORS(app, resources={r"/*": {"origins": "*"}})
     if not logging.getLogger().handlers:
         logging.basicConfig(level=logging.INFO)
