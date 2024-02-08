@@ -1,0 +1,7 @@
+.env
+
+# Byte-compiled / optimized / DLL files
+*.pyc
+*.py[cod]
+*$py.class
+app/__pycache__/config.cpython-311.pyc

@@ -1,0 +1,10 @@
+POSTGRES_USER=
+POSTGRES_PASSWORD=
+POSTGRES_READONLY=
+POSTGRES_READONLY_PASSWORD=
+POSTGRES_DB=now_pop
+POSTGRES_DB_TEST=now_pop_test
+DATABASE_TABLES_DIR=app/data/db-data
+basedir="C:/Users/dkerr/Documents/GISRede/OXFORD_UNI_WORK/UkraineNowPop"
+SECRET_KEY=
+DATABASE_URL="postgresql://{user:password@host:5432/database}"
