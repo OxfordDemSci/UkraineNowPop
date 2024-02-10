@@ -1,0 +1,56 @@
+openapi: 3.0.0
+info:
+  title: "University of Oxford Now Pop Dashboard"
+  description: "REST API powering the Now Pop Dashboard - Nowcasting Ukraine's population subnationally every day: Bayesian methods and interactive dashboard"
+  version: "1.0.0"
+servers:
+  - url: "/api"
+paths:
+  
+  /login:
+    post:
+      summary: User login
+      operationId: app.endpoints.login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+        '401':
+          description: Unauthorized
+
+  /test_get:
+    get:
+      operationId: "app.endpoints.test_get"      
+      # security:
+      #   - JWTAuth: []
+      tags:
+        - "Test functions"
+      summary: "Testing"
+      responses:
+        "200":
+          description: "Successfully tested"
+
+# components:
+#   securitySchemes:
+#     JWTAuth:
+#       type: http
+#       scheme: bearer
+#       bearerFormat: JWT
+#       x-bearerInfoFunc: app.auth.decode_token

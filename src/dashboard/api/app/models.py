@@ -15,7 +15,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     username = Column(String(255), nullable=False)
     password = Column(String(255), nullable=False)
-    role = Column(Enum(UserRoleEnum), nullable=False)
+    role: Column = Column(Enum(UserRoleEnum), nullable=False)
 
     def __init__(self, username, password=None, role=None):
         self.username = username

@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import socket
 from datetime import datetime, timezone
+from flask_jwt_extended import JWTManager
 
 from app.config import app_config
 from app.models import User
@@ -49,9 +50,11 @@ def create_app(config_name: str) -> Flask:
     app = connexion_app.app
     app.config.from_object(app_config[config_name])
     app.config["ENV"] = config_name
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     db.init_app(app)
     global bcrypt
     bcrypt = Bcrypt(app)
+    jwt = JWTManager(app)
     CORS(app, resources={r"/*": {"origins": "*"}})
     if not logging.getLogger().handlers:
         logging.basicConfig(level=logging.INFO)
@@ -63,7 +66,6 @@ def create_app(config_name: str) -> Flask:
     if config_name not in ["local_development", "testing"]:
         limiter._storage_uri = "memcached://ics_memcached:11211"
         limiter.init_app(app)
-    print(config_name)
     create_users(app, db)
 
     @app.before_request
