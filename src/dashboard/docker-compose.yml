@@ -33,7 +33,7 @@ services:
     networks:
       - now_pop_net
     ports:
-      - "5000:5000"
+      #- "5000:5000"
       - "8000:8000"
     restart: unless-stopped
 
