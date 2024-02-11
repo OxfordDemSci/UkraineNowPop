@@ -14,7 +14,6 @@ load_dotenv()
 
 environment = os.getenv("ENV", "DEV")
 if environment.lower() == "local":
-    print(environment)
     DATABASE_URL = os.getenv("DATABASE_URL_LOCAL")
 else:
     DATABASE_URL = os.getenv("DATABASE_URL")
