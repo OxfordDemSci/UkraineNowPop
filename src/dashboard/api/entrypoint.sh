@@ -16,5 +16,5 @@ done
 # python3 ./scripts/insert_data.py
 
 # Start the Flask app
-gunicorn --config gunicorn.config.py wsgi:app
+gunicorn --config gunicorn.config.py --preload wsgi:app
 
