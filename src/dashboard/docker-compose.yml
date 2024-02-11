@@ -27,13 +27,13 @@ services:
     env_file: .env
     build: ./api/
     command: >
-      sh -c "find /app -type f -exec sed -i 's/\r$$//' {} + && gunicorn --config gunicorn.config.py wsgi:app"
+      sh -c "find /app -type f -exec sed -i 's/\r$$//' {} + && gunicorn --config gunicorn.config.py --preload wsgi:app"
     depends_on:
       - now_pop_postgres
     networks:
       - now_pop_net
     ports:
-      #- "5000:5000"
+      - "5000:5000"
       - "8000:8000"
     restart: unless-stopped
 
