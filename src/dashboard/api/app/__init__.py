@@ -7,6 +7,8 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_sqlalchemy import SQLAlchemy
 import logging
+from alembic.config import Config
+from alembic import command
 import os
 from pathlib import Path
 import socket
@@ -66,6 +68,7 @@ def create_app(config_name: str) -> Flask:
     if config_name not in ["local_development", "testing"]:
         limiter._storage_uri = "memcached://ics_memcached:11211"
         limiter.init_app(app)
+        upgrade_alembic(app)
     create_users(app, db)
 
     @app.before_request
@@ -98,3 +101,12 @@ def add_users_to_db(user_name: str, password: str, role: UserRoleEnum, app: Flas
         user = User(username=user_name, password=password, role=role)
         db.session.add(user)
         db.session.commit()
+
+
+def upgrade_alembic(app: Flask):
+    alembic_cfg = Config(BASE.parent.joinpath("alembic.ini"))
+    alembic_cfg.set_main_option(
+        "sqlalchemy.url",
+        app.config["SQLALCHEMY_DATABASE_URI"],
+    )
+    command.upgrade(alembic_cfg, "head")
