@@ -37,9 +37,9 @@ paths:
 
   /test_get:
     get:
-      operationId: "app.endpoints.test_get"      
-      # security:
-      #   - JWTAuth: []
+      operationId: "app.endpoints.test_get"
+      security:
+        - JWTAuth: []
       tags:
         - "Test functions"
       summary: "Testing"
@@ -47,10 +47,10 @@ paths:
         "200":
           description: "Successfully tested"
 
-# components:
-#   securitySchemes:
-#     JWTAuth:
-#       type: http
-#       scheme: bearer
-#       bearerFormat: JWT
-#       x-bearerInfoFunc: app.auth.decode_token
+components:
+  securitySchemes:
+    JWTAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      x-bearerInfoFunc: app.endpoints.decodetoken
