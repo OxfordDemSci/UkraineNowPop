@@ -52,7 +52,6 @@ def create_app(config_name: str) -> Flask:
     app = connexion_app.app
     app.config.from_object(app_config[config_name])
     app.config["ENV"] = config_name
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     db.init_app(app)
     global bcrypt
     bcrypt = Bcrypt(app)
