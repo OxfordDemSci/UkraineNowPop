@@ -23,5 +23,4 @@ class User(Base):
             self.password = app.bcrypt.generate_password_hash(
                 password
             ).decode()
-            print("PASSWORD", self.password)
         self.role = role
