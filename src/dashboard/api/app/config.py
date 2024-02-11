@@ -31,7 +31,7 @@ class LocalDevelopmentConfig(Configuration):
     DB_USERNAME = os.environ.get("POSTGRES_READONLY")
     POSTGRES_DB = os.environ.get("POSTGRES_DB")
     POSTGRES_DB_TEST = os.environ.get("POSTGRES_DB_TEST")
-    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL")
+    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL_LOCAL")
     TEST_DATABASE_URI = os.environ.get("DATABASE_URL_TEST")
     DEBUG = True
 
