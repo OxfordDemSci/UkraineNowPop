@@ -1,9 +1,14 @@
 from flask import Flask, request, jsonify
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt, decode_token
 from flask_sqlalchemy import SQLAlchemy
 
 from app.models import User
 from app import db
+
+
+def decodetoken(token):
+    decoded_token = decode_token(token)
+    return decoded_token
 
 
 def login():
@@ -27,6 +32,4 @@ def login():
 def test_get():
     current_user = get_jwt_identity()
     claims = get_jwt()
-    print(claims)
-    print(current_user)
     return "Hello GISRede"
