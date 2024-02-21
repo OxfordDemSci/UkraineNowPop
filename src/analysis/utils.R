@@ -1,4 +1,4 @@
-requiredpackages <- c('ggplot2', 'ggthemes', 'tidyverse', 'here')
+requiredpackages <- c('httr2', 'tidyverse', 'jsonlite')
 
 # load or install packages
 install_load <- function(packages){
