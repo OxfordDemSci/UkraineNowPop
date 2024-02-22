@@ -1,29 +1,34 @@
+#install.packages("rstan")
+library("rstan")
+options(mc.cores = parallel::detectCores())
+rstan_options(auto_write = TRUE)
+
+
+
 modelString <- "data {
-  int<lower=0> N;      // Number of observations
-  vector[N] orig;   
-  vector[N] dest;  
-  vector[N] tot;   
+  int<lower=1> N;      // Number of observations
+  int<lower=1> K;      // Number of geo
+  int<lower=1, upper=K> orig[N];  
+  int<lower=1, upper=K> dest[N];  
 }
 
 parameters {
-  real beta_tot;       // Total
-  real beta_orig;      // Coefficient for orig
-  real beta_dest;      // Coefficient for dest
-  vector<lower=0>[N] lambda;  // Latent variable for Poisson rate
+  real alpha;  // Intercept
+  vector[K] beta1;  // Coefficients for orig
+  vector[K] beta2;  // Coefficients for dest
 }
 
 model {
-  // Priors
-  beta_tot ~ gamma(1, 1);
-  beta_orig ~ gamma(1, 1);
-  beta_dest ~ gamma(1, 1);
-  
- lambda ~ normal(0, 1);
+  vector[N] lambda;
+
+  for (i in 1:N) {
+    lambda[i] = alpha + beta1[orig[i]] + beta2[dest[i]];
+  }
 
 }
 
 generated quantities {
-  vector[N] Freq_pred;  // Predicted values for Freq
+  int<lower=0> Freq_pred[N];  // Simulated values for Freq
 
   for (i in 1:N) {
     Freq_pred[i] = poisson_rng(lambda[i]);   // Values from Poisson based on rate lambda
@@ -42,5 +47,8 @@ fit_lognormal <- stan(file = "src/analysis/toy_examples/loglinear/loglinear_mode
                chains = 3, cores = 3, 
                seed = 26)
 
+print(fit_lognormal)
+plot(fit_lognormal)
+
 plot(fit_lognormal, plotfun = "dens", 
-     pars = c("Freq_pred[1]"), inc_warmup = F) + scale_x_continuous(limits = c(0, 1))
+     pars = c("Freq_pred[1]"), inc_warmup = F)
