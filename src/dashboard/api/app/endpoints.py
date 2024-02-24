@@ -1,9 +1,27 @@
 from flask import Flask, request, jsonify
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt, decode_token
 from flask_sqlalchemy import SQLAlchemy
+from functools import wraps
 
 from app.models import User
 from app import db
+
+
+def check_scope(required_scope):
+    def decorator(f):
+        @wraps(f)
+        @jwt_required()
+        def decorated_function(*args, **kwargs):
+            claims = get_jwt()
+            user_scopes = claims['scope']
+
+            scope_hierarchy = ['read', 'write']
+            if scope_hierarchy.index(user_scopes) >= scope_hierarchy.index(required_scope):
+                return f(*args, **kwargs)
+            else:
+                return "You don't have permission to access this resource", 403
+        return decorated_function
+    return decorator
 
 
 def decodetoken(token):
@@ -28,8 +46,17 @@ def login():
     access_token = create_access_token(identity=username, additional_claims=additional_claims)
     return jsonify(access_token=access_token), 200
 
-@jwt_required()
+
+@check_scope("read")
 def test_get():
-    current_user = get_jwt_identity()
-    claims = get_jwt()
     return "Hello GISRede"
+
+
+@check_scope("read")
+def test_read():
+    return "Hello GISRede Reader"
+
+
+@check_scope("write")
+def test_write():
+    return "Hello GISRede Writer"

@@ -46,6 +46,33 @@ paths:
       responses:
         "200":
           description: "Successfully tested"
+  /test_read:
+    get:
+      operationId: "app.endpoints.test_read"
+      security:
+        - JWTAuth: []
+      tags:
+        - "Test functions"
+      summary: "Testing"
+      responses:
+        "200":
+          description: "Successfully read"
+        "403":
+          description: "Unauthorized to read"
+  /test_write:
+    get:
+      operationId: "app.endpoints.test_write"
+      security:
+        - JWTAuth: []
+      tags:
+        - "Test functions"
+      summary: "Testing"
+      responses:
+        "200":
+          description: "Successfully written"
+        "403":
+          description: "Unauthorized to write"
+
 
 components:
   securitySchemes:

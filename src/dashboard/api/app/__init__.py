@@ -87,7 +87,7 @@ def create_users(app: Flask, db) -> None:
     read_user = app.config["DB_USERNAME"]
     read_password = app.config["DB_PASSWORD"]
 
-    add_users_to_db(admin_user, admin_password, UserRoleEnum.ADMIN, app, db)
+    add_users_to_db(admin_user, admin_password, UserRoleEnum.WRITE, app, db)
     add_users_to_db(read_user, read_password, UserRoleEnum.READ, app, db)
 
 
