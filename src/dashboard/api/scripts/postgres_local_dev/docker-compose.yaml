@@ -3,7 +3,7 @@ version: '3'
 services:
   pop_now_postgres:
     container_name: oxford_pop_now_dashboard_db
-    image: postgres:13.11-bullseye
+    build: .
     env_file: .env
     networks:
       - pop_now_net

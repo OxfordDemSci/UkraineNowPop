@@ -50,7 +50,7 @@ services:
 
   now_pop_postgres:
     container_name: now_pop_db
-    image: postgres:15.5-bullseye
+    build: ./sql/
     env_file: 
       .env
     volumes:
