@@ -6,14 +6,21 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy import create_engine, inspect
 import psycopg2
+import geopandas as gpd  # type: ignore
+from geoalchemy2 import Geometry, WKBElement
+import pandas as pd
 
 BASE_DIR = Path(__file__).resolve().parent.parent  # API route
 sys.path.append(str(BASE_DIR))  # API route
 
-from app.models import AdminUnits
-from app.datatypes import CountriesEnum2, CountriesEnum3
+from app.models import AdminUnits, Languages, Countries, AdminUnitsMetadata
+from app.datatypes import CountriesEnum2, CountriesEnum3, UserRoleEnum
+from sqlalchemy.orm import sessionmaker
+from shapely.geometry import MultiPolygon
+from shapely.wkt import loads
 
 ENV = BASE_DIR.parent.joinpath('.env')
+GPKG = BASE_DIR.joinpath("app", "data", "db-data", "GEODATA.gpkg")
 load_dotenv(ENV)
 
 POSTGRES_USER = os.environ.get("POSTGRES_USER")
@@ -56,17 +63,103 @@ def upgrade_alembic(pg_host: str):
     command.upgrade(alembic_cfg, "head")
 
 
-def insert_admin_units():
-    print(CountriesEnum2.UA.value)
+def insert_admin_units(countries: list = ["UKR"]):
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    for country in countries:
+        query = session.query(AdminUnits).filter_by(country=CountriesEnum3[country])
+        if query:
+            query.delete(synchronize_session=False)
+        gdf = gpd.read_file(GPKG, layer=country)
+        gdf['geometry'] = gdf['geometry'].apply(lambda geom: MultiPolygon([geom]) if geom.geom_type == 'Polygon' else geom)
+        for index, row in gdf.iterrows():
+            admin_unit = AdminUnits(
+                country=CountriesEnum3[country],
+                pcode_0=CountriesEnum2[row["pcode_0"]],
+                pcode_1=row["pcode_1"],
+                pcode_2=row["pcode_2"],
+                pcode_3=row["pcode_3"],
+                adm0_en=row["adm0_en"],
+                adm0_lan2=row["adm0_lan2"],
+                adm0_lan3=row["adm0_lan3"],
+                adm1_en=row["adm1_en"],
+                adm1_lan2=row["adm1_lan2"],
+                adm1_lan3=row["adm1_lan3"],
+                adm2_en=row["adm2_en"],
+                adm2_lan2=row["adm2_lan2"],
+                adm2_lan3=row["adm2_lan3"],
+                adm3_en=row["adm3_en"],
+                adm3_lan2=row["adm3_lan2"],
+                adm3_lan3=row["adm3_lan3"],
+                geometry=row["geometry"].wkt
+            )
+            session.add(admin_unit)
+    session.commit()
+
+
+def add_languages(countries: list[dict[str, list]] = [{"UKR": ["Ukrainian", "Russian"]}]):
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    for country in countries:
+        for key, value in country.items():
+            query = session.query(Languages).filter_by(country=CountriesEnum3[key])
+            if not query.first():
+                language = Languages(country=CountriesEnum3[key], lan2=value[0], lan3=value[1])
+                session.add(language)
+    session.commit()
+
+
+def add_country_access(countries: list[dict] = [{"UKR": {"National": None, "Oblast": None, "Raion": "READ", "Hromada": "READ"}}]):
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    for country in countries:
+        for key, value in country.items():
+            query = session.query(Countries).filter_by(country=CountriesEnum3[key])
+            if not query.first():
+                admin_names = list(value.keys())
+                country = Countries(
+                    country=CountriesEnum3[key],
+                    adm0_access=value[admin_names[0]],
+                    adm1_access=value[admin_names[1]],
+                    adm2_access=value[admin_names[2]],
+                    adm3_access=value[admin_names[3]],
+                    adm1_name=admin_names[1],
+                    adm2_name=admin_names[2],
+                    adm3_name=admin_names[3]                 
+                    )
+                session.add(country)
+    session.commit()
 
 
 def insert_admin_units_meta_data():
-    pass
+    csv = BASE_DIR.parent.parent.parent.joinpath("data", "cod-ab", "global_pcodes.csv")
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    query = session.query(AdminUnitsMetadata).all()
+    if not query:
+        df = pd.read_csv(csv, skiprows=[1])
+        for index, row in df.iterrows():
+            admin_unit = AdminUnitsMetadata(
+                location=CountriesEnum3[row["Location"]],
+                admin_level=row["Admin Level"],
+                pcode=row["P-Code"],
+                name=row["Name"],
+                parent_pcode=row["Parent P-Code"],
+                valid_from=row["Valid from date"]
+            )
+            session.add(admin_unit)
+    session.commit()
+
+
 
 
 def main():
-    upgrade_alembic(pg_host)
-    insert_admin_units()
+    # upgrade_alembic(pg_host)
+    # insert_admin_units()
+    # add_languages()
+    # add_country_access()
+    insert_admin_units_meta_data()
 
 
 if __name__ == "__main__":
