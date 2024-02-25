@@ -6,7 +6,7 @@ from sqlalchemy.ext.declarative import declarative_base
 
 import app
 
-from .datatypes import UserRoleEnum
+from .datatypes import UserRoleEnum, CountriesEnum2, CountriesEnum3
 
 
 Base = declarative_base()
@@ -35,7 +35,7 @@ class Population(Base):  # type: ignore
     id = Column(Integer, primary_key=True, autoincrement=True)
     country = Column(String(3), nullable=False)
     admin_level = Column(SMALLINT, nullable=False)
-    pcode = Column(String(20), ForeignKey('admin_units.pcode'), nullable=False)
+    pcode = Column(String(20), nullable=False)
     day = Column(Date, nullable=False, index=True)
     age_min = Column(SMALLINT, nullable=False)
     age_max = Column(SMALLINT, nullable=False)
@@ -49,13 +49,51 @@ class Population(Base):  # type: ignore
 class AdminUnits(Base):  # type: ignore
     __tablename__ = "admin_units"
 
-    pcode = Column(String(20), primary_key=True, nullable=False)
-    admin_level = Column(SMALLINT, nullable=False)
-    country = Column(String(3), nullable=False)
-    name = Column(String(255), nullable=False)
-    parent_pcode = Column(String(20), nullable=True)
-    valid_from = Column(Date, nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    country: Column[Enum] = Column(Enum(CountriesEnum3), nullable=False)  # 3 letter ISO code
+    pcode_0: Column[Enum] = Column(Enum(CountriesEnum2), nullable=False)
+    pcode_1 = Column(String(20), nullable=True)
+    pcode_2 = Column(String(20), nullable=True)
+    pcode_3 = Column(String(20), nullable=True)
+    # adm0 3 languages
+    adm0_en = Column(String(255), nullable=False)
+    adm0_lan2 = Column(String(255), nullable=True)
+    adm0_lan3 = Column(String(255), nullable=True)
+    # adm1 3 languages
+    adm1_en = Column(String(255), nullable=True)
+    adm1_lan2 = Column(String(255), nullable=True)
+    adm_lan3 = Column(String(255), nullable=True)
+    # adm2 3 languages
+    adm2_en = Column(String(255), nullable=True)
+    adm2_lan2 = Column(String(255), nullable=True)
+    adm2_lan3 = Column(String(255), nullable=True)
+    # adm3 3 languages
+    adm3_en = Column(String(255), nullable=True)
+    adm3_lan2 = Column(String(255), nullable=True)
+    adm3_lan3 = Column(String(255), nullable=True)
+    # 1 geometry at highest resolution
     geometry: Column[Geometry] = Column(Geometry(geometry_type='MULTIPOLYGON', srid=4326), nullable=False)
+
+
+class AdminUnitsMetadata(Base):  # type: ignore
+    __tablename__ = "admin_units_metadata"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    location: Column[Enum] = Column(Enum(CountriesEnum3), nullable=False)
+    admin_level = Column(SMALLINT, nullable=False)
+    pcode = Column(String(20), nullable=True)
+    name = Column(String(255), nullable=True)
+    parent_pcode = Column(String(20), nullable=True)
+    valid_from = Column(Date, nullable=True)
+    
+
+class Languages(Base):  # type: ignore
+    __tablename__ = "languages"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    country: Column[Enum] = Column(Enum(CountriesEnum3), nullable=False)
+    lan2 = Column(String(255), nullable=True)
+    lan3 = Column(String(255), nullable=True)
 
 
 class Migration(Base):  # type: ignore
