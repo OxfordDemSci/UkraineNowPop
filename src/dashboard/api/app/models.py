@@ -62,7 +62,7 @@ class AdminUnits(Base):  # type: ignore
     # adm1 3 languages
     adm1_en = Column(String(255), nullable=True)
     adm1_lan2 = Column(String(255), nullable=True)
-    adm_lan3 = Column(String(255), nullable=True)
+    adm1_lan3 = Column(String(255), nullable=True)
     # adm2 3 languages
     adm2_en = Column(String(255), nullable=True)
     adm2_lan2 = Column(String(255), nullable=True)
@@ -109,3 +109,18 @@ class Migration(Base):  # type: ignore
     age_max = Column(SMALLINT, nullable=False)
     sex = Column(SMALLINT, nullable=False)
     probability = Column(Numeric(precision=5, scale=4), nullable=False)
+
+
+class Countries(Base):  # type: ignore
+    # Table defines what level of user access is allowed for each admin unit
+    __tablename__ = "countries"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    country: Column[Enum] = Column(Enum(CountriesEnum3, native_enum=False), nullable=False)
+    adm0_access: Column[Enum] = Column(Enum(UserRoleEnum, native_enum=False), nullable=True)
+    adm1_access: Column[Enum] = Column(Enum(UserRoleEnum, native_enum=False), nullable=True)
+    adm1_name = Column(String(255), nullable=True)
+    adm2_access: Column[Enum] = Column(Enum(UserRoleEnum, native_enum=False), nullable=True)
+    adm2_name = Column(String(255), nullable=True)
+    adm3_access: Column[Enum] = Column(Enum(UserRoleEnum, native_enum=False), nullable=True)
+    adm3_name = Column(String(255), nullable=True)
