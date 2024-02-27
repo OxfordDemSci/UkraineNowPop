@@ -52,11 +52,11 @@ class AdminUnits(Base):  # type: ignore
     pcode = Column(String(20), primary_key=True)
     admin_level = Column(SMALLINT, nullable=False)
     country: Column[Enum] = Column(Enum(CountriesEnum3), nullable=False)
+    country_lan2 = Column(String(255), nullable=True)
+    country_lan3 = Column(String(255), nullable=True)
     name_en = Column(String(255), nullable=False)
     name_lan2 = Column(String(255), nullable=True)
     name_lan3 = Column(String(255), nullable=True)
-    parent_pcode = Column(String(20), nullable=True)
-    valid_from = Column(Date, nullable=True)
     geometry: Column[Geometry] = Column(Geometry(geometry_type='MULTIPOLYGON', srid=4326), nullable=False)
 
 

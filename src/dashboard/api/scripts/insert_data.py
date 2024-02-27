@@ -63,6 +63,18 @@ def upgrade_alembic(pg_host: str):
     command.upgrade(alembic_cfg, "head")
 
 
+def subset_and_dissolve(
+        gdf: gpd.GeoDataFrame,
+        columns: list[str],
+        adm_level: int
+        ) -> gpd.GeoDataFrame:
+    gdf = gdf[columns]
+    gdf = gdf.set_index([x for x in columns if x not in [f"pcode_{adm_level}", "geometry"]])
+    gdf = gdf.dissolve(by=f"pcode_{adm_level}").reset_index()
+    gdf["adm_level"] = adm_level
+    return gdf
+
+
 def insert_admin_units(countries: list = ["UKR"]):
     Session = sessionmaker(bind=engine)
     session = Session()
@@ -73,28 +85,25 @@ def insert_admin_units(countries: list = ["UKR"]):
             query.delete(synchronize_session=False)
         gdf = gpd.read_file(GPKG, layer=country)
         gdf['geometry'] = gdf['geometry'].apply(lambda geom: MultiPolygon([geom]) if geom.geom_type == 'Polygon' else geom)
-        for index, row in gdf.iterrows():
-            admin_unit = AdminUnits(
-                country=CountriesEnum3[country],
-                pcode_0=CountriesEnum2[row["pcode_0"]],
-                pcode_1=row["pcode_1"],
-                pcode_2=row["pcode_2"],
-                pcode_3=row["pcode_3"],
-                adm0_en=row["adm0_en"],
-                adm0_lan2=row["adm0_lan2"],
-                adm0_lan3=row["adm0_lan3"],
-                adm1_en=row["adm1_en"],
-                adm1_lan2=row["adm1_lan2"],
-                adm1_lan3=row["adm1_lan3"],
-                adm2_en=row["adm2_en"],
-                adm2_lan2=row["adm2_lan2"],
-                adm2_lan3=row["adm2_lan3"],
-                adm3_en=row["adm3_en"],
-                adm3_lan2=row["adm3_lan2"],
-                adm3_lan3=row["adm3_lan3"],
-                geometry=row["geometry"].wkt
-            )
-            session.add(admin_unit)
+        for adm_level in range(0, 4):
+            gdf_subset = subset_and_dissolve(
+                gdf,
+                # TODO Rename the columns in the gdf to match the columns in the AdminUnits table
+                [f"pcode_{adm_level}", "adm_", "country_lan2", "country_lan3", "name_en", "name_lan2", "name_lan3", "geometry"],
+                adm_level)
+            for index, row in gdf_subset.iterrows():
+                admin_unit = AdminUnits(
+                    pcode=row["pcode"],
+                    admin_level=row["admin_level"],
+                    country=CountriesEnum3[country],
+                    country_lan2=row["country_lan2"],
+                    country_lan3=row["country_lan3"],
+                    name_en=row["name_en"],
+                    name_lan2=row["name_lan2"],
+                    name_lan3=row["name_lan3"],
+                    geometry=row["geometry"].wkt
+                )
+                session.add(admin_unit)
     session.commit()
 
 
@@ -156,10 +165,10 @@ def insert_admin_units_meta_data():
 
 def main():
     # upgrade_alembic(pg_host)
-    # insert_admin_units()
+    insert_admin_units()
     # add_languages()
     # add_country_access()
-    insert_admin_units_meta_data()
+    #insert_admin_units_meta_data()
 
 
 if __name__ == "__main__":
