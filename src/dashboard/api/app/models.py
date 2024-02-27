@@ -49,29 +49,14 @@ class Population(Base):  # type: ignore
 class AdminUnits(Base):  # type: ignore
     __tablename__ = "admin_units"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    country: Column[Enum] = Column(Enum(CountriesEnum3), nullable=False)  # 3 letter ISO code
-    pcode_0: Column[Enum] = Column(Enum(CountriesEnum2), nullable=False)
-    pcode_1 = Column(String(20), nullable=True)
-    pcode_2 = Column(String(20), nullable=True)
-    pcode_3 = Column(String(20), nullable=True)
-    # adm0 3 languages
-    adm0_en = Column(String(255), nullable=False)
-    adm0_lan2 = Column(String(255), nullable=True)
-    adm0_lan3 = Column(String(255), nullable=True)
-    # adm1 3 languages
-    adm1_en = Column(String(255), nullable=True)
-    adm1_lan2 = Column(String(255), nullable=True)
-    adm1_lan3 = Column(String(255), nullable=True)
-    # adm2 3 languages
-    adm2_en = Column(String(255), nullable=True)
-    adm2_lan2 = Column(String(255), nullable=True)
-    adm2_lan3 = Column(String(255), nullable=True)
-    # adm3 3 languages
-    adm3_en = Column(String(255), nullable=True)
-    adm3_lan2 = Column(String(255), nullable=True)
-    adm3_lan3 = Column(String(255), nullable=True)
-    # 1 geometry at highest resolution
+    pcode = Column(String(20), primary_key=True)
+    admin_level = Column(SMALLINT, nullable=False)
+    country: Column[Enum] = Column(Enum(CountriesEnum3), nullable=False)
+    name_en = Column(String(255), nullable=False)
+    name_lan2 = Column(String(255), nullable=True)
+    name_lan3 = Column(String(255), nullable=True)
+    parent_pcode = Column(String(20), nullable=True)
+    valid_from = Column(Date, nullable=True)
     geometry: Column[Geometry] = Column(Geometry(geometry_type='MULTIPOLYGON', srid=4326), nullable=False)
 
 
@@ -85,7 +70,7 @@ class AdminUnitsMetadata(Base):  # type: ignore
     name = Column(String(255), nullable=True)
     parent_pcode = Column(String(20), nullable=True)
     valid_from = Column(Date, nullable=True)
-    
+ 
 
 class Languages(Base):  # type: ignore
     __tablename__ = "languages"
