@@ -1,33 +1,40 @@
 data {
-  int<lower=0> N;          // Number of observations
-  vector[N] orig;     
-  vector[N] dest;     
+    int<lower=0> I; // number of oblasts i
+    int<lower=0> J; // number of oblasts j (dim i=j)
+    vector<lower=0>[I] row_margins;  // known margin for orig i
+    vector<lower=0>[J] col_margins;  // known margin for dest j
 }
 
 parameters {
-  real alpha;              // Intercept
-  real beta_orig;     // Coefficient for orig
-  real beta_dest;     // Coefficient for dest
+    matrix<lower=0>[I, J] cell_counts;    // unknown cell counts
 }
-
 model {
-  // Priors
-  alpha ~ normal(0, 1);
-  beta_orig ~ normal(0, 1);
-  beta_dest ~ normal(0, 1);
- 
-  // Likelihood
-  lambda = exp(alpha + beta_orig * orig + beta_dest * dest);
-  
+    // Define the log-linear model
+    
+    for (i in 1:I) {
+        for (j in 1:J) {
+         if (i == j) {
+            log(cell_counts[i, j]) ~ normal(0, 1); //stayers
+            
+         } else {
+            log(cell_counts[i, j]) ~ normal(0, 1); //movers
+            
+        }
+      }
+    }
+    
+   // Priors for the lambda parameters
+    lambda_diag ~ gamma(0.01, 0.01); 
+    lambda_off_diag ~ gamma(0.01, 0.01); 
+    
 
-  // Poisson likelihood for the unobserved variable Freq
-  target += poisson_log_lpmf(lambda | alpha + beta_orig * orig + beta_dest * dest);
-}
-
-generated quantities {
-  int<lower=0> Freq_pred[N];  // Simulated values for Freq
-
-  for (i in 1:N) {
-    Freq_pred[i] = poisson_rng(lambda[i]);   // Values from Poisson based on rate lambda
-  }
+   // Constraints to match margins
+    for (i in 1:I) {
+        sum(cell_counts[i, ]) ~ normal(row_margins[i], 0.1);   //allow small variance
+    }
+    
+    for (j in 1:J) {
+        sum(cell_counts[, j]) ~ normal(col_margins[j], 0.1);   //allow small variance
+    }
+    
 }
