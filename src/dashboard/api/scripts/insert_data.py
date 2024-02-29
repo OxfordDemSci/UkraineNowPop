@@ -9,6 +9,7 @@ import psycopg2
 import geopandas as gpd  # type: ignore
 from geoalchemy2 import Geometry, WKBElement
 import pandas as pd
+import fiona
 
 BASE_DIR = Path(__file__).resolve().parent.parent  # API route
 sys.path.append(str(BASE_DIR))  # API route
@@ -78,7 +79,7 @@ def subset_and_dissolve(
 def insert_admin_units(countries: list = ["UKR"]):
     Session = sessionmaker(bind=engine)
     session = Session()
-
+    countries = fiona.listlayers(GPKG)
     for country in countries:
         query = session.query(AdminUnits).filter_by(country=CountriesEnum3[country])
         if query:
