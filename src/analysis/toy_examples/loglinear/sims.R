@@ -83,17 +83,36 @@ freq_od_may <- as.data.frame(od_matrix_may) %>%
 freq_od <- rbind(freq_od_feb, freq_od_mar, freq_od_apr, freq_od_may)
 glimpse(freq_od)
 
+margin_orig <- freq_od %>%
+  select(orig, count_orig, month) %>%
+  unique() %>%
+  filter(month==1)
+
+margin_dest <- freq_od %>%
+  select(dest, count_dest, month) %>%
+  unique() %>%
+  filter(month==1)
+
 
 sim_data_list <- list(
-  N = nrow(freq_od),
-  K = max(as.numeric(freq_od$orig)),
-  count_orig = freq_od$count_orig,
-  count_dest = freq_od$count_dest,
-  count_tot = freq_od$count_tot,
-  orig = as.numeric(freq_od$orig),
-  dest = as.numeric(freq_od$dest),
-  Freq = freq_od$Freq
+  I = 5,
+  J = 5,
+  row_margins = margin_orig$count_orig,
+  col_margins = margin_dest$count_dest
 )
+
+
+fit_lognormal <- stan(file = "src/analysis/toy_examples/loglinear/loglinear_model.stan",
+               data = sim_data_list,
+               iter = 500, 
+               thin = 1, 
+               warmup = 100,
+               verbose = FALSE, 
+               chains = 3, cores = 3, 
+               seed = 26)
+
+print(fit_lognormal)
+plot(fit_lognormal)
 
 
 
