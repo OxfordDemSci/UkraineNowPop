@@ -15,16 +15,26 @@ def make_subset_columns(languages: list[str], levels: list[int]) -> list[str]:
     return cols
 
 
-def subset_gdf_for_dissolve_and_rename_cols(gdf: gpd.GeoDataFrame, level: int, languages: list ) -> gpd.GeoDataFrame:
-    cols = [x for x in gdf.columns if str(level) in x]
-    cols += ["country", "geometry"]
-    gdf_sub = gdf[cols]
-    gdf_sub = gdf_sub.set_index([x for x in gdf_sub.columns if x != "geometry"])
-    gdf_sub = gdf_sub.dissolve(by=[x for x in gdf_sub.columns if x != "geometry"])
-    gdf_sub.reset_index(inplace=True)
-    rename_cols = {f"ADM{level}_PCODE": "PCODE", f"ADM{level}_GEOMETRY": "geometry"}
-    gdf_sub.rename(columns=rename_cols, inplace=True)
-    return gdf_sub
+def subset_and_dissolve(gdf: gpd.GeoDataFrame, level: int, languages: list[str]) -> gpd.GeoDataFrame:
+    col_map = {
+        "pcode": f"adm{level}_pcode",
+        "country": "country",
+        "country_lan2": f"adm0_{languages[1].lower()}",
+        "country_lan3": f"adm0_{languages[2].lower()}",
+        "name_en": f"adm{level}_en",
+        "name_lan2": f"adm{level}_{languages[1].lower()}",
+        "name_lan3": f"adm{level}_{languages[2].lower()}",
+        "geometry": "geometry"
+    }
+    subset_cols = list(col_map.values())
+    gdf = gdf[subset_cols]
+    gdf.rename(columns={value: key for key, value in col_map.items()}, inplace=True)
+    gdf = gdf.dissolve(by=[x for x in gdf.columns if x != "geometry"]).reset_index()
+    gdf["admin_level"] = level
+    cols = list(col_map.keys())
+    cols.insert(1, "admin_level")
+    gdf = gdf[cols]
+    return gdf
 
 
 def prep_shp(
@@ -44,17 +54,11 @@ def prep_shp(
     gdf_simplify.rename(columns={x: x.lower() for x in gdf_simplify.columns}, inplace=True)
     gdf_simplify = gdf_simplify[[x for x in gdf_simplify.columns if x != "adm0_pcode"]]
     for level in levels[1:]:
-        cols = ["country", "geometry"]
-        cols += [x for x in gdf_simplify.columns if str(level) in x]
-        breakpoint()
-        gdf_sub = gdf_simplify[cols]
-        # Set index and dissolve
-        gdf_sub = gdf_sub.set_index([x for x in gdf_sub.columns if x not in ["geometry"]])
-        gdf_sub = gdf_sub.dissolve(by=[x for x in gdf_sub.columns if x not in ["geometry"]])
-        gdf_sub.reset_index(inplace=True)
-        rename_cols = {"adm{level}_pcode": "pcode", "adm{level}_geometry": "geometry"}
+        gdf_sub = subset_and_dissolve(gdf_simplify, level, languages=languages)
         gdf_list.append(gdf_sub)
     gdf_final = gpd.GeoDataFrame(pd.concat(gdf_list, ignore_index=True))
+    print(gdf_final.head())
+    print(gdf_final.columns)
     gdf_final.to_file(OUT_GPKG, layer=iso3, driver="GPKG")
 
 
