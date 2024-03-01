@@ -1,4 +1,5 @@
 from geoalchemy2 import Geometry
+from geoalchemy2.shape import to_shape
 from sqlalchemy import (
     Column, String, Integer, Enum, SMALLINT, ForeignKey, Date, Numeric, ARRAY
 )
@@ -58,6 +59,23 @@ class AdminUnits(Base):  # type: ignore
     name_lan2 = Column(String(255), nullable=True)
     name_lan3 = Column(String(255), nullable=True)
     geometry: Column[Geometry] = Column(Geometry(geometry_type='MULTIPOLYGON', srid=4326), nullable=False)
+
+    @property
+    def to_geojson(self):
+        return {
+            "type": "Feature",
+            "geometry": to_shape(self.geometry).__geo_interface__,
+            "properties": {
+                "pcode": self.pcode,
+                "admin_level": self.admin_level,
+                "country": self.country.value,
+                "country_lan2": self.country_lan2,
+                "country_lan3": self.country_lan3,
+                "name_en": self.name_en,
+                "name_lan2": self.name_lan2,
+                "name_lan3": self.name_lan3,
+            },
+        }
 
 
 class AdminUnitsMetadata(Base):  # type: ignore

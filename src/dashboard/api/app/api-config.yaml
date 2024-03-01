@@ -34,6 +34,34 @@ paths:
                     type: string
         '401':
           description: Unauthorized
+  /get_admin_units:
+    get:
+      operationId: "app.endpoints.get_admin_units"
+      parameters:
+        - name: "country"
+          required: true
+          in: "query"
+          schema:
+            type: "string"
+          description: "Country code in ISO 3166-1 alpha-3 format"
+        - name: "admin_level"
+          in: "query"
+          required: true
+          schema:
+            type: "integer"
+            minimum: 1
+            maximum: 3
+            default: 1
+          description: "Level of admin units to retrieve"
+      security:
+        - {}
+        #- JWTAuth: []
+      tags:
+        - "Admin units"
+      summary: "Get all admin units in geojson format"
+      responses:
+        "200":
+          description: "Successfully retrieved admin units"
 
   /test_get:
     get:

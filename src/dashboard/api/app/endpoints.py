@@ -1,9 +1,14 @@
-from flask import Flask, request, jsonify
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt, decode_token
+from flask import Flask, request, jsonify, make_response
+from flask_jwt_extended import (
+    JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt, decode_token
+)
 from flask_sqlalchemy import SQLAlchemy
+from flask.wrappers import Response
 from functools import wraps
+from typing import Union
 
 from app.models import User
+from app import data_queries as dq
 from app import db
 
 
@@ -41,10 +46,24 @@ def login():
     user = db.session.query(User).filter_by(username=username).first()
     if not user or not bcrypt.check_password_hash(user.password, password):
         return jsonify({'message': 'Invalid username or password'}), 401
-    
     additional_claims = {"scope": user.role.value}
     access_token = create_access_token(identity=username, additional_claims=additional_claims)
     return jsonify(access_token=access_token), 200
+
+
+@jwt_required(optional=True)
+def get_admin_units(
+    country: str,
+    admin_level: int,
+) -> Union[list[dict], Response]:
+    if admin_level not in [1, 2, 3]:
+        return make_response("Invalid admin level", 400)
+    if admin_level > 1:
+        current_user = get_jwt_identity()
+        if current_user is None:
+            return make_response("You need to be logged in to access this resource", 401)
+    data = dq.get_geodata(country, admin_level)
+    return data
 
 
 @check_scope("read")
