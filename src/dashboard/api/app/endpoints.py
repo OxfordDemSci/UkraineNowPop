@@ -63,6 +63,13 @@ def get_admin_units(
         if current_user is None:
             return make_response("You need to be logged in to access this resource", 401)
     data = dq.get_geodata(country, admin_level)
+    # import gzip
+    # import json
+    # json_data = json.dumps(data)
+    # compressed_data = gzip.compress(json_data.encode())
+    # uncompressed_size = len(json_data.encode())
+    # print(f"Compressed size: {len(compressed_data)} bytes")
+    # print(f"UnCompressed size: {uncompressed_size} bytes")
     return data
 
 

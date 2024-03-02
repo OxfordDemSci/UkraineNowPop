@@ -14,6 +14,7 @@ from pathlib import Path
 import socket
 from datetime import datetime, timezone
 from flask_jwt_extended import JWTManager
+from flask_compress import Compress
 
 from app.config import app_config
 from app.models import User
@@ -52,6 +53,8 @@ def create_app(config_name: str) -> Flask:
     app = connexion_app.app
     app.config.from_object(app_config[config_name])
     app.config["ENV"] = config_name
+    Compress(app)
+    app.config["COMPRESS_ALWAYS"] = True
     db.init_app(app)
     global bcrypt
     bcrypt = Bcrypt(app)
