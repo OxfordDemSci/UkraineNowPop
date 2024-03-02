@@ -65,7 +65,7 @@ def create_app(config_name: str) -> Flask:
         app.logger.addHandler(file_handler)
         app.logger.setLevel(logging.INFO)
     if config_name not in ["local_development", "testing"]:
-        limiter._storage_uri = "memcached://ics_memcached:11211"
+        limiter._storage_uri = "memcached://now_pop_memcached:11211"
         limiter.init_app(app)
         upgrade_alembic(app)
     create_users(app, db)

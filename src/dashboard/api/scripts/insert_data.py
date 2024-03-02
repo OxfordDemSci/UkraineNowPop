@@ -34,7 +34,7 @@ try:
         database=POSTGRES_DB,
         user=POSTGRES_USER,
         password=POSTGRES_PASSWORD,
-        host="ics_postgres",
+        host="now_pop_postgres",
         port="5432",
     )
     engine = create_engine(
@@ -125,7 +125,7 @@ def add_country_access(countries: list[dict] = [{"UKR": {"National": None, "Obla
 
 
 def insert_admin_units_meta_data():
-    csv = BASE_DIR.parent.parent.parent.joinpath("data", "cod-ab", "global_pcodes.csv")
+    csv = BASE_DIR.joinpath("app", "data", "db-data", "global_pcodes.csv")
     Session = sessionmaker(bind=engine)
     session = Session()
     query = session.query(AdminUnitsMetadata).all()
@@ -150,6 +150,7 @@ def main():
     add_languages()
     add_country_access()
     insert_admin_units_meta_data()
+    print("Data inserted successfully..........................!")
 
 
 if __name__ == "__main__":

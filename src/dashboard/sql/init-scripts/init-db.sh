@@ -8,13 +8,11 @@ database_exists() {
 # Create the test database if it doesn't exist
 if ! database_exists "$POSTGRES_DB_TEST"; then
   psql -U "$POSTGRES_USER" -d postgres -c "CREATE DATABASE $POSTGRES_DB_TEST;"
-  psql -U "$POSTGRES_USER" -d "$POSTGRES_DB_TEST" -c "CREATE EXTENSION IF NOT EXISTS postgis;"
 fi
 
 # Create the main database if it doesn't exist
 if ! database_exists "$POSTGRES_DB"; then
   psql -U "$POSTGRES_USER" -d postgres -c "CREATE DATABASE $POSTGRES_DB;"
-  psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "CREATE EXTENSION IF NOT EXISTS postgis;"
 fi
 
 # Run the SQL query for Main db
@@ -27,5 +25,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO $POSTGRES_RE
 psql -U "$POSTGRES_USER" -d "$POSTGRES_DB_TEST" -c "
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO $POSTGRES_READONLY;
 "
+psql -U "$POSTGRES_USER" -d "$POSTGRES_DB_TEST" -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "CREATE EXTENSION IF NOT EXISTS postgis;"
 
 
