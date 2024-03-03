@@ -53,3 +53,5 @@ po/*~
 rsconnect/
 
 .vscode
+data/dummy_tables/dummy_migration.parquet.gzip
+data/dummy_tables/dummy_pop.parquet.gzip
