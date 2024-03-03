@@ -44,7 +44,7 @@ class Population(Base):  # type: ignore
     pop = Column(Numeric(precision=10, scale=2), nullable=False)
     pop_upper = Column(Numeric(precision=10, scale=2), nullable=False)
     pop_lower = Column(Numeric(precision=10, scale=2), nullable=False)
-    pop_quartiles: Column = Column(ARRAY(Integer), nullable=False)
+    pop_quantiles: Column = Column(ARRAY(Integer), nullable=False)
 
 
 class AdminUnits(Base):  # type: ignore
