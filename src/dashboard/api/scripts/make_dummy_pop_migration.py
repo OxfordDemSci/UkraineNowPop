@@ -79,7 +79,6 @@ def make_dummy_pop_data(admin_units, total_population=50000000):
                                 "pop_lower": pop_lower,
                                 "pop_quantiles": pop_quantiles
                             })
-        print(f"Day {day} done")
     df = pd.DataFrame(data)
     df.insert(0, 'country', 'UKR')
     df['admin_level'] = df['admin_level'].astype('category')
@@ -115,23 +114,28 @@ def make_dummy_migration_data(df, admin_levels : list[int]):
 
 
 
-def main(
-        adm_units: str | Path,
-        out_file: str | Path,
+def main_migration(
         migration_out_file: str | Path,
         migration_levels: list[int],
-        pop: int = 50000000,
-        ) -> None:
+        ) -> pd.DataFrame:
+    adm_units = BASE.joinpath("ADMIN_UNITS.csv")
+    df = pd.read_csv(adm_units)
+    df_migration = make_dummy_migration_data(df, admin_levels=migration_levels)
+    df_migration.to_parquet(migration_out_file, index=False)
+    return df_migration
+
+
+def main_pop(out_file: str | Path, pop: int = 50000000) -> pd.DataFrame:
+    adm_units = BASE.joinpath("ADMIN_UNITS.csv")
     df = pd.read_csv(adm_units)
     df_out = make_dummy_pop_data(df, pop)
     df_out.to_parquet(out_file, index=False, compression="gzip")
-    df_migration = make_dummy_migration_data(df, admin_levels=[1])
-    df_migration.to_parquet(migration_out_file, index=False)  
+    return df_out
 
 
 if __name__ == "__main__":
-    adm_units = BASE.joinpath("ADMIN_UNITS.csv")
     out_file = BASE.parent.parent.parent.parent.joinpath("data", "dummy_tables", "dummy_pop.parquet.gzip")
     migration_out_file = BASE.parent.parent.parent.parent.joinpath("data", "dummy_tables", "dummy_migration.parquet.gzip")
     migration_levels = [1]
-    main(adm_units, out_file, migration_out_file, migration_levels)
+    _ = main_migration(migration_out_file, migration_levels)
+    _ = main_pop(out_file)

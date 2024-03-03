@@ -14,14 +14,17 @@ import fiona
 BASE_DIR = Path(__file__).resolve().parent.parent  # API route
 sys.path.append(str(BASE_DIR))  # API route
 
-from app.models import AdminUnits, Languages, Countries, AdminUnitsMetadata
+from app.models import AdminUnits, Languages, Countries, AdminUnitsMetadata, Migration, Population
 from app.datatypes import CountriesEnum2, CountriesEnum3, UserRoleEnum
 from sqlalchemy.orm import sessionmaker
 from shapely.geometry import MultiPolygon
 from shapely.wkt import loads
 
+import make_dummy_pop_migration as dummy
+
 ENV = BASE_DIR.parent.joinpath('.env')
 GPKG = BASE_DIR.joinpath("app", "data", "db-data", "GEODATA.gpkg")
+DATA = BASE_DIR.parent.parent.parent.joinpath("data/dummy_tables")
 load_dotenv(ENV)
 
 POSTGRES_USER = os.environ.get("POSTGRES_USER")
@@ -144,12 +147,99 @@ def insert_admin_units_meta_data():
     session.commit()
 
 
+def add_migration_data():
+    dummy_migration = DATA.joinpath("dummy_migration.parquet.gzip")
+    if not GPKG.parent.joinpath("migration.parquet.gzip").exists():
+        if not dummy_migration.exists():
+            df = dummy.main_migration(dummy_migration, [1])
+        else:
+            df = pd.read_parquet(GPKG.parent.joinpath("migration.parquet.gzip"))
+    if GPKG.parent.joinpath("migration.parquet.gzip").exists():
+        df = pd.read_parquet(GPKG.parent.joinpath("migration.parquet.gzip"))
+    df = df.astype({"admin_level": int, "age_min": int, "age_max": int, "sex": int})
+    print(df.dtypes)
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    query = session.query(Migration).all()
+    if not query:
+        # for index, row in df.iterrows():
+        #     migration = Migration(
+        #         country=row["country"],
+        #         admin_level=row["admin_level"],
+        #         origin=row["origin"],
+        #         destination=row["destination"],
+        #         day=row["day"],
+        #         age_min=row["age_min"],
+        #         age_max=row["age_max"],
+        #         sex=row["sex"],
+        #         probability=row["probability"]
+        #     )
+        #     session.add(migration)
+        data = df.to_dict(orient="records")
+        session.bulk_insert_mappings(Migration, data)
+    session.commit()
+
+def add_pop_data():
+    dummy_pop = DATA.joinpath("dummy_pop.parquet.gzip")
+    if not GPKG.parent.joinpath("pop.parquet.gzip").exists():
+        if not dummy_pop.exists():
+            df = dummy.main_pop(dummy_pop)
+        else:
+            df = pd.read_parquet(dummy_pop)
+    if GPKG.parent.joinpath("pop.parquet.gzip").exists():
+        df = pd.read_parquet(GPKG.parent.joinpath("pop.parquet.gzip"))
+    df["sex"] = df["sex"].replace({"male": 1, "female": 2})
+    df['pop_quantiles'] = df['pop_quantiles'].apply(lambda x: [int(i) for i in x])
+    df = df.astype({
+        "country": "string",
+        "admin_level": int,
+        "pcode": "string",
+        "age_min": int,
+        "age_max": int,
+        "pop": int,
+        "pop_upper": int,
+        "pop_lower": int,
+        "sex": int,
+        })
+    print(df.dtypes)
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    query = session.query(Population).all()
+    if not query:
+        # for index, row in df.iterrows():
+        #     population = Population(
+        #         country=row["country"],
+        #         admin_level=row["admin_level"],
+        #         pcode=row["pcode"],
+        #         day=row["day"],
+        #         age_min=row["age_min"],
+        #         age_max=row["age_max"],
+        #         sex=row["sex"],
+        #         pop=row["pop"],
+        #         pop_upper=row["pop_upper"],
+        #         pop_lower=row["pop_lower"],
+        #         pop_quantiles=row["pop_quantiles"]
+        #         )
+        #     session.add(population)
+        data = df.to_dict(orient="records")
+        session.bulk_insert_mappings(Population, data)
+    session.commit()
+
+
 def main():
-    upgrade_alembic(pg_host)
-    insert_admin_units()
-    add_languages()
-    add_country_access()
-    insert_admin_units_meta_data()
+    #upgrade_alembic(pg_host)
+    #insert_admin_units()
+    print("Admin units inserted successfully..........................!")
+    #add_languages()
+    print("Languages inserted successfully..........................!")
+    #add_country_access()
+    print("Country access inserted successfully..........................!")
+    #insert_admin_units_meta_data()
+    print("Admin units metadata inserted successfully..........................!")
+    add_pop_data()
+    print("Population data inserted successfully..........................!")
+    add_migration_data()
+    print("Migration data inserted successfully..........................!")
     print("Data inserted successfully..........................!")
 
 
