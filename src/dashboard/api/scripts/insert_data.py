@@ -153,28 +153,14 @@ def add_migration_data():
         if not dummy_migration.exists():
             df = dummy.main_migration(dummy_migration, [1])
         else:
-            df = pd.read_parquet(GPKG.parent.joinpath("migration.parquet.gzip"))
+            df = pd.read_parquet(dummy_migration)
     if GPKG.parent.joinpath("migration.parquet.gzip").exists():
         df = pd.read_parquet(GPKG.parent.joinpath("migration.parquet.gzip"))
     df = df.astype({"admin_level": int, "age_min": int, "age_max": int, "sex": int})
-    print(df.dtypes)
     Session = sessionmaker(bind=engine)
     session = Session()
     query = session.query(Migration).all()
     if not query:
-        # for index, row in df.iterrows():
-        #     migration = Migration(
-        #         country=row["country"],
-        #         admin_level=row["admin_level"],
-        #         origin=row["origin"],
-        #         destination=row["destination"],
-        #         day=row["day"],
-        #         age_min=row["age_min"],
-        #         age_max=row["age_max"],
-        #         sex=row["sex"],
-        #         probability=row["probability"]
-        #     )
-        #     session.add(migration)
         data = df.to_dict(orient="records")
         session.bulk_insert_mappings(Migration, data)
     session.commit()
@@ -201,40 +187,24 @@ def add_pop_data():
         "pop_lower": int,
         "sex": int,
         })
-    print(df.dtypes)
     Session = sessionmaker(bind=engine)
     session = Session()
     query = session.query(Population).all()
     if not query:
-        # for index, row in df.iterrows():
-        #     population = Population(
-        #         country=row["country"],
-        #         admin_level=row["admin_level"],
-        #         pcode=row["pcode"],
-        #         day=row["day"],
-        #         age_min=row["age_min"],
-        #         age_max=row["age_max"],
-        #         sex=row["sex"],
-        #         pop=row["pop"],
-        #         pop_upper=row["pop_upper"],
-        #         pop_lower=row["pop_lower"],
-        #         pop_quantiles=row["pop_quantiles"]
-        #         )
-        #     session.add(population)
         data = df.to_dict(orient="records")
         session.bulk_insert_mappings(Population, data)
     session.commit()
 
 
 def main():
-    #upgrade_alembic(pg_host)
-    #insert_admin_units()
+    upgrade_alembic(pg_host)
+    insert_admin_units()
     print("Admin units inserted successfully..........................!")
-    #add_languages()
+    add_languages()
     print("Languages inserted successfully..........................!")
-    #add_country_access()
+    add_country_access()
     print("Country access inserted successfully..........................!")
-    #insert_admin_units_meta_data()
+    insert_admin_units_meta_data()
     print("Admin units metadata inserted successfully..........................!")
     add_pop_data()
     print("Population data inserted successfully..........................!")
