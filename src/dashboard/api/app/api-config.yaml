@@ -62,6 +62,160 @@ paths:
       responses:
         "200":
           description: "Successfully retrieved admin units"
+  /get_population:
+    get:
+      operationId: "app.endpoints.get_population"
+      parameters:
+        - name: "country"
+          required: true
+          in: "query"
+          schema:
+            type: "string"
+          description: "Country code in ISO 3166-1 alpha-3 format"
+        - name: "admin_level"
+          in: "query"
+          required: true
+          schema:
+            type: "integer"
+            minimum: 1
+            maximum: 3
+            default: 1
+          description: "Level of admin units to retrieve"
+        - name: "date"
+          in: "query"
+          required: true
+          schema:
+            type: "string"
+            format: "date"
+          description: "Date in YYYY-MM-DD format"
+        - name: "admin_id"
+          in: "query"
+          required: false
+          schema:
+            type: "string"
+          description: "Admin unit id"
+        - name: "age_min_male"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            minimum: 0
+            maximum: 80
+            default: 0
+          description: "Minimum Male"
+        - name: "age_max_male"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            minimum: 0
+            maximum: 80
+            default: 80
+          description: "Maximum Male"
+        - name: "age_min_female"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            minimum: 0
+            maximum: 80
+            default: 0
+          description: "Minimum Female"
+        - name: "age_max_female"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            minimum: 0
+            maximum: 80
+            default: 80
+          description: "Maximum Female"
+      security:
+        - {}
+        #- JWTAuth: []
+      tags:
+        - "Population"
+      summary: "Get population data"
+      responses:
+        "200":
+          description: "Successfully retrieved population data"
+  /get_migration_probabilities:
+    get:
+      operationId: "app.endpoints.get_migration_probabilities"
+      parameters:
+        - name: "country"
+          required: true
+          in: "query"
+          schema:
+            type: "string"
+          description: "Country code in ISO 3166-1 alpha-3 format"
+        - name: "admin_level"
+          in: "query"
+          required: true
+          schema:
+            type: "integer"
+            minimum: 1
+            maximum: 3
+            default: 1
+          description: "Level of admin units to retrieve"
+        - name: "date"
+          in: "query"
+          required: true
+          schema:
+            type: "string"
+            format: "date"
+          description: "Date in YYYY-MM-DD format"
+        - name: "admin_id"
+          in: "query"
+          required: false
+          schema:
+            type: "string"
+          description: "Admin unit id"
+        - name: "age_min_male"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            minimum: 0
+            maximum: 80
+            default: 0
+          description: "Minimum Male"
+        - name: "age_max_male"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            minimum: 0
+            maximum: 80
+            default: 80
+          description: "Maximum Male"
+        - name: "age_min_female"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            minimum: 0
+            maximum: 80
+            default: 0
+          description: "Minimum Female"
+        - name: "age_max_female"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            minimum: 0
+            maximum: 80
+            default: 80
+          description: "Maximum Female"
+      security:
+        - {}
+        #- JWTAuth: []
+      tags:
+        - "Migration"
+      summary: "Get migration probabilities"
+      responses:
+        "200":
+          description: "Successfully retrieved migration probabilities"
 
   /test_get:
     get:
