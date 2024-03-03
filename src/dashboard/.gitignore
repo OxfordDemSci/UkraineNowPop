@@ -1,5 +1,5 @@
 .env
-
+/api/api_logs.log
 # Byte-compiled / optimized / DLL files
 *.pyc
 *.py[cod]

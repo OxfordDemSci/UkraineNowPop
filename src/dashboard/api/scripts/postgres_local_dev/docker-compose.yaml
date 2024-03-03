@@ -3,12 +3,12 @@ version: '3'
 services:
   pop_now_postgres:
     container_name: oxford_pop_now_dashboard_db
-    image: postgres:13.11-bullseye
+    build: .
     env_file: .env
     networks:
       - pop_now_net
     volumes:
-      - ./init-scripts:/docker-entrypoint-initdb.d
+      - ./init-scripts/:/docker-entrypoint-initdb.d
     ports:
       - "5432:5432"
     restart: unless-stopped

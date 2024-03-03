@@ -1,0 +1,111 @@
+openapi: 3.0.0
+info:
+  title: "University of Oxford Now Pop Dashboard"
+  description: "REST API powering the Now Pop Dashboard - Nowcasting Ukraine's population subnationally every day: Bayesian methods and interactive dashboard"
+  version: "1.0.0"
+servers:
+  - url: "/api"
+paths:
+  
+  /login:
+    post:
+      summary: User login
+      operationId: app.endpoints.login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+        '401':
+          description: Unauthorized
+  /get_admin_units:
+    get:
+      operationId: "app.endpoints.get_admin_units"
+      parameters:
+        - name: "country"
+          required: true
+          in: "query"
+          schema:
+            type: "string"
+          description: "Country code in ISO 3166-1 alpha-3 format"
+        - name: "admin_level"
+          in: "query"
+          required: true
+          schema:
+            type: "integer"
+            minimum: 1
+            maximum: 3
+            default: 1
+          description: "Level of admin units to retrieve"
+      security:
+        - {}
+        #- JWTAuth: []
+      tags:
+        - "Admin units"
+      summary: "Get all admin units in geojson format"
+      responses:
+        "200":
+          description: "Successfully retrieved admin units"
+
+  /test_get:
+    get:
+      operationId: "app.endpoints.test_get"
+      security:
+        - JWTAuth: []
+      tags:
+        - "Test functions"
+      summary: "Testing"
+      responses:
+        "200":
+          description: "Successfully tested"
+  /test_read:
+    get:
+      operationId: "app.endpoints.test_read"
+      security:
+        - JWTAuth: []
+      tags:
+        - "Test functions"
+      summary: "Testing"
+      responses:
+        "200":
+          description: "Successfully read"
+        "403":
+          description: "Unauthorized to read"
+  /test_write:
+    get:
+      operationId: "app.endpoints.test_write"
+      security:
+        - JWTAuth: []
+      tags:
+        - "Test functions"
+      summary: "Testing"
+      responses:
+        "200":
+          description: "Successfully written"
+        "403":
+          description: "Unauthorized to write"
+
+
+components:
+  securitySchemes:
+    JWTAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      x-bearerInfoFunc: app.endpoints.decodetoken
