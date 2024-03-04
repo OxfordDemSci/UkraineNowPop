@@ -57,4 +57,4 @@ long_data <- pivot_longer(dummy_dataset,
                     q20_pop = ifelse(abs(mean_pop)<=1, 0, abs(abs(mean_pop)+qnorm(0.60))), 
                     q80_pop = abs(abs(mean_pop)+qnorm(0.80))) %>% ungroup() 
   
- write.csv(long_data, "long_dummy_data.csv")
+ write.csv(long_data, "dummy_data_pop.csv")
