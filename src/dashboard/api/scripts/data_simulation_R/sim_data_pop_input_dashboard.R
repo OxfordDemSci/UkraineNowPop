@@ -3,12 +3,12 @@ library("tidyverse")
 
 
 dummy_dataset <- expand.grid(
-  admin1_code = c("UA05", "UA07", "UA12", "UA14", "UA18", 
-                  "UA21", "UA23", "UA26", "UA32", "UA35", 
-                  "UA44", "UA46", "UA48", "UA51", "UA53", 
-                  "UA56", "UA59", "UA61", "UA63", "UA65", 
-                  "UA68", "UA71", "UA73", "UA74", "UA80",
-                  "RW"),   #RW = Rest of the world
+  admin1_code = c("UA01", "UA05", "UA07", "UA12", "UA14",
+                  "UA18", "UA21", "UA23", "UA26", "UA32",
+                  "UA35", "UA44", "UA46", "UA48", "UA51",
+                  "UA53", "UA56", "UA59", "UA61", "UA63",
+                  "UA65", "UA68", "UA71", "UA73", "UA74",
+                  "UA80", "UA85"),  
   
   sex = c("male", "female"),
   
@@ -28,14 +28,14 @@ gen_rn <- function(total_sum, num_elements) {
 start_date <- as.Date("2022/2/24")
 end_date <- Sys.Date()
 
-total_sum <- 43790000
+total_sum <- 43790000    #baseline population
 
-num_elements <- 26*2*17  # number of geo x sex x age_groups
+num_elements <- 27*2*17  # number of admon1_code x sex x age_groups
 
 all_days <- list()
   
 for (day in seq(start_date, end_date, by="day")) {
-    set.seed(day) # 
+    set.seed(day) 
     all_days[[day]] <- gen_rn(total_sum, num_elements)
   }
   
@@ -55,6 +55,6 @@ long_data <- pivot_longer(dummy_dataset,
                     q2.5_pop = ifelse(abs(mean_pop)<=1, 0, abs(abs(mean_pop)+qnorm(0.025))),
                     q97.5_pop = abs(abs(mean_pop)+qnorm(0.975)),
                     q20_pop = ifelse(abs(mean_pop)<=1, 0, abs(abs(mean_pop)+qnorm(0.60))), 
-                    q80_pop = abs(abs(mean_pop)+qnorm(0.80))) %>% ungroup() 
+                    q80_pop = abs(abs(mean_pop)+qnorm(0.80))) %>% ungroup()
   
  write.csv(long_data, "dummy_data_pop.csv")
