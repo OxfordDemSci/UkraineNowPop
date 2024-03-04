@@ -50,10 +50,11 @@ long_data <- pivot_longer(dummy_dataset,
                             names_to = "Day", 
                             values_to = "mean_pop") %>%
              group_by(Day) %>%
-             mutate(median_pop = mean_pop,
-                    q2.5_pop = mean_pop-qnorm(0.975)*sd(mean_pop)/sqrt(dim(dummy_dataset)[1]),
-                    q97.5_pop = mean_pop+qnorm(0.975)*sd(mean_pop)/sqrt(dim(dummy_dataset)[1]),
-                    q20_pop = mean_pop-qnorm(0.80)*sd(mean_pop)/sqrt(dim(dummy_dataset)[1]), 
-                    q80_pop = mean_pop+qnorm(0.80)*sd(mean_pop)/sqrt(dim(dummy_dataset)[1])) %>% ungroup()
+             mutate(mean_pop = abs(mean_pop),
+                    median_pop = abs(mean_pop),
+                    q2.5_pop = ifelse(abs(mean_pop)<=1, 0, abs(abs(mean_pop)+qnorm(0.025))),
+                    q97.5_pop = abs(abs(mean_pop)+qnorm(0.975)),
+                    q20_pop = ifelse(abs(mean_pop)<=1, 0, abs(abs(mean_pop)+qnorm(0.60))), 
+                    q80_pop = abs(abs(mean_pop)+qnorm(0.80))) %>% ungroup() 
   
  write.csv(long_data, "long_dummy_data.csv")
