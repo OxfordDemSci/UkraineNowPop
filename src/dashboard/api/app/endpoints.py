@@ -51,6 +51,10 @@ def login():
     return jsonify(access_token=access_token), 200
 
 
+def init(country: str):
+    return dq.init(country)
+
+
 @jwt_required(optional=True)
 def get_admin_units(
     country: str,
@@ -70,6 +74,64 @@ def get_admin_units(
     # uncompressed_size = len(json_data.encode())
     # print(f"Compressed size: {len(compressed_data)} bytes")
     # print(f"UnCompressed size: {uncompressed_size} bytes")
+    return data
+
+
+def get_population(
+    country: str,
+    admin_level: int,
+    date: str,
+    admin_id: str | None = None,
+    age_min_male: int | None = None,
+    age_max_male: int | None = None,
+    age_min_female: int | None = None,
+    age_max_female: int | None = None,
+) -> Union[list[dict], Response]:
+    if admin_level not in [1, 2, 3]:
+        return make_response("Invalid admin level", 400)
+    if admin_level > 1:
+        current_user = get_jwt_identity()
+        if current_user is None:
+            return make_response("You need to be logged in to access this resource", 401)
+    data = dq.get_population(
+        country,
+        admin_level,
+        date,
+        admin_id,
+        age_min_male,
+        age_max_male,
+        age_min_female,
+        age_max_female
+        )
+    return data
+
+
+def get_migration_probabilities(
+        country: str,
+        admin_level: int,
+        date: str,
+        admin_id: str | None = None,
+        age_min_male: int | None = None,
+        age_max_male: int | None = None,
+        age_min_female: int | None = None,
+        age_max_female: int | None = None,
+) -> Union[list[dict], Response]:
+    if admin_level not in [1, 2, 3]:
+        return make_response("Invalid admin level", 400)
+    if admin_level > 1:
+        current_user = get_jwt_identity()
+        if current_user is None:
+            return make_response("You need to be logged in to access this resource", 401)
+    data = dq.get_migration_probabilities(
+        country,
+        admin_level,
+        date,
+        admin_id,
+        age_min_male,
+        age_max_male,
+        age_min_female,
+        age_max_female
+    )
     return data
 
 

@@ -34,6 +34,22 @@ paths:
                     type: string
         '401':
           description: Unauthorized
+  /init:
+    get:
+      operationId: "app.endpoints.init"
+      parameters:
+        - name: "country"
+          required: true
+          in: "query"
+          schema:
+            type: "string"
+          description: "Country code in ISO 3166-1 alpha-3 format"
+      tags:
+        - "Initialization"
+      summary: "Initialize the app"
+      responses:
+        "200":
+          description: "Successfully initialized"
   /get_admin_units:
     get:
       operationId: "app.endpoints.get_admin_units"
