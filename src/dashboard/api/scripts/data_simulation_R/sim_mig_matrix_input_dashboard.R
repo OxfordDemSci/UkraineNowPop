@@ -3,19 +3,19 @@ library("tidyverse")
 
 
 dummy_mig_matrix <- expand.grid(
-  orig_admin1_code = c("UA05", "UA07", "UA12", "UA14", "UA18", 
-                  "UA21", "UA23", "UA26", "UA32", "UA35", 
-                  "UA44", "UA46", "UA48", "UA51", "UA53", 
-                  "UA56", "UA59", "UA61", "UA63", "UA65", 
-                  "UA68", "UA71", "UA73", "UA74", "UA80",
-                  "RW"),   #RW = Rest of the world
+orig_admin1_code=c("UA01", "UA05", "UA07", "UA12", "UA14",
+                   "UA18", "UA21", "UA23", "UA26", "UA32",
+                   "UA35", "UA44", "UA46", "UA48", "UA51",
+                   "UA53", "UA56", "UA59", "UA61", "UA63",
+                   "UA65", "UA68", "UA71", "UA73", "UA74",
+                   "UA80", "UA85"), 
   
-  dest_admin1_code = c("UA05", "UA07", "UA12", "UA14", "UA18", 
-                  "UA21", "UA23", "UA26", "UA32", "UA35", 
-                  "UA44", "UA46", "UA48", "UA51", "UA53", 
-                  "UA56", "UA59", "UA61", "UA63", "UA65", 
-                  "UA68", "UA71", "UA73", "UA74", "UA80",
-                  "RW"),   #RW = Rest of the world
+  dest_admin1_code = c("UA01", "UA05", "UA07", "UA12", "UA14",
+                       "UA18", "UA21", "UA23", "UA26", "UA32",
+                       "UA35", "UA44", "UA46", "UA48", "UA51",
+                       "UA53", "UA56", "UA59", "UA61", "UA63",
+                       "UA65", "UA68", "UA71", "UA73", "UA74",
+                       "UA80", "UA85"), 
   
   sex = c("male", "female"),
   
@@ -38,7 +38,7 @@ end_date <- Sys.Date()
 
 total_sum <- 1
 
-num_elements <- 650*2*17  # number of corridors (orig!=dest) x sex x age_groups
+num_elements <- 702*2*17  # number of corridors (orig!=dest) x sex x age_groups
 
 all_days <- list()
 
