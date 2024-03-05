@@ -105,7 +105,7 @@ def get_population(
         )
     return data
 
-
+@jwt_required(optional=True)
 def get_migration_probabilities(
         country: str,
         admin_level: int,
