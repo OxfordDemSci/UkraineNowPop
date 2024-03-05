@@ -76,7 +76,7 @@ def get_admin_units(
     # print(f"UnCompressed size: {uncompressed_size} bytes")
     return data
 
-
+@jwt_required(optional=True)
 def get_population(
     country: str,
     admin_level: int,
