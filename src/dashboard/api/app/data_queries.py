@@ -1,4 +1,6 @@
 from sqlalchemy import distinct, func
+from collections import defaultdict
+
 
 from .models import AdminUnits, Population, Migration, Countries, Languages
 from app import db
@@ -184,4 +186,52 @@ def get_migration_probabilities(
         age_min_female: int | None = None,
         age_max_female: int | None = None,
 ) -> dict:
-    pass
+    age_ranges = get_age_ranges(country)
+    male_min_max = get_min_max_age_ranges(age_ranges, age_min_male, age_max_male)
+    female_min_max = get_min_max_age_ranges(age_ranges, age_min_female, age_max_female)
+    
+    # FIXME SHOULD PROBABILITIES BE SUMMED OR AVERAGED?
+    
+    probabilities = defaultdict(list)
+    if male_min_max:
+        male_query = (
+            db.session.query(Migration.origin, Migration.destination, func.sum(Migration.probability).label('probability'))
+            .filter(
+                Migration.age_min >= male_min_max[0]["age_min"],
+                Migration.age_min <= male_min_max[1]["age_min"],
+                Migration.age_max >= male_min_max[0]["age_max"],
+                Migration.age_max <= male_min_max[1]["age_max"],
+                Migration.sex == 0,  # FIXME: This should be 1
+                Migration.admin_level == admin_level,
+                Migration.day == date,
+                Migration.country == country
+            )
+            .group_by(Migration.origin, Migration.destination)
+        )
+        if admin_id:
+            male_query = male_query.filter(Migration.origin == admin_id)
+    if female_min_max:
+        female_query = (
+            db.session.query(Migration.origin, Migration.destination, func.sum(Migration.probability).label('probability'))
+            .filter(
+                Migration.age_min >= female_min_max[0]["age_min"],
+                Migration.age_min <= female_min_max[1]["age_min"],
+                Migration.age_max >= female_min_max[0]["age_max"],
+                Migration.age_max <= female_min_max[1]["age_max"],
+                Migration.sex == 1,  # FIXME this should be 2
+                Migration.admin_level == admin_level,
+                Migration.day == date,
+                Migration.country == country
+            )
+            .group_by(Migration.origin, Migration.destination)
+        )
+        if admin_id:
+            female_query = female_query.filter(Migration.origin == admin_id)
+
+    male_results = male_query.all()
+    female_results = female_query.all()
+    results = male_results + female_results
+    if results:
+        for origin, destination, probability in male_results:
+            probabilities[origin].append({"destination": destination, "probability": probability})
+    return dict(probabilities)
