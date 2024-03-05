@@ -148,14 +148,11 @@ def insert_admin_units_meta_data():
 
 
 def add_migration_data():
-    dummy_migration = DATA.joinpath("dummy_migration.parquet.gzip")
-    if not GPKG.parent.joinpath("migration.parquet.gzip").exists():
-        if not dummy_migration.exists():
-            df = dummy.main_migration(dummy_migration, [1])
-        else:
-            df = pd.read_parquet(dummy_migration)
-    if GPKG.parent.joinpath("migration.parquet.gzip").exists():
-        df = pd.read_parquet(GPKG.parent.joinpath("migration.parquet.gzip"))
+    dummy_migration = GPKG.parent.joinpath("migration.parquet.gzip")
+    if not dummy_migration.exists():
+        df = dummy.main_migration(dummy_migration, [1])
+    else:
+        df = pd.read_parquet(dummy_migration)
     df = df.astype({"admin_level": int, "age_min": int, "age_max": int, "sex": int})
     Session = sessionmaker(bind=engine)
     session = Session()
@@ -165,15 +162,13 @@ def add_migration_data():
         session.bulk_insert_mappings(Migration, data)
     session.commit()
 
+
 def add_pop_data():
-    dummy_pop = DATA.joinpath("dummy_pop.parquet.gzip")
-    if not GPKG.parent.joinpath("pop.parquet.gzip").exists():
-        if not dummy_pop.exists():
-            df = dummy.main_pop(dummy_pop)
-        else:
-            df = pd.read_parquet(dummy_pop)
-    if GPKG.parent.joinpath("pop.parquet.gzip").exists():
-        df = pd.read_parquet(GPKG.parent.joinpath("pop.parquet.gzip"))
+    dummy_pop = GPKG.parent.joinpath("pop.parquet.gzip")
+    if not dummy_pop.exists():
+        df = dummy.main_pop(dummy_pop)
+    else:
+        df = pd.read_parquet(dummy_pop)
     df["sex"] = df["sex"].replace({"male": 1, "female": 2})
     df['pop_quantiles'] = df['pop_quantiles'].apply(lambda x: [int(i) for i in x])
     df = df.astype({
