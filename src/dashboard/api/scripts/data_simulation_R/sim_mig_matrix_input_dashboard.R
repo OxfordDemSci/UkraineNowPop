@@ -76,7 +76,7 @@ long_data <- pivot_longer(dummy_mig_matrix,
   pivot_longer(cols = c("all", "female", "male"),
                names_to = "sex",
                values_to = "probability") %>%
-  mutate(sex = recode(sex, "male"=1, "female"=2),
+  mutate(sex = recode(sex, "all"=0, "male"=1, "female"=2),
          count = 43790000*probability) %>%
   select(country, admin_level, origin, destination, day,
          age_min, age_max, sex, probability, count)
