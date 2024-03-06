@@ -80,8 +80,9 @@ long_data <- pivot_longer(dummy_dataset,
 
 long_data1 <- long_data %>%
   rowwise() %>%
-  mutate(pop_posterior = paste("[", paste(rpois(1000, pop), collapse = ", "), "]")) %>%
+  mutate(pop_posterior = paste("[", paste(sort(rpois(1000, pop)), collapse = ", "), "]")) %>%
   ungroup()
 
 
-#write.csv(long_data1, "dummy_data_pop.csv")
+
+#write.csv(long_data, "dummy_data_pop.csv")
