@@ -67,29 +67,33 @@ def upgrade_alembic(pg_host: str):
     command.upgrade(alembic_cfg, "head")
 
 
-def insert_admin_units():
+def insert_admin_units(overwrite_existing: bool = False):
     Session = sessionmaker(bind=engine)
     session = Session()
     countries = fiona.listlayers(GPKG)
     for country in countries:
-        query = session.query(AdminUnits).filter_by(country=CountriesEnum3[country])
-        if query:
+        query = session.query(AdminUnits).filter_by(country=CountriesEnum3[country]).all()
+        if query and overwrite_existing:
             query.delete(synchronize_session=False)
-        gdf = gpd.read_file(GPKG, layer=country)
-        gdf['geometry'] = gdf['geometry'].apply(lambda geom: MultiPolygon([geom]) if geom.geom_type == 'Polygon' else geom)
-        for _, row in gdf.iterrows():
-            admin_unit = AdminUnits(
-                pcode=row["pcode"],
-                admin_level=row["admin_level"],
-                country=CountriesEnum3[country],
-                country_lan2=row["country_lan2"],
-                country_lan3=row["country_lan3"],
-                name_en=row["name_en"],
-                name_lan2=row["name_lan2"],
-                name_lan3=row["name_lan3"],
-                geometry=row["geometry"].wkt
-            )
-            session.add(admin_unit)
+        if not query or overwrite_existing:        
+            gdf = gpd.read_file(GPKG, layer=country)
+            gdf['geometry'] = gdf['geometry'].apply(
+                lambda geom: MultiPolygon([geom]) if geom.geom_type == 'Polygon' else geom
+                )
+            data = []
+            for _, row in gdf.iterrows():
+                data.append({
+                    'pcode': row["pcode"],
+                    'admin_level': row["admin_level"],
+                    'country': CountriesEnum3[country],
+                    'country_lan2': row["country_lan2"],
+                    'country_lan3': row["country_lan3"],
+                    'name_en': row["name_en"],
+                    'name_lan2': row["name_lan2"],
+                    'name_lan3': row["name_lan3"],
+                    'geometry': row["geometry"].wkt
+                })
+            session.bulk_insert_mappings(AdminUnits, data)
     session.commit()
 
 
@@ -195,17 +199,17 @@ def main():
     upgrade_alembic(pg_host)
     insert_admin_units()
     print("Admin units inserted successfully..........................!")
-    add_languages()
-    print("Languages inserted successfully..........................!")
-    add_country_access()
-    print("Country access inserted successfully..........................!")
-    insert_admin_units_meta_data()
-    print("Admin units metadata inserted successfully..........................!")
-    add_pop_data()
-    print("Population data inserted successfully..........................!")
-    add_migration_data()
-    print("Migration data inserted successfully..........................!")
-    print("Data inserted successfully..........................!")
+    # add_languages()
+    # print("Languages inserted successfully..........................!")
+    # add_country_access()
+    # print("Country access inserted successfully..........................!")
+    # insert_admin_units_meta_data()
+    # print("Admin units metadata inserted successfully..........................!")
+    # add_pop_data()
+    # print("Population data inserted successfully..........................!")
+    # add_migration_data()
+    # print("Migration data inserted successfully..........................!")
+    # print("Data inserted successfully..........................!")
 
 
 if __name__ == "__main__":
