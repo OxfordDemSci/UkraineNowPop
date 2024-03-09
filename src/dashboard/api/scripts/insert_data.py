@@ -75,7 +75,7 @@ def insert_admin_units(overwrite_existing: bool = False):
         query = session.query(AdminUnits).filter_by(country=CountriesEnum3[country]).all()
         if query and overwrite_existing:
             query.delete(synchronize_session=False)
-        if not query or overwrite_existing:        
+        if not query or overwrite_existing:
             gdf = gpd.read_file(GPKG, layer=country)
             gdf['geometry'] = gdf['geometry'].apply(
                 lambda geom: MultiPolygon([geom]) if geom.geom_type == 'Polygon' else geom
@@ -131,23 +131,26 @@ def add_country_access(countries: list[dict] = [{"UKR": {"National": None, "Obla
     session.commit()
 
 
-def insert_admin_units_meta_data():
+def insert_admin_units_meta_data(overwrite_existing: bool = False):
     csv = BASE_DIR.joinpath("app", "data", "db-data", "global_pcodes.csv")
     Session = sessionmaker(bind=engine)
     session = Session()
     query = session.query(AdminUnitsMetadata).all()
-    if not query:
+    if query and overwrite_existing:
+        query.delete(synchronize_session=False)
+    if not query or overwrite_existing:
         df = pd.read_csv(csv, skiprows=[1])
+        data = []
         for index, row in df.iterrows():
-            admin_unit = AdminUnitsMetadata(
-                location=CountriesEnum3[row["Location"]],
-                admin_level=row["Admin Level"],
-                pcode=row["P-Code"],
-                name=row["Name"],
-                parent_pcode=row["Parent P-Code"],
-                valid_from=row["Valid from date"]
-            )
-            session.add(admin_unit)
+            data.append({
+                'location': CountriesEnum3[row["Location"]],
+                'admin_level': row["Admin Level"],
+                'pcode': row["P-Code"],
+                'name': row["Name"],
+                'parent_pcode': row["Parent P-Code"],
+                'valid_from': row["Valid from date"]
+            })
+        session.bulk_insert_mappings(AdminUnitsMetadata, data)
     session.commit()
 
 
@@ -199,12 +202,12 @@ def main():
     upgrade_alembic(pg_host)
     insert_admin_units()
     print("Admin units inserted successfully..........................!")
-    # add_languages()
-    # print("Languages inserted successfully..........................!")
-    # add_country_access()
-    # print("Country access inserted successfully..........................!")
-    # insert_admin_units_meta_data()
-    # print("Admin units metadata inserted successfully..........................!")
+    add_languages()
+    print("Languages inserted successfully..........................!")
+    add_country_access()
+    print("Country access inserted successfully..........................!")
+    insert_admin_units_meta_data()
+    print("Admin units metadata inserted successfully..........................!")
     # add_pop_data()
     # print("Population data inserted successfully..........................!")
     # add_migration_data()
