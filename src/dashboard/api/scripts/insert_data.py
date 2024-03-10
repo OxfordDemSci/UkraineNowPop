@@ -264,12 +264,12 @@ def add_pop_data(overwrite_existing: bool = False):
 
 def main():
     upgrade_alembic(pg_host)
-    insert_admin_units(overwrite_existing=True)
+    insert_admin_units()
     add_languages()
     add_country_access()
     insert_admin_units_meta_data(overwrite_existing=False)
-    add_pop_data()
-    add_migration_data()
+    add_pop_data(overwrite_existing=False)
+    add_migration_data(overwrite_existing=True)
 
 
 if __name__ == "__main__":

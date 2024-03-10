@@ -20,7 +20,7 @@ def make_dummy_pop_data(admin_units, total_population=50000000):
     data = []
     level1_pop = divide_population(total_population, admin_units['ADM1_PCODE'].nunique())
     days = pd.date_range(start="2024-01-01", end="2024-01-07")
-    age_groups = np.arange(0, 80, 5)
+    age_groups = np.arange(0, 85, 5)
     
     for day in days:
         print(day)
@@ -91,29 +91,37 @@ def make_dummy_pop_data(admin_units, total_population=50000000):
 
 def make_dummy_migration_data(df, admin_levels : list[int]):
     days = pd.date_range(start="2024-01-01", end="2024-01-07", freq="W")
-    age_groups = np.arange(0, 80, 5)
+    age_groups = np.arange(0, 85, 5)
     sexes = ['male', 'female']
 
     data = []
 
     for level in admin_levels:
         admin_units = df[f"ADM{level}_PCODE"].unique().tolist()
-        for origin, destination, day, age_min, sex in product(admin_units, admin_units, days, age_groups, sexes):
-            if origin != destination:
-                probability = round(uniform(0, 0.0001), 8)
-                data.append({
-                    "country": "UKR",
-                    "admin_level": level,
-                    "origin": origin,
-                    "destination": destination,
-                    "day": day,
-                    "age_min": age_min,
-                    "age_max": age_min + 4,
-                    "sex": 0 if sex == 'male' else 1, 
-                    "probability": probability,
-                    "count": probability * UKRAINE_POPULATION
-                })
+        for day in days:
+            counter = 0
+            num_probabilities = len(admin_units) * (len(admin_units) - 1) * len(age_groups) * len(sexes)
+            probabilities = np.random.dirichlet(np.ones(num_probabilities), size=1)[0]
+            assert probabilities.sum() >= 0.99999999, f"Probabilities do not sum to 1: {probabilities.sum()}"
+            for origin, destination, age_min, sex in product(admin_units, admin_units, age_groups, sexes):
+                if origin != destination:
+                    probability = round(probabilities[counter], 8)
+                    data.append({
+                        "country": "UKR",
+                        "admin_level": level,
+                        "origin": origin,
+                        "destination": destination,
+                        "day": day,
+                        "age_min": age_min,
+                        "age_max": age_min + 4,
+                        "sex": 0 if sex == 'male' else 1, 
+                        "probability": probability,
+                        "count": int(probability * UKRAINE_POPULATION)
+                    })
+                    counter += 1
     df = pd.DataFrame(data)
+    for day in days:
+        assert df[df.day == day].probability.sum() >= 0.9999, f"Probabilities do not sum to 1: {df[df.day == day].probability.sum()}"
     return df
 
 
@@ -147,8 +155,8 @@ def main_pop(
 
 
 if __name__ == "__main__":
-    out_file = BASE.parent.parent.parent.parent.joinpath("data", "dummy_tables", "dummy_pop.csv")
-    migration_out_file = BASE.parent.parent.parent.parent.joinpath("data", "dummy_tables", "dummy_migration.csv")
+    out_file = BASE.parent.joinpath("app", "data", "db-data", "pop.csv")
+    migration_out_file = BASE.parent.joinpath("app", "data", "db-data", "migration.csv")
     migration_levels = [1]
     main_migration(migration_out_file, migration_levels)
     main_pop(out_file)
