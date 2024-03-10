@@ -44,7 +44,7 @@ class Population(Base):  # type: ignore
     pop = Column(Numeric(precision=10, scale=2), nullable=False)
     pop_upper = Column(Numeric(precision=10, scale=2), nullable=False)
     pop_lower = Column(Numeric(precision=10, scale=2), nullable=False)
-    pop_quantiles: Column = Column(ARRAY(Integer), nullable=False)
+    pop_posterior: Column = Column(ARRAY(Integer), nullable=False)
 
 
 class AdminUnits(Base):  # type: ignore
@@ -112,6 +112,7 @@ class Migration(Base):  # type: ignore
     age_max = Column(SMALLINT, nullable=False)
     sex = Column(SMALLINT, nullable=False)
     probability = Column(Numeric(precision=5, scale=4), nullable=False)
+    count = Column(Integer, nullable=False)
 
 
 class Countries(Base):  # type: ignore
