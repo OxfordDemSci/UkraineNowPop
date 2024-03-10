@@ -264,7 +264,7 @@ def add_pop_data(overwrite_existing: bool = False):
 
 def main():
     upgrade_alembic(pg_host)
-    insert_admin_units(overwrite_existing=False)
+    insert_admin_units(overwrite_existing=True)
     add_languages()
     add_country_access()
     insert_admin_units_meta_data(overwrite_existing=False)
