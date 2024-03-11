@@ -45,7 +45,38 @@ def get_min_max_age_ranges(data: list, age_min: int, age_max: int):
     for age_range in age_ranges:
         if age_range["age_min"] <= age_min < age_range["age_max"] or age_range["age_min"] < age_max <= age_range["age_max"]:
             result.append(age_range)
+    if len(result) == 1:
+        result[1] = result[0]
     return result
+
+
+def get_age_sex_population(
+        min_max: list[dict],
+        date: str,
+        admin_level: int,
+        country: str,
+        sex: int,
+) -> list[tuple]:
+    sub_query = (
+        db.session.query(
+            Population.id
+            # Population.pcode,
+            # func.sum(Population.pop).label('population'),
+            # func.array_agg(Population.pop_posterior).label('pop_posterior'),
+        ).filter(
+            Population.age_min >= min_max[0]["age_min"],
+            Population.age_min <= min_max[1]["age_min"],
+            Population.age_max >= min_max[0]["age_max"],
+            Population.age_max <= min_max[1]["age_max"],
+            Population.sex == sex,
+            Population.admin_level == admin_level,
+            Population.day == date,
+            Population.country == country
+        )#.group_by(Population.pcode)
+    )
+    pop_posteriors = db.session.query(func.array_agg(Population.pop_posterior)).filter(Population.id.in_(sub_query)).all()[0][0]
+    query = db.session.query(Population.pcode, func.sum(Population.pop).label('population')).filter(Population.id.in_(sub_query)).group_by(Population.pcode)
+    return pop_posteriors, query
 
 
 
@@ -66,52 +97,47 @@ def get_population(
     pop = {}
 
     if male_min_max:
-        male_query = (
-            db.session.query(Population.pcode, func.sum(Population.pop).label('population'))
-            .filter(
-                Population.age_min >= male_min_max[0]["age_min"],
-                Population.age_min <= male_min_max[1]["age_min"],
-                Population.age_max >= male_min_max[0]["age_max"],
-                Population.age_max <= male_min_max[1]["age_max"],
-                Population.sex == 1,
-                Population.admin_level == admin_level,
-                Population.day == date,
-                Population.country == country
+        m_pop_posteriors, male_query = get_age_sex_population(
+            male_min_max,
+            date,
+            admin_level,
+            country,
+            1                        
             )
-            .group_by(Population.pcode)
-        )
         male_results = male_query.all()
         for pcode, population in male_results:
             if pcode in pop:
                 pop[pcode]["male_population"] = population
+                # pop[pcode]["male_pop_posteriors"] = m_pop_posteriors
             else:
-                pop[pcode] = {"male_population": population}
+                pop[pcode] = {"male_population": population,} #"male_pop_posteriors": m_pop_posteriors}
     else:
         male_query = []
 
     if female_min_max:
-        female_query = (
-            db.session.query(Population.pcode, func.sum(Population.pop).label('population'))
-            .filter(
-                Population.age_min >= female_min_max[0]["age_min"],
-                Population.age_min <= female_min_max[1]["age_min"],
-                Population.age_max >= female_min_max[0]["age_max"],
-                Population.age_max <= female_min_max[1]["age_max"],
-                Population.sex == 2,
-                Population.admin_level == admin_level,
-                Population.day == date,
-                Population.country == country
-            )
-            .group_by(Population.pcode)
+        f_pop_posteriors, female_query = get_age_sex_population(
+            female_min_max,
+            date,
+            admin_level,
+            country,
+            2
         )
         female_results = female_query.all()
+        for pcode, population in female_results:
+            if pcode in pop:
+                pop[pcode]["female_population"] = population
+                #pop[pcode]["female_pop_posteriors"] = f_pop_posteriors
+            else:
+                pop[pcode] = {"female_population": population,} #"female_pop_posteriors": f_pop_posteriors}
     else:
         female_results = []
     population_data = {}
     population_data["population_totals"] = {}
+    import numpy as np
+    concatenated = np.concatenate((f_pop_posteriors, m_pop_posteriors), axis=0)
+    population_data["pop_posteriors"] = np.sum(concatenated, axis=0).tolist()
     for (pcode, f_pop), (_, m_pop) in zip(female_results, male_results):
         population_data["population_totals"][pcode] = f_pop + m_pop
-    # return population
         
     pop = {"male_population": [], "female_population": []}
 
