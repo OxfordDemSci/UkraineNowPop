@@ -1,4 +1,5 @@
 from sqlalchemy import distinct, func
+import sqlalchemy
 from collections import defaultdict
 
 
@@ -56,7 +57,8 @@ def get_age_sex_population(
         admin_level: int,
         country: str,
         sex: int,
-) -> list[tuple]:
+        admin_id: str | None = None,
+) -> tuple[list, sqlalchemy.orm.query.Query]:
     sub_query = (
         db.session.query(
             Population.id
@@ -74,7 +76,11 @@ def get_age_sex_population(
             Population.country == country
         )#.group_by(Population.pcode)
     )
-    pop_posteriors = db.session.query(func.array_agg(Population.pop_posterior)).filter(Population.id.in_(sub_query)).all()[0][0]
+    if admin_id:
+        pop_posteriors_query = db.session.query(func.array_agg(Population.pop_posterior)).filter(Population.id.in_(sub_query), Population.pcode == admin_id)
+    else:
+        pop_posteriors_query = db.session.query(func.array_agg(Population.pop_posterior)).filter(Population.id.in_(sub_query))
+    pop_posteriors = pop_posteriors_query.all()[0][0]
     query = db.session.query(Population.pcode, func.sum(Population.pop).label('population')).filter(Population.id.in_(sub_query)).group_by(Population.pcode)
     return pop_posteriors, query
 
@@ -102,7 +108,8 @@ def get_population(
             date,
             admin_level,
             country,
-            1                        
+            1,
+            admin_id                      
             )
         male_results = male_query.all()
         for pcode, population in male_results:
@@ -120,7 +127,8 @@ def get_population(
             date,
             admin_level,
             country,
-            2
+            2,
+            admin_id
         )
         female_results = female_query.all()
         for pcode, population in female_results:
