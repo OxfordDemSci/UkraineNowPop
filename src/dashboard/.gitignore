@@ -5,3 +5,5 @@
 *.py[cod]
 *$py.class
 app/__pycache__/config.cpython-311.pyc
+api/app/data/db-data/migration.*
+api/app/data/db-data/pop.*
