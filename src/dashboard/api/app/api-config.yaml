@@ -71,7 +71,7 @@ paths:
           description: "Level of admin units to retrieve"
       security:
         - {}
-        #- JWTAuth: []
+        - JWTAuth: []
       tags:
         - "Admin units"
       summary: "Get all admin units in geojson format"
@@ -148,7 +148,7 @@ paths:
           description: "Maximum Female (81-84 represents 80+)"
       security:
         - {}
-        #- JWTAuth: []
+        - JWTAuth: []
       tags:
         - "Population"
       summary: "Get population data"
@@ -225,7 +225,7 @@ paths:
           description: "Maximum Female (81-84 represents 80+)"
       security:
         - {}
-        #- JWTAuth: []
+        - JWTAuth: []
       tags:
         - "Migration"
       summary: "Get migration probabilities"
