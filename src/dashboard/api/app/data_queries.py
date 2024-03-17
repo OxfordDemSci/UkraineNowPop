@@ -1,6 +1,7 @@
 from sqlalchemy import distinct, func
 import sqlalchemy
 from collections import defaultdict
+import numpy as np
 
 
 from .models import AdminUnits, Population, Migration, Countries, Languages
@@ -104,14 +105,20 @@ def get_age_sex_population(
             Population.country == country
         )
     )
-    if admin_id:
-        pop_posteriors_query = db.session.query(func.array_agg(Population.pop_posterior)).filter(Population.id.in_(sub_query), Population.pcode == admin_id)
-    else:
-        pop_posteriors_query = db.session.query(func.array_agg(Population.pop_posterior)).filter(Population.id.in_(sub_query))
+    pop_posteriors_query = db.session.query(
+        func.array_agg(Population.pop_posterior)
+    ).filter(Population.id.in_(sub_query)).filter(Population.pcode == admin_id if admin_id else True)
+    pop_pyramid_query = db.session.query(
+         Population.age_min, Population.age_max, func.sum(Population.pop).label('population')
+         ).filter(
+             Population.id.in_(sub_query),
+             Population.pcode == admin_id if admin_id else True
+            ).group_by(Population.age_min, Population.age_max)
     pop_posteriors = pop_posteriors_query.all()[0][0]
-    query = db.session.query(Population.pcode, func.sum(Population.pop).label('population')).filter(Population.id.in_(sub_query)).group_by(Population.pcode)
-    return pop_posteriors, query
-
+    query = db.session.query(
+        Population.pcode, func.sum(Population.pop).label('population')
+        ).filter(Population.id.in_(sub_query)).group_by(Population.pcode)
+    return pop_posteriors, query, pop_pyramid_query
 
 
 def get_population(
@@ -131,7 +138,7 @@ def get_population(
     pop = {}
 
     if male_min_max:
-        m_pop_posteriors, male_query = get_age_sex_population(
+        m_pop_posteriors, male_query, male_pop_pyramid_query = get_age_sex_population(
             male_min_max,
             date,
             admin_level,
@@ -146,10 +153,10 @@ def get_population(
             else:
                 pop[pcode] = {"male_population": population}
     else:
-        male_query = []
+        male_results = []
 
     if female_min_max:
-        f_pop_posteriors, female_query = get_age_sex_population(
+        f_pop_posteriors, female_query, female_pop_pyramid_query = get_age_sex_population(
             female_min_max,
             date,
             admin_level,
@@ -167,7 +174,6 @@ def get_population(
         female_results = []
     population_data = {}
     population_data["population_totals"] = {}
-    import numpy as np
     concatenated = np.concatenate((f_pop_posteriors, m_pop_posteriors), axis=0)
     population_data["pop_posteriors"] = np.sum(concatenated, axis=0).tolist()
     for (pcode, f_pop), (_, m_pop) in zip(female_results, male_results):
@@ -176,48 +182,15 @@ def get_population(
     pop = {"male_population": [], "female_population": []}
 
     if male_min_max:
-        male_query = (
-            db.session.query(Population.age_min, Population.age_max, func.sum(Population.pop).label('population'))
-            .filter(
-                Population.age_min >= male_min_max[0]["age_min"],
-                Population.age_min <= male_min_max[1]["age_min"],
-                Population.age_max >= male_min_max[0]["age_max"],
-                Population.age_max <= male_min_max[1]["age_max"],
-                Population.sex == 1,
-                Population.admin_level == admin_level,
-                Population.day == date,
-                Population.country == country
-            )
-            .group_by(Population.age_min, Population.age_max)
-        )
-        if admin_id:
-            male_query = male_query.filter(Population.pcode == admin_id)
-        male_results = male_query.all()
-        for age_min, age_max, population in male_results:
+        male_pyramid_results = male_pop_pyramid_query.all()
+        for age_min, age_max, population in male_pyramid_results:
             pop["male_population"].append({"age_min": age_min, "age_max": age_max, "population": population})
 
     if female_min_max:
-        female_query = (
-            db.session.query(Population.age_min, Population.age_max, func.sum(Population.pop).label('population'))
-            .filter(
-                Population.age_min >= female_min_max[0]["age_min"],
-                Population.age_min <= female_min_max[1]["age_min"],
-                Population.age_max >= female_min_max[0]["age_max"],
-                Population.age_max <= female_min_max[1]["age_max"],
-                Population.sex == 2,
-                Population.admin_level == admin_level,
-                Population.day == date,
-                Population.country == country
-            )
-            .group_by(Population.age_min, Population.age_max)
-        )
-        if admin_id:
-            female_query = female_query.filter(Population.pcode == admin_id)
-        female_results = female_query.all()
-        for age_min, age_max, population in female_results:
+        female_pyramid_results = male_pop_pyramid_query.all()
+        for age_min, age_max, population in female_pyramid_results:
             pop["female_population"].append({"age_min": age_min, "age_max": age_max, "population": population})
 
-    # Calculate total population
     total_population_query = (
         db.session.query(func.sum(Population.pop).label('population'))
         .filter(
@@ -234,7 +207,7 @@ def get_population(
     pyramid_name = "pyramids" if admin_id is None else f"pyramid_{admin_id}"
     population_data[pyramid_name] = pop
     return population_data
-    
+
 
 def get_migration_probabilities(
         country: str,
