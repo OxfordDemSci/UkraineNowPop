@@ -51,6 +51,10 @@ def login():
     return jsonify(access_token=access_token), 200
 
 
+def get_countries() -> list[dict]:
+    return dq.get_countries()
+
+
 def init(country: str):
     return dq.init(country)
 

@@ -34,6 +34,15 @@ paths:
                     type: string
         '401':
           description: Unauthorized
+  /get_countries:
+    get:
+      operationId: "app.endpoints.get_countries"
+      tags:
+        - "Countries"
+      summary: "Get all countries"
+      responses:
+        "200":
+          description: "Successfully retrieved countries"
   /init:
     get:
       operationId: "app.endpoints.init"

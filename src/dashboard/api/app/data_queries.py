@@ -15,6 +15,37 @@ def get_geodata(country: str, admin_level: int) -> dict:
     }
 
 
+def get_countries() -> list[dict]:
+    countries = db.session.query(Countries.country).distinct().all()
+    data = [{"country": country.name} for country, in countries]
+    for country in data:
+        country["centroid"] = db.session.query(
+            func.ST_AsText(
+                func.ST_Centroid(
+                    func.ST_Collect(
+                        AdminUnits.geometry
+                    ).filter(
+                        AdminUnits.country == country["country"],
+                        AdminUnits.admin_level == 1
+                    )
+                )
+            )
+        ).first()[0]
+        country["bounding_box"] = db.session.query(
+            func.ST_AsText(
+                func.ST_Envelope(
+                    func.ST_Collect(
+                        AdminUnits.geometry
+                    ).filter(
+                        AdminUnits.country == country["country"],
+                        AdminUnits.admin_level == 1
+                    )
+                )
+            )
+        ).first()[0]
+    return data
+
+
 def get_age_ranges(country: str) -> list[dict]:
     age_ranges = (
         db.session.query(Population.age_min, Population.age_max)
