@@ -232,6 +232,23 @@ paths:
             maximum: 84
             default: 84
           description: "Maximum Female (81-84 represents 80+)"
+        - name: "rank_by"
+          in: "query"
+          required: false
+          schema:
+            type: "string"
+            enum: ["count", "probability"]
+            default: "count"
+          description: "Rank results by count or probability"
+        - name: "limit"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            minimum: 1
+            maximum: 25
+            default: 10
+          description: "Limit the number of results"
       security:
         - {}
         - JWTAuth: []
