@@ -111,7 +111,7 @@ class Migration(Base):  # type: ignore
     age_min = Column(SMALLINT, nullable=False)
     age_max = Column(SMALLINT, nullable=False)
     sex = Column(SMALLINT, nullable=False)
-    probability = Column(Numeric(precision=5, scale=4), nullable=False)
+    probability = Column(Numeric(precision=9, scale=8), nullable=False)
     count = Column(Integer, nullable=False)
 
 

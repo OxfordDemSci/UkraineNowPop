@@ -7,6 +7,11 @@ class UserRoleEnum(Enum):
     ADMIN = "admin"
 
 
+class RankBy(Enum):
+    COUNT = "count"
+    PROBABILITY = "probability"
+
+
 class CountriesEnum2(Enum):
     AW = "Aruba"
     AF = "Afghanistan"

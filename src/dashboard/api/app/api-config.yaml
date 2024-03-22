@@ -34,6 +34,15 @@ paths:
                     type: string
         '401':
           description: Unauthorized
+  /get_countries:
+    get:
+      operationId: "app.endpoints.get_countries"
+      tags:
+        - "Countries"
+      summary: "Get all countries"
+      responses:
+        "200":
+          description: "Successfully retrieved countries"
   /init:
     get:
       operationId: "app.endpoints.init"
@@ -71,7 +80,7 @@ paths:
           description: "Level of admin units to retrieve"
       security:
         - {}
-        #- JWTAuth: []
+        - JWTAuth: []
       tags:
         - "Admin units"
       summary: "Get all admin units in geojson format"
@@ -125,9 +134,9 @@ paths:
           schema:
             type: "integer"
             minimum: 0
-            maximum: 80
-            default: 80
-          description: "Maximum Male"
+            maximum: 84
+            default: 84
+          description: "Maximum Male (81-84 represents 80+)"
         - name: "age_min_female"
           in: "query"
           required: false
@@ -143,12 +152,12 @@ paths:
           schema:
             type: "integer"
             minimum: 0
-            maximum: 80
-            default: 80
-          description: "Maximum Female"
+            maximum: 84
+            default: 84
+          description: "Maximum Female (81-84 represents 80+)"
       security:
         - {}
-        #- JWTAuth: []
+        - JWTAuth: []
       tags:
         - "Population"
       summary: "Get population data"
@@ -202,9 +211,9 @@ paths:
           schema:
             type: "integer"
             minimum: 0
-            maximum: 80
-            default: 80
-          description: "Maximum Male"
+            maximum: 84
+            default: 84
+          description: "Maximum Male (81-84 represents 80+)"
         - name: "age_min_female"
           in: "query"
           required: false
@@ -220,12 +229,29 @@ paths:
           schema:
             type: "integer"
             minimum: 0
-            maximum: 80
-            default: 80
-          description: "Maximum Female"
+            maximum: 84
+            default: 84
+          description: "Maximum Female (81-84 represents 80+)"
+        - name: "rank_by"
+          in: "query"
+          required: false
+          schema:
+            type: "string"
+            enum: ["count", "probability"]
+            default: "count"
+          description: "Rank results by count or probability"
+        - name: "limit"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            minimum: 1
+            maximum: 25
+            default: 10
+          description: "Limit the number of results"
       security:
         - {}
-        #- JWTAuth: []
+        - JWTAuth: []
       tags:
         - "Migration"
       summary: "Get migration probabilities"

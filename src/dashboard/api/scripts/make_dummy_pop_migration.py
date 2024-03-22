@@ -114,7 +114,7 @@ def make_dummy_migration_data(df, admin_levels : list[int]):
                         "day": day,
                         "age_min": age_min,
                         "age_max": age_min + 4,
-                        "sex": 0 if sex == 'male' else 1, 
+                        "sex": 1 if sex == 'male' else 2, 
                         "probability": probability,
                         "count": int(probability * UKRAINE_POPULATION)
                     })

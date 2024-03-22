@@ -8,6 +8,7 @@ from functools import wraps
 from typing import Union
 
 from app.models import User
+from app.datatypes import RankBy
 from app import data_queries as dq
 from app import db
 
@@ -49,6 +50,10 @@ def login():
     additional_claims = {"scope": user.role.value}
     access_token = create_access_token(identity=username, additional_claims=additional_claims)
     return jsonify(access_token=access_token), 200
+
+
+def get_countries() -> list[dict]:
+    return dq.get_countries()
 
 
 def init(country: str):
@@ -108,6 +113,8 @@ def get_migration_probabilities(
         age_max_male: int | None = None,
         age_min_female: int | None = None,
         age_max_female: int | None = None,
+        rank_by: RankBy = RankBy.COUNT,
+        limit: int = 10
 ) -> Union[list[dict], Response]:
     if admin_level not in [1, 2, 3]:
         return make_response("Invalid admin level", 400)
@@ -123,7 +130,9 @@ def get_migration_probabilities(
         age_min_male,
         age_max_male,
         age_min_female,
-        age_max_female
+        age_max_female,
+        rank_by,
+        limit
     )
     return data
 
