@@ -1,0 +1,91 @@
+body {
+    padding: 0;
+    margin: 0;
+}
+
+html, body, #map {
+    height: 100%;
+    font: 10pt "Helvetica Neue", Arial, Helvetica, sans-serif;
+}
+
+
+.leaflet-center {
+    left: 50%;
+    transform: translate(-50%, 0%);
+}
+
+.navbar{
+    background-color: #fff;
+    border-left: 1px solid #ccc; 
+    background: white;
+    background: rgba(255,255,255,0.95);
+    box-shadow: 0 0 15px rgba(0,0,0,0.2); 
+    opacity: 0.80;
+    filter: alpha(opacity=10);  
+    z-index: 10000
+}
+
+#controlPanel_DateTimeID{
+    width: 650px;
+    height: 90px;
+    background-color: #fff;
+    border-left: 1px solid #ccc; 
+    background: white;
+    background: rgba(255,255,255,0.90);
+    box-shadow: 0 0 15px rgba(0,0,0,0.2); 
+    opacity: 0.98;
+    filter: alpha(opacity=10);
+    margin-bottom: 100px    
+}
+
+#controlPanel_ProbabilityID{
+    height: 260px;
+    width: 260px;
+    background-color: #fff;
+    border-left: 1px solid #ccc; 
+    background: white;
+    background: rgba(255,255,255,0.85);
+    box-shadow: 0 0 15px rgba(0,0,0,0.2); 
+    opacity: 0.95;
+    filter: alpha(opacity=10);    
+}
+
+
+#controlPanel_ControlsID{
+    z-index: 1000 !important;
+    height: 260px;
+    width: 260px;
+    background-color: #fff;
+    border-left: 1px solid #ccc; 
+    background: white;
+    background: rgba(255,255,255,0.85);
+    box-shadow: 0 0 15px rgba(0,0,0,0.2); 
+    opacity: 0.96;
+    filter: alpha(opacity=10);    
+}
+
+#controlPanel_PopulationPyramidID{
+    z-index: 1000 !important;
+    height: 260px;
+    width: 260px;
+    background-color: #fff;
+    border-left: 1px solid #ccc; 
+    background: white;
+    background: rgba(255,255,255,0.85);
+    box-shadow: 0 0 15px rgba(0,0,0,0.2); 
+    opacity: 0.96;
+    filter: alpha(opacity=10);    
+}
+
+#controlPanel_ChordDiagramID{
+    z-index: 1000 !important;
+    height: 310px;
+    width: 260px;
+    background-color: #fff;
+    border-left: 1px solid #ccc; 
+    background: white;
+    background: rgba(255,255,255,0.85);
+    box-shadow: 0 0 15px rgba(0,0,0,0.2); 
+    opacity: 0.96;
+    filter: alpha(opacity=10);    
+}
