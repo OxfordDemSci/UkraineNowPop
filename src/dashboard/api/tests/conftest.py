@@ -13,6 +13,7 @@ from .make_test_data import insert_test_data
 
 ALEMBIC = Path(__file__).resolve().parent.parent.joinpath("alembic.ini").resolve()
 
+
 @pytest.fixture
 def exist():
     return ALEMBIC
@@ -24,22 +25,44 @@ def app():
     with app.app_context():
         yield app
 
+@pytest.fixture(scope='session')
+def engine(alembic_config):
+    from sqlalchemy import create_engine
+    engine = create_engine(alembic_config.get_main_option("sqlalchemy.url"))
+    return engine
+
+@pytest.fixture(scope='session')
+def alembic_config(app):
+    # Point the alembic config to your alembic.ini file or a python file
+    # that contains the configurations
+    config = Config(ALEMBIC)
+    config.set_main_option("sqlalchemy.url", app.config["TEST_DATABASE_URI"])
+    return config
+
+@pytest.fixture(scope='session')
+def tables(engine, alembic_config):
+    # Upgrade to the latest version
+    command.upgrade(alembic_config, 'head')
+
+    yield
+
+    # Downgrade to the base
+    command.downgrade(alembic_config, 'base')
+
 
 @pytest.fixture(scope="session")
-def db(app: Flask):
+def db(app: Flask, tables):
     # Set up the test db and apply alembic migrations
-    alembic_cfg = Config(ALEMBIC)
-    alembic_cfg.set_main_option("sqlalchemy.url", app.config["TEST_DATABASE_URI"])
+    
     with app.app_context():
         _db.create_all()
-        command.upgrade(alembic_cfg, "head")
 
         # Insert test data
         with _db.session.begin_nested():
             insert_test_data(_db.session)
 
         yield _db
-        _db.drop_all()
+        #_db.drop_all()
         _db.engine.dispose()
 
 

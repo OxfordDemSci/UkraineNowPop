@@ -47,7 +47,7 @@ class TestingConfig(Configuration):
     DB_USERNAME = os.environ.get("POSTGRES_USER")
     DB_PASSWORD = os.environ.get("POSTGRES_PASSWORD")
     POSTGRES_DB_TEST = os.environ.get("POSTGRES_DB_TEST")    
-    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL")
+    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL_TEST")
     TEST_DATABASE_URI = os.environ.get("DATABASE_URL_TEST")
     TESTING = True
 

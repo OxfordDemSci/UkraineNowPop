@@ -71,7 +71,8 @@ def create_app(config_name: str) -> Flask:
         limiter._storage_uri = "memcached://now_pop_memcached:11211"
         limiter.init_app(app)
         upgrade_alembic(app)
-    create_users(app, db)
+    if config_name != "testing":
+        create_users(app, db)
 
     @app.before_request
     def before_request_function():

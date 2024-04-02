@@ -3,7 +3,10 @@ from pathlib import Path
 import geopandas as gpd
 import pandas as pd
 from shapely.geometry import MultiPolygon
+import dotenv
+import os
 
+dotenv.load_dotenv()
 from app.models import (
         AdminUnits,
         Migration,
@@ -13,27 +16,44 @@ from app.models import (
         Countries,
 )
 
-from app.datatypes import CountriesEnum3
+from app.datatypes import CountriesEnum3, UserRoleEnum
         
 
 BASE = Path(__file__).resolve().parent
-TEST_DIR = BASE.parent.joinpath("data")
+TEST_DIR = BASE.parent.joinpath("tests/data")
 
 
 def insert_test_data(db_session):
+    #breakpoint()
+    insert_users(db_session)
     insert_admin_units(db_session)
     add_languages(db_session)
     add_country_access(db_session)
     add_migration(db_session)
     add_population(db_session)
+    db_session.commit()
+
+
+def insert_users(db_session):
+    admin_user = os.getenv("POSTGRES_USER")
+    admin_password = os.getenv("POSTGRES_PASSWORD")
+    read_user = os.getenv("POSTGRES_READONLY")
+    read_password = os.getenv("POSTGRES_READONLY_PASSWORD")
+
+    admin_user = User(username=admin_user, password=admin_password, role=UserRoleEnum.WRITE)
+    read_user = User(username=read_user, password=read_password, role=UserRoleEnum.READ)
+
+    db_session.add(admin_user)
+    db_session.add(read_user)
 
 
 def add_population(db_session):
     def parse_pop_posterior(s):
         parts = s.replace('[', '').replace(']', '').split(',')
         return [int(part) for part in parts]
-    df = pd.read_parquet(TEST_DIR.joinpath("population.parquet"))
-    df = df.asttype({
+    df = pd.read_parquet(TEST_DIR.joinpath("pop.parquet"))
+    df["sex"] = df["sex"].replace({"male": 1, "female": 2})
+    df = df.astype({
         "country": "string",
         "admin_level": "int8",
         "pcode": "string",
@@ -61,12 +81,11 @@ def add_population(db_session):
                 "pop_posterior": row["pop_posterior"]
             })
     db_session.bulk_insert_mappings(Population, data)
-    db_session.commit()
 
 
 def add_migration(db_session):
     df = pd.read_parquet(TEST_DIR.joinpath("migration.parquet"))
-    df = df.asttype({
+    df = df.astype({
                 "country": "string",
                 "admin_level": "int8",
                 "origin": "string",
@@ -92,7 +111,7 @@ def add_migration(db_session):
                     "count": row["count"]
                 })
     db_session.bulk_insert_mappings(Migration, data)
-    db_session.commit()
+
 
 
 def add_country_access(db_session):
@@ -113,7 +132,6 @@ def add_country_access(db_session):
                     adm3_name=admin_names[3]                 
                     )
                 db_session.add(country)
-    db_session.commit()
 
 
 def add_languages(db_session):
@@ -122,7 +140,6 @@ def add_languages(db_session):
         for key, value in country.items():
             language = Languages(country=CountriesEnum3[key], lan2=value[0], lan3=value[1])
             db_session.add(language)
-    db_session.commit()
 
 
 def insert_admin_units(db_session):
@@ -143,6 +160,5 @@ def insert_admin_units(db_session):
             'name_lan3': row["name_lan3"],
             'geometry': row["geometry"].wkt
         })
-        db_session.bulk_insert_mappings(AdminUnits, data)
-    db_session.commit()
+    db_session.bulk_insert_mappings(AdminUnits, data)
 

@@ -91,7 +91,7 @@ def get_age_sex_population(
         country: str,
         sex: int,
         admin_id: str | None = None,
-) -> tuple[list, sqlalchemy.orm.query.Query]:
+) -> tuple[list, sqlalchemy.orm.query.Query, sqlalchemy.orm.query.Query]:
     sub_query = (
         db.session.query(
             Population.id
@@ -188,7 +188,7 @@ def get_population(
             pop["male_population"].append({"age_min": age_min, "age_max": age_max, "population": population})
 
     if female_min_max:
-        female_pyramid_results = male_pop_pyramid_query.all()
+        female_pyramid_results = female_pop_pyramid_query.all()
         for age_min, age_max, population in female_pyramid_results:
             pop["female_population"].append({"age_min": age_min, "age_max": age_max, "population": population})
 
