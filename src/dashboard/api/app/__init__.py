@@ -47,6 +47,9 @@ limiter = Limiter(
 )
 
 
+bcrypt = Bcrypt()
+
+
 def create_app(config_name: str) -> Flask:
     connexion_app = connexion.FlaskApp(__name__, specification_dir="./")
     connexion_app.add_api("api-config.yaml")
@@ -56,8 +59,9 @@ def create_app(config_name: str) -> Flask:
     Compress(app)
     app.config["COMPRESS_ALWAYS"] = True
     db.init_app(app)
-    global bcrypt
-    bcrypt = Bcrypt(app)
+    # global bcrypt
+    # bcrypt = Bcrypt(app)
+    bcrypt.init_app(app)
     _ = JWTManager(app)
     CORS(app, resources={r"/*": {"origins": "*"}})
     if not logging.getLogger().handlers:

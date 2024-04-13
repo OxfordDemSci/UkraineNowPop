@@ -24,7 +24,6 @@ TEST_DIR = BASE.parent.joinpath("tests/data")
 
 
 def insert_test_data(db_session):
-    #breakpoint()
     insert_users(db_session)
     insert_admin_units(db_session)
     add_languages(db_session)

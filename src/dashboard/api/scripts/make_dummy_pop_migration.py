@@ -174,8 +174,8 @@ def main_make_test_data(
     admin_units = pop_filtered['pcode'].unique()
     gdf = gdf[gdf['pcode'].isin(admin_units)]
     gdf.to_file(TEST_DIR.joinpath("GEODATA.gpkg"), layer="UKR", driver="GPKG")
-    pop_filtered.to_parquet(TEST_DIR.joinpath("pop.parquet"), index=False, compression="gzip")
-    migration.to_parquet(TEST_DIR.joinpath("migration.parquet"), index=False, compression="gzip")
+    pop_filtered[pop_filtered.age_min.isin([0, 5])].to_parquet(TEST_DIR.joinpath("pop.parquet"), index=False, compression="gzip")
+    migration[migration.age_min.isin([0, 5])].to_parquet(TEST_DIR.joinpath("migration.parquet"), index=False, compression="gzip")
 
 
 if __name__ == "__main__":
