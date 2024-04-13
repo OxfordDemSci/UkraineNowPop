@@ -206,4 +206,7 @@ if __name__ == "__main__":
             migration_out_file,
             geo_out_file)
     else:
-        print("TEST data already exists. Delete to regenerate.")
+        print(
+            "TEST data already exists. Delete to regenerate. Be careful when doing this as you may need to adjust \
+                tests to match new data."
+            )
