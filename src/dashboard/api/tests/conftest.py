@@ -1,4 +1,5 @@
 import pytest
+import os
 from app import create_app
 from app import db as _db
 from alembic.command import upgrade, downgrade
@@ -15,6 +16,7 @@ ALEMBIC = Path(__file__).resolve().parent.parent.joinpath("alembic.ini").resolve
 def app(request):
     """Session-wide test `Flask` application."""
     app = create_app('testing')
+    os.environ["ENV"] = "test"
     with app.app_context():
         yield app
 
