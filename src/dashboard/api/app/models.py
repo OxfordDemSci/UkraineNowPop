@@ -1,7 +1,15 @@
 from geoalchemy2 import Geometry
 from geoalchemy2.shape import to_shape
 from sqlalchemy import (
-    Column, String, Integer, Enum, SMALLINT, ForeignKey, Date, Numeric, ARRAY
+    Column,
+    String,
+    Integer,
+    Enum,
+    SMALLINT,
+    ForeignKey,
+    Date,
+    Numeric,
+    ARRAY,
 )
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -24,9 +32,7 @@ class User(Base):  # type: ignore
     def __init__(self, username, password=None, role=None):
         self.username = username
         if password:
-            self.password = app.bcrypt.generate_password_hash(
-                password
-            ).decode()
+            self.password = app.bcrypt.generate_password_hash(password).decode()
         self.role = role
 
 
@@ -58,7 +64,9 @@ class AdminUnits(Base):  # type: ignore
     name_en = Column(String(255), nullable=False)
     name_lan2 = Column(String(255), nullable=True)
     name_lan3 = Column(String(255), nullable=True)
-    geometry: Column[Geometry] = Column(Geometry(geometry_type='MULTIPOLYGON', srid=4326), nullable=False)
+    geometry: Column[Geometry] = Column(
+        Geometry(geometry_type="MULTIPOLYGON", srid=4326), nullable=False
+    )
 
     @property
     def to_geojson(self):
@@ -88,7 +96,7 @@ class AdminUnitsMetadata(Base):  # type: ignore
     name = Column(String(255), nullable=True)
     parent_pcode = Column(String(20), nullable=True)
     valid_from = Column(Date, nullable=True)
- 
+
 
 class Languages(Base):  # type: ignore
     __tablename__ = "languages"
@@ -120,11 +128,21 @@ class Countries(Base):  # type: ignore
     __tablename__ = "countries"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    country: Column[Enum] = Column(Enum(CountriesEnum3, native_enum=False), nullable=False)
-    adm0_access: Column[Enum] = Column(Enum(UserRoleEnum, native_enum=False), nullable=True)
-    adm1_access: Column[Enum] = Column(Enum(UserRoleEnum, native_enum=False), nullable=True)
+    country: Column[Enum] = Column(
+        Enum(CountriesEnum3, native_enum=False), nullable=False
+    )
+    adm0_access: Column[Enum] = Column(
+        Enum(UserRoleEnum, native_enum=False), nullable=True
+    )
+    adm1_access: Column[Enum] = Column(
+        Enum(UserRoleEnum, native_enum=False), nullable=True
+    )
     adm1_name = Column(String(255), nullable=True)
-    adm2_access: Column[Enum] = Column(Enum(UserRoleEnum, native_enum=False), nullable=True)
+    adm2_access: Column[Enum] = Column(
+        Enum(UserRoleEnum, native_enum=False), nullable=True
+    )
     adm2_name = Column(String(255), nullable=True)
-    adm3_access: Column[Enum] = Column(Enum(UserRoleEnum, native_enum=False), nullable=True)
+    adm3_access: Column[Enum] = Column(
+        Enum(UserRoleEnum, native_enum=False), nullable=True
+    )
     adm3_name = Column(String(255), nullable=True)

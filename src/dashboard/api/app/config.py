@@ -21,7 +21,9 @@ class Configuration:
     JSON_SORT_KEYS = False
     SECRET_KEY = os.environ.get("SECRET_KEY")
     JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY")
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=2)  # FIXME - This needs to be set in the env vars
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(
+        hours=2
+    )  # FIXME - This needs to be set in the env vars
 
 
 class DevelopmentConfig(Configuration):
@@ -47,7 +49,7 @@ class ProductionConfig(Configuration):
 class TestingConfig(Configuration):
     DB_USERNAME = os.environ.get("POSTGRES_USER")
     DB_PASSWORD = os.environ.get("POSTGRES_PASSWORD")
-    POSTGRES_DB_TEST = os.environ.get("POSTGRES_DB_TEST")    
+    POSTGRES_DB_TEST = os.environ.get("POSTGRES_DB_TEST")
     SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL_TEST")
     TEST_DATABASE_URI = os.environ.get("DATABASE_URL_TEST")
     TESTING = True

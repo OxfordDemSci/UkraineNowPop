@@ -67,7 +67,7 @@ def create_app(config_name: str) -> Flask:
     if not logging.getLogger().handlers:
         logging.basicConfig(level=logging.INFO)
         app.logger.addHandler(logging.StreamHandler())  # Log to the terminal
-        log_path = BASE.parent.joinpath('api_logs.log')
+        log_path = BASE.parent.joinpath("api_logs.log")
         file_handler = logging.FileHandler(log_path)
         app.logger.addHandler(file_handler)
         app.logger.setLevel(logging.INFO)
@@ -84,11 +84,14 @@ def create_app(config_name: str) -> Flask:
     @app.before_request
     def before_request_function():
         args = request.args
-        app.logger.info(f"time={datetime.now(timezone.utc)}, url={request.url}, endpoint={request.path} params={dict(args.items())}")
+        app.logger.info(
+            f"time={datetime.now(timezone.utc)}, url={request.url}, endpoint={request.path} params={dict(args.items())}"
+        )
 
     @app.after_request
     def after_request_func(response):
         return response
+
     return app
 
 
