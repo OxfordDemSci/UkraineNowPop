@@ -11,6 +11,7 @@ from app.models import User
 from app.datatypes import RankBy
 from app import data_queries as dq
 from app import db
+from app.data_validation import validate_input
 
 
 def check_scope(required_scope):
@@ -61,6 +62,7 @@ def init(country: str):
 
 
 @jwt_required(optional=True)
+@validate_input
 def get_admin_units(
     country: str,
     admin_level: int,
@@ -75,6 +77,7 @@ def get_admin_units(
     return data
 
 @jwt_required(optional=True)
+@validate_input
 def get_population(
     country: str,
     admin_level: int,
