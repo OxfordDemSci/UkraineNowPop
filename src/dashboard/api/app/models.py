@@ -1,22 +1,12 @@
 from geoalchemy2 import Geometry
 from geoalchemy2.shape import to_shape
-from sqlalchemy import (
-    Column,
-    String,
-    Integer,
-    Enum,
-    SMALLINT,
-    ForeignKey,
-    Date,
-    Numeric,
-    ARRAY,
-)
+from sqlalchemy import (ARRAY, SMALLINT, Column, Date, Enum, Integer, Numeric,
+                        String)
 from sqlalchemy.ext.declarative import declarative_base
 
 import app
 
-from .datatypes import UserRoleEnum, CountriesEnum2, CountriesEnum3
-
+from .datatypes import CountriesEnum3, UserRoleEnum
 
 Base = declarative_base()
 

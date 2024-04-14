@@ -1,6 +1,5 @@
-from functools import wraps
-from sqlalchemy import distinct
 from datetime import datetime
+from functools import wraps
 
 import app.models as m
 from app import db

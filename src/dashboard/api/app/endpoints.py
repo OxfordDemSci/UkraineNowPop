@@ -1,22 +1,16 @@
-from flask import Flask, request, jsonify, make_response, current_app
-from flask_jwt_extended import (
-    JWTManager,
-    create_access_token,
-    jwt_required,
-    get_jwt_identity,
-    get_jwt,
-    decode_token,
-)
-from flask_sqlalchemy import SQLAlchemy
-from flask.wrappers import Response
 from functools import wraps
 from typing import Union
 
-from app.models import User
-from app.datatypes import RankBy
+from flask import current_app, jsonify, make_response, request
+from flask.wrappers import Response
+from flask_jwt_extended import (create_access_token, decode_token, get_jwt,
+                                get_jwt_identity, jwt_required)
+
 from app import data_queries as dq
 from app import db
 from app.data_validation import validate_input
+from app.datatypes import RankBy
+from app.models import User
 
 
 def check_scope(required_scope):

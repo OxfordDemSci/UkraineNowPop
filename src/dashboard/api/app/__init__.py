@@ -1,24 +1,23 @@
+import logging
+import socket
+from datetime import datetime, timezone
+from pathlib import Path
+
 import connexion
-from flask.app import Flask
 from flask import Flask, request
 from flask_bcrypt import Bcrypt
+from flask_compress import Compress
 from flask_cors import CORS
+from flask_jwt_extended import JWTManager
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_sqlalchemy import SQLAlchemy
-import logging
-from alembic.config import Config
-from alembic import command
-import os
-from pathlib import Path
-import socket
-from datetime import datetime, timezone
-from flask_jwt_extended import JWTManager
-from flask_compress import Compress
 
+from alembic import command
+from alembic.config import Config
 from app.config import app_config
-from app.models import User
 from app.datatypes import UserRoleEnum
+from app.models import User
 
 BASE = Path(__file__).resolve().parent
 

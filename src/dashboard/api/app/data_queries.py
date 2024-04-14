@@ -1,12 +1,13 @@
-from sqlalchemy import distinct, func, or_, and_
-import sqlalchemy
 from collections import defaultdict
+
 import numpy as np
-from sqlalchemy.sql.elements import ColumnElement
+import sqlalchemy
+from sqlalchemy import and_, distinct, func, or_
+
+from app import db
 
 from .datatypes import RankBy
-from .models import AdminUnits, Population, Migration, Countries, Languages
-from app import db
+from .models import AdminUnits, Countries, Languages, Migration, Population
 
 
 def get_geodata(country: str, admin_level: int) -> dict:
