@@ -78,6 +78,9 @@ def create_app(config_name: str) -> Flask:
     if config_name != "testing":
         create_users(app, db)
 
+    # Revert to read-only database for read-only users after writing data
+    app.config["SQLALCHEMY_DATABASE_URI"] = app.config["DATABASE_URL_READONLY"]
+
     @app.before_request
     def before_request_function():
         args = request.args
