@@ -1,8 +1,10 @@
 from collections import defaultdict
+from typing import List, Dict, Any, Union
 
 import numpy as np
 import sqlalchemy
 from sqlalchemy import and_, distinct, func, or_
+from sqlalchemy.engine import Row
 
 from app import db
 
@@ -72,7 +74,7 @@ def init(country: str) -> dict:
         {"adm1_name": adm1, "adm2_name": adm2, "adm3_name": adm3}
         for adm1, adm2, adm3 in admin_names
     ]
-    dates = (
+    dates: List[Row] = (
         db.session.query(distinct(Population.day))
         .filter(Population.country == country)
         .all()
@@ -158,10 +160,12 @@ def get_population(
     age_max_female: int | None = None,
 ) -> dict:
     age_ranges = get_age_ranges(country)
-    male_min_max = get_min_max_age_ranges(age_ranges, age_min_male, age_max_male)
-    female_min_max = get_min_max_age_ranges(age_ranges, age_min_female, age_max_female)
+    if age_min_male is not None and age_max_male is not None:
+        male_min_max = get_min_max_age_ranges(age_ranges, age_min_male, age_max_male)
+    if age_min_female is not None and age_max_female is not None:
+        female_min_max = get_min_max_age_ranges(age_ranges, age_min_female, age_max_female)
 
-    pop = {}
+    pop: Dict[str, Dict[str, Any]] = {}
 
     if male_min_max:
         m_pop_posteriors, male_query, male_pop_pyramid_query = get_age_sex_population(
@@ -192,14 +196,14 @@ def get_population(
                 pop[pcode] = {"female_population": population}
     else:
         female_results = []
-    population_data = {}
+    population_data: Dict[str, Union[Dict[str, Any], List[Any]]] = {}
     population_data["population_totals"] = {}
     concatenated = np.concatenate((f_pop_posteriors, m_pop_posteriors), axis=0)
     population_data["pop_posteriors"] = np.sum(concatenated, axis=0).tolist()
     for (pcode, f_pop), (_, m_pop) in zip(female_results, male_results):
         population_data["population_totals"][pcode] = f_pop + m_pop
 
-    pop = {"male_population": [], "female_population": []}
+    pop: Dict[str, List[Any]] = {"male_population": [], "female_population": []}
 
     if male_min_max:
         male_pyramid_results = male_pop_pyramid_query.all()
