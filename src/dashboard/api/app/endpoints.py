@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, make_response
+from flask import Flask, request, jsonify, make_response, current_app
 from flask_jwt_extended import (
     JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt, decode_token
 )
@@ -38,27 +38,39 @@ def decodetoken(token):
 
 def login():
     from app import bcrypt
-    data = request.get_json()
-    username = data.get('username')
-    password = data.get('password')
+    try:
+        data = request.get_json()
+        username = data.get('username')
+        password = data.get('password')
 
-    if not username or not password:
-        return jsonify({'message': 'Missing username or password'}), 400
+        if not username or not password:
+            return jsonify({'message': 'Missing username or password'}), 400
 
-    user = db.session.query(User).filter_by(username=username).first()
-    if not user or not bcrypt.check_password_hash(user.password, password):
-        return jsonify({'message': 'Invalid username or password'}), 401
-    additional_claims = {"scope": user.role.value}
-    access_token = create_access_token(identity=username, additional_claims=additional_claims)
+        user = db.session.query(User).filter_by(username=username).first()
+        if not user or not bcrypt.check_password_hash(user.password, password):
+            return jsonify({'message': 'Invalid username or password'}), 401
+        additional_claims = {"scope": user.role.value}
+        access_token = create_access_token(identity=username, additional_claims=additional_claims)
+    except Exception as e:
+        current_app.logger.error(e)
+        return make_response("An error occurred while fetching the data", 500)
     return jsonify(access_token=access_token), 200
 
 
 def get_countries() -> list[dict]:
-    return dq.get_countries()
+    try:
+        return dq.get_countries()
+    except Exception as e:
+        current_app.logger.error(e)
+        return make_response("An error occurred while fetching the data", 500)
 
 @validate_input
 def init(country: str):
-    return dq.init(country)
+    try:
+        return dq.init(country)
+    except Exception as e:
+        current_app.logger.error(e)
+        return make_response("An error occurred while fetching the data", 500)
 
 
 @jwt_required(optional=True)
@@ -73,7 +85,11 @@ def get_admin_units(
         current_user = get_jwt_identity()
         if current_user is None:
             return make_response("You need to be logged in to access this resource", 401)
-    data = dq.get_geodata(country, admin_level)
+    try:
+        data = dq.get_geodata(country, admin_level)
+    except Exception as e:
+        current_app.logger.error(e)
+        return make_response("An error occurred while fetching the data", 500)
     return data
 
 @jwt_required(optional=True)
@@ -94,16 +110,20 @@ def get_population(
         current_user = get_jwt_identity()
         if current_user is None:
             return make_response("You need to be logged in to access this resource", 401)
-    data = dq.get_population(
-        country,
-        admin_level,
-        date,
-        admin_id,
-        age_min_male,
-        age_max_male,
-        age_min_female,
-        age_max_female
-        )
+    try:
+        data = dq.get_population(
+            country,
+            admin_level,
+            date,
+            admin_id,
+            age_min_male,
+            age_max_male,
+            age_min_female,
+            age_max_female
+            )
+    except Exception as e:
+        current_app.logger.error(e)
+        return make_response("An error occurred while fetching the data", 500)
     return data
 
 @jwt_required(optional=True)
@@ -126,18 +146,22 @@ def get_migration_probabilities(
         current_user = get_jwt_identity()
         if current_user is None:
             return make_response("You need to be logged in to access this resource", 401)
-    data = dq.get_migration_probabilities(
-        country,
-        admin_level,
-        date,
-        admin_id,
-        age_min_male,
-        age_max_male,
-        age_min_female,
-        age_max_female,
-        rank_by,
-        limit
-    )
+    try:
+        data = dq.get_migration_probabilities(
+            country,
+            admin_level,
+            date,
+            admin_id,
+            age_min_male,
+            age_max_male,
+            age_min_female,
+            age_max_female,
+            rank_by,
+            limit
+        )
+    except Exception as e:
+        current_app.logger.error(e)
+        return make_response("An error occurred while fetching the data", 500)
     return data
 
 
