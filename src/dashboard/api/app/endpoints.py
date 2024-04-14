@@ -56,7 +56,7 @@ def login():
 def get_countries() -> list[dict]:
     return dq.get_countries()
 
-
+@validate_input
 def init(country: str):
     return dq.init(country)
 
@@ -107,6 +107,7 @@ def get_population(
     return data
 
 @jwt_required(optional=True)
+@validate_input
 def get_migration_probabilities(
         country: str,
         admin_level: int,

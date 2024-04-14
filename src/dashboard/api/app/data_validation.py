@@ -5,6 +5,7 @@ from datetime import datetime
 import app.models as m
 from app import db
 
+
 def validate_input(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -26,12 +27,17 @@ def validate_input(f):
                 db.session.query(m.AdminUnits.pcode).filter(m.AdminUnits.pcode==admin_id).first()[0]
             except TypeError:
                 return 'Invalid admin_id', 400
-        # This is wrong
-        if age_min := kwargs.get('age_min_male', None) or kwargs.get("age_min_female", None):
-            if age_min not in range(0, 81, 5):
+        if age_min_male := kwargs.get("age_min_male", None):
+            if not isinstance(age_min_male, int):
                 return 'Invalid age_min', 400
-        if age_max := kwargs.get('age_max', None) or kwargs.get("age_max_female", None):
-            if age_max not in range(5, 85, 5):
-                return 'Invalid age_max', 400
+        if age_max_male := kwargs.get('age_max_male', None):
+            if not isinstance(age_max_male, int):
+                return 'Invalid age_max_male', 400
+        if age_min_female := kwargs.get("age_min_female", None):
+            if not isinstance(age_min_female, int):
+                return 'Invalid age_min', 400
+        if age_max_female := kwargs.get('age_max_female', None):
+            if not isinstance(age_max_female, int):
+                return 'Invalid age_max_female', 400
         return f(*args, **kwargs)
     return decorated_function
