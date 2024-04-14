@@ -18,6 +18,7 @@ SECRET_KEY="p4+N>*!aXEzeMn,K+ehIkId6@rJ=7V"
 DATABASE_URL_LOCAL="postgresql://user:password@localhost:5432/now_pop"
 DATABASE_URL_TEST = "postgresql://user:password@localhost:5432/now_pop_test"
 DATABASE_URL="postgresql://user:password@now_pop_postgres:5432/now_pop"
+DATABASE_URL_READONLY="postgresql://readonly_user:another_secret_password@now_pop_postgres:5432/now_pop"
 ENV="dev"  # local, dev, prod, test
 JWT_SECRET_KEY="5526BA682F324E7E816C5CBAC9293"
 JWT_ACCESS_TOKEN_EXPIRES=2  # Hours before tokens expire
