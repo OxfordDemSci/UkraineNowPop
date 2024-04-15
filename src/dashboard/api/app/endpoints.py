@@ -1,7 +1,7 @@
 from functools import wraps
-from typing import Union
+from typing import Any, Dict, List, Union
 
-from flask import current_app, jsonify, make_response, request
+from flask import current_app, jsonify, make_response, request, Response
 from flask.wrappers import Response
 from flask_jwt_extended import (create_access_token, decode_token, get_jwt,
                                 get_jwt_identity, jwt_required)
@@ -63,7 +63,7 @@ def login():
     return jsonify(access_token=access_token), 200
 
 
-def get_countries() -> list[dict]:
+def get_countries() -> Union[List[Dict], Response]:
     try:
         return dq.get_countries()
     except Exception as e:
@@ -85,7 +85,7 @@ def init(country: str):
 def get_admin_units(
     country: str,
     admin_level: int,
-) -> Union[list[dict], Response]:
+) -> Union[Dict[Any, Any], Response]:
     if admin_level not in [1, 2, 3]:
         return make_response("Invalid admin level", 400)
     if admin_level > 1:
@@ -113,7 +113,7 @@ def get_population(
     age_max_male: int | None = None,
     age_min_female: int | None = None,
     age_max_female: int | None = None,
-) -> Union[list[dict], Response]:
+) -> Union[Dict[Any, Any], Response]:
     if admin_level not in [1, 2, 3]:
         return make_response("Invalid admin level", 400)
     if admin_level > 1:
@@ -152,7 +152,7 @@ def get_migration_probabilities(
     age_max_female: int | None = None,
     rank_by: RankBy = RankBy.COUNT,
     limit: int = 10,
-) -> Union[list[dict], Response]:
+) -> Union[Dict[Any, Any], Response]:
     if admin_level not in [1, 2, 3]:
         return make_response("Invalid admin level", 400)
     if admin_level > 1:
