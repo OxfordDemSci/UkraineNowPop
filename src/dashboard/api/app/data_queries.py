@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import List, Dict, Any, Union
+from typing import Any, Dict, List, Union
 
 import numpy as np
 import sqlalchemy
@@ -163,7 +163,9 @@ def get_population(
     if age_min_male is not None and age_max_male is not None:
         male_min_max = get_min_max_age_ranges(age_ranges, age_min_male, age_max_male)
     if age_min_female is not None and age_max_female is not None:
-        female_min_max = get_min_max_age_ranges(age_ranges, age_min_female, age_max_female)
+        female_min_max = get_min_max_age_ranges(
+            age_ranges, age_min_female, age_max_female
+        )
 
     pop_per_unit_per_sex: Dict[str, Dict[str, Any]] = {}
 
@@ -255,7 +257,9 @@ def get_migration_probabilities(
     if age_min_male is not None and age_max_male is not None:
         male_min_max = get_min_max_age_ranges(age_ranges, age_min_male, age_max_male)
     if age_min_female is not None and age_max_female is not None:
-        female_min_max = get_min_max_age_ranges(age_ranges, age_min_female, age_max_female)
+        female_min_max = get_min_max_age_ranges(
+            age_ranges, age_min_female, age_max_female
+        )
     rank_col = (
         func.sum(Migration.probability)
         if rank_by == RankBy.PROBABILITY

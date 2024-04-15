@@ -1,8 +1,7 @@
 from functools import wraps
 from typing import Any, Dict, List, Union
 
-from flask import current_app, jsonify, make_response, request, Response
-from flask.wrappers import Response
+from flask import Response, current_app, jsonify, make_response, request
 from flask_jwt_extended import (create_access_token, decode_token, get_jwt,
                                 get_jwt_identity, jwt_required)
 
