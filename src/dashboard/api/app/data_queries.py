@@ -165,7 +165,7 @@ def get_population(
     if age_min_female is not None and age_max_female is not None:
         female_min_max = get_min_max_age_ranges(age_ranges, age_min_female, age_max_female)
 
-    pop: Dict[str, Dict[str, Any]] = {}
+    pop_per_unit_per_sex: Dict[str, Dict[str, Any]] = {}
 
     if male_min_max:
         m_pop_posteriors, male_query, male_pop_pyramid_query = get_age_sex_population(
@@ -173,10 +173,10 @@ def get_population(
         )
         male_results = male_query.all()
         for pcode, population in male_results:
-            if pcode in pop:
-                pop[pcode]["male_population"] = population
+            if pcode in pop_per_unit_per_sex:
+                pop_per_unit_per_sex[pcode]["male_population"] = population
             else:
-                pop[pcode] = {"male_population": population}
+                pop_per_unit_per_sex[pcode] = {"male_population": population}
     else:
         male_results = []
 
@@ -190,10 +190,10 @@ def get_population(
         )
         female_results = female_query.all()
         for pcode, population in female_results:
-            if pcode in pop:
-                pop[pcode]["female_population"] = population
+            if pcode in pop_per_unit_per_sex:
+                pop_per_unit_per_sex[pcode]["female_population"] = population
             else:
-                pop[pcode] = {"female_population": population}
+                pop_per_unit_per_sex[pcode] = {"female_population": population}
     else:
         female_results = []
     population_data: Dict[str, Union[Dict[str, Any], List[Any]]] = {}
@@ -202,6 +202,7 @@ def get_population(
     population_data["pop_posteriors"] = np.sum(concatenated, axis=0).tolist()
     for (pcode, f_pop), (_, m_pop) in zip(female_results, male_results):
         population_data["population_totals"][pcode] = f_pop + m_pop
+    population_data["population_totals_by_sex"] = pop_per_unit_per_sex
 
     pop: Dict[str, List[Any]] = {"male_population": [], "female_population": []}
 
@@ -251,8 +252,10 @@ def get_migration_probabilities(
     limit: int = 10,
 ) -> dict:
     age_ranges = get_age_ranges(country)
-    male_min_max = get_min_max_age_ranges(age_ranges, age_min_male, age_max_male)
-    female_min_max = get_min_max_age_ranges(age_ranges, age_min_female, age_max_female)
+    if age_min_male is not None and age_max_male is not None:
+        male_min_max = get_min_max_age_ranges(age_ranges, age_min_male, age_max_male)
+    if age_min_female is not None and age_max_female is not None:
+        female_min_max = get_min_max_age_ranges(age_ranges, age_min_female, age_max_female)
     rank_col = (
         func.sum(Migration.probability)
         if rank_by == RankBy.PROBABILITY
