@@ -1,6 +1,5 @@
-#!/bin/bash
-
 # Function to check if a PostgreSQL database exists
+echo "------------------Running init-db.sh---------------"
 database_exists() {
   psql -U "$POSTGRES_USER" -d postgres -lqt | cut -d \| -f 1 | grep -qw "$1"
 }
