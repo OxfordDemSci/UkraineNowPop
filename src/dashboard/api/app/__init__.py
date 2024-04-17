@@ -99,9 +99,12 @@ def create_users(app: Flask, db) -> None:
     admin_password = app.config["DB_ADMIN_PASSWORD"]
     read_user = app.config["DB_USERNAME"]
     read_password = app.config["DB_PASSWORD"]
+    un_user = app.config["UN_STAFF_USERNAME"]
+    un_password = app.config["UN_STAFF_PASSWORD"]
 
     add_users_to_db(admin_user, admin_password, UserRoleEnum.WRITE, app, db)
     add_users_to_db(read_user, read_password, UserRoleEnum.READ, app, db)
+    add_users_to_db(un_user, un_password, UserRoleEnum.READ, app, db)
 
 
 def add_users_to_db(user_name: str, password: str, role: UserRoleEnum, app: Flask, db):

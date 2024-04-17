@@ -12,6 +12,8 @@ class Configuration:
     DB_ADMIN_PASSWORD = os.environ.get("POSTGRES_PASSWORD")
     DB_PASSWORD = os.environ.get("POSTGRES_READONLY_PASSWORD")
     DB_USERNAME = os.environ.get("POSTGRES_READONLY")
+    UN_STAFF_USERNAME = os.environ.get("UN_STAFF_USERNAME")
+    UN_STAFF_PASSWORD = os.environ.get("UN_STAFF_PASSWORD")
     POSTGRES_DB = os.environ.get("POSTGRES_DB")
     POSTGRES_DB_TEST = os.environ.get("POSTGRES_DB_TEST")
     SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL")
