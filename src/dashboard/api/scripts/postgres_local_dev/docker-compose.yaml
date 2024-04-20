@@ -3,12 +3,13 @@ version: '3'
 services:
   pop_now_postgres:
     container_name: oxford_pop_now_dashboard_db
-    build: .
+    image: postgis/postgis:15-3.4
     env_file: .env
     networks:
       - pop_now_net
     volumes:
       - ./init-scripts/:/docker-entrypoint-initdb.d
+      - pop_now_db_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     restart: unless-stopped
@@ -24,3 +25,6 @@ services:
 
 networks:
   pop_now_net:
+
+volumes:
+  pop_now_db_data:
