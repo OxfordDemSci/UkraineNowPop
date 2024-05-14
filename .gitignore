@@ -55,3 +55,5 @@ rsconnect/
 .vscode
 data/dummy_tables/dummy_migration.*
 data/dummy_tables/dummy_pop.*
+/data/control/
+.idea/
