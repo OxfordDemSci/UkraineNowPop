@@ -1,7 +1,9 @@
 from collections import defaultdict
+import json
 from typing import Any, Dict, List, Union
 
 import numpy as np
+from scipy.stats import gaussian_kde
 import sqlalchemy
 from sqlalchemy import and_, distinct, func, or_
 from sqlalchemy.engine import Row
@@ -201,7 +203,7 @@ def get_population(
     population_data: Dict[str, Union[Dict[str, Any], List[Any]]] = {}
     population_data["population_totals"] = {}
     concatenated = np.concatenate((f_pop_posteriors, m_pop_posteriors), axis=0)
-    population_data["pop_posteriors"] = np.sum(concatenated, axis=0).tolist()
+    population_data["density_plots"] = get_population_density_plots(np.sum(concatenated, axis=0).tolist())
     for (pcode, f_pop), (_, m_pop) in zip(female_results, male_results):
         population_data["population_totals"][pcode] = f_pop + m_pop
     population_data["population_totals_by_sex"] = pop_per_unit_per_sex
@@ -239,6 +241,14 @@ def get_population(
     pyramid_name = "pyramids" if admin_id is None else f"pyramid_{admin_id}"
     population_data[pyramid_name] = pop
     return population_data
+
+
+def get_population_density_plots(pop_posteriors: list) -> list[dict[str, float]]:
+    kde = gaussian_kde(pop_posteriors)
+    x_values = np.linspace(min(pop_posteriors), max(pop_posteriors), len(pop_posteriors))  # TODO should this be 100 or 1000 len?
+    y_values = kde(x_values)
+    kde_data = [{"x": float(x), "y": float(y)} for x, y in zip(x_values, y_values)]
+    return kde_data
 
 
 def get_migration_probabilities(
