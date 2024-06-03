@@ -3,12 +3,12 @@ version: '3'
 services:
   now_pop_postgres:
     container_name: oxford_now_pop_dashboard_db
-    image: postgis/postgis:15-3.4
+    build: .
     env_file: .env
     networks:
       - now_pop_net
     volumes:
-      - ./init-scripts/:/docker-entrypoint-initdb.d
+      #- ./init-scripts/:/docker-entrypoint-initdb.d
       - now_pop_db_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"

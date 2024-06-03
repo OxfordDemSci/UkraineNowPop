@@ -50,11 +50,12 @@ services:
 
   now_pop_postgres:
     container_name: now_pop_db
-    image: postgis/postgis:15-3.4
+    #image: postgis/postgis:15-3.4
+    build: ./sql/
     env_file: 
       .env
     volumes:
-      - ./sql/init-scripts:/docker-entrypoint-initdb.d
+      #- ./sql/init-scripts:/docker-entrypoint-initdb.d
       - now_pop_db_data:/var/lib/postgresql/data
     networks:
       - now_pop_net
