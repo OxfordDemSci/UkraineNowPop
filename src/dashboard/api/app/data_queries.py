@@ -245,8 +245,8 @@ def get_population(
 
 
 def get_population_density_plots(pop_posteriors: list) -> list[dict[str, float]]:
-    kde = gaussian_kde(pop_posteriors)
-    x_values = np.linspace(min(pop_posteriors), max(pop_posteriors), len(pop_posteriors))  # TODO should this be 100 or 1000 len?
+    kde = gaussian_kde(pop_posteriors, bw_method="scott")  # TODO Bandwidth to be confirmed by Doug
+    x_values = np.linspace(min(pop_posteriors), max(pop_posteriors), 100)  # TODO should this be 100 or 1000 len?
     y_values = kde(x_values)
     kde_data = [{"x": float(x), "y": float(y)} for x, y in zip(x_values, y_values)]
     return kde_data
