@@ -203,6 +203,7 @@ def get_population(
     population_data: Dict[str, Union[Dict[str, Any], List[Any]]] = {}
     population_data["population_totals"] = {}
     concatenated = np.concatenate((f_pop_posteriors, m_pop_posteriors), axis=0)
+    population_data["pop_posteriors"] = np.sum(concatenated, axis=0).tolist()
     population_data["density_plots"] = get_population_density_plots(np.sum(concatenated, axis=0).tolist())
     for (pcode, f_pop), (_, m_pop) in zip(female_results, male_results):
         population_data["population_totals"][pcode] = f_pop + m_pop
