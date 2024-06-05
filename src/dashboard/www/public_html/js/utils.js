@@ -42,7 +42,7 @@ export function get_admin_units_geo2(api_url, country , admin_level = 1, accessT
 export function get_admin_units_geo(api_url, country , admin_level = 1, accessToken="null") {
     var result = "";
     $.ajax({
-        url: './data/admin_UKR_level_1.geojson',
+        url: './data/admin_UKR_level_'+admin_level+'.geojson',
         async: false,
         type: 'get',
         dataType: 'json',
@@ -216,8 +216,8 @@ export function getAgeRanges(d) {
 
     var age_ranges = [];
     age_ranges.push(d.age_ranges[0]["age_min"]);
-    for (var i = 0; i < d.age_ranges.length; i++) {
-        age_ranges.push(d.age_ranges[i]["age_max"]);
+    for (var i = 1; i < d.age_ranges.length; i++) {
+        age_ranges.push(d.age_ranges[i]["age_min"]);
     }
     
     return age_ranges;
@@ -276,8 +276,79 @@ export function sumNumbersInJSON(obj) {
   return total; 
 }
 
+export function sumFemaleInJSON(obj) { 
+  let total = 0; 
+    for (var key of Object.keys(obj)) {
+                total = total + obj[key].female_population; 
+    }
+ return total; 
+}
+
+export function sumMaleInJSON(obj) { 
+  let total = 0; 
+    for (var key of Object.keys(obj)) {
+                total = total + obj[key].male_population; 
+    }
+  return total; 
+}
+
+export function sumMaleFemaleInAdmin(obj) { 
+  let total = 0; 
+    for (var key of Object.keys(obj)) {
+                total = total + obj[key].population; 
+    }
+  return total; 
+}
 
 export function round5(x)
 {
     return Math.ceil(x / 5) * 5;
+}
+
+
+export function resetSlider_age_selections(d)
+{
+    
+        $(".slider_age_selections").slider({
+            min: 0,
+            max: d.length - 1,
+            range: true,
+            values: [0, d.length - 1]
+        })
+        .slider("float", {
+            labels: d
+        })
+        .slider("pips", {
+            labels: {first: d[0].toString(), last: d[d.length - 1] + "+"}
+        });
+        event.preventDefault();
+}
+
+export function resetDate_slider(d)
+{
+        $(".Date-slider").slider({
+            min: 0,
+            max: d.length - 1,
+            value: d.length - 1
+        })
+        .slider("float", {
+            labels: d
+        })
+        .slider("pips", {
+            rest: "label",
+            labels: d,
+            step: 10
+        });
+        event.preventDefault();
+}
+
+
+export function isObjectEmpty(objectName)
+{
+    for (let prop in objectName) {
+        if (objectName.hasOwnProperty(prop)) {
+        return false;
+        }
+    }
+    return true;
 }

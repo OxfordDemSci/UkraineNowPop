@@ -1,5 +1,6 @@
 import * as _utils from './utils.js?version=0.46'
 
+
 export function calc_pop_probabilities(d) {
 
     var data = d.sort();
@@ -32,9 +33,29 @@ export function calc_pop_probabilities(d) {
 
 }
 
+const round = (n, dp) => {
+  const h = +('1'.padEnd(dp + 1, '0')); // 10 or 100 or 1000 or etc
+  return Math.round(n * h) / h;
+};
+
+function convert(d){
+    var x = [];
+    var y = [];
+    // set properly optimise plotting hundreds/thousands 1000 every 10
+    // density multiply by 1000
+    for(let i=0; i<d.length; i+=1){
+        y.push( round(d[i].x, 3));
+        x.push( round(d[i].y*10000, 6));
+    }
+    return [x, y];
+}
+
+
 export function update_pop_probabilities(d) {
     
-    let res_probabilities = calc_pop_probabilities(d);
+    //let res_probabilities = calc_pop_probabilities(d);
+    //console.log(res_probabilities);
+    let res_probabilities=convert(d);
     let dataX=res_probabilities[0];
     let dataY=res_probabilities[1];
     
@@ -43,12 +64,12 @@ export function update_pop_probabilities(d) {
     option = {
         grid: {
             left: '22%',
-            bottom: '22%',
-            top: '22%'
+            bottom: '20%',
+            top: '13%'
         },
         tooltip: {
             trigger: 'axis',
-            formatter: 'Population: {b}<br/>  Probability Density: {c}'
+            formatter: 'Population: {b}<br/>  Density: {c}'
         },
         xAxis: {
             type: 'category',
@@ -79,7 +100,7 @@ export function update_pop_probabilities(d) {
         },
         yAxis: {
             type: 'value',
-            name: 'Probability Density',
+            name: 'Density',
             nameLocation: 'center',
             nameTextStyle: {
                 align: 'center',
@@ -95,7 +116,9 @@ export function update_pop_probabilities(d) {
             {
                 data: dataX,
                 type: 'line',
-                areaStyle: {}
+                areaStyle: {},
+                large: true,
+                largeThreshold: 10
             }
         ]
     };
