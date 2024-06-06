@@ -2,19 +2,18 @@ import * as _utils from './utils.js?version=0.46'
 
 export function get_population(api_url, 
                                country, 
-                               admin_level = 1, 
-                               admin_id=null, 
+                               admin_level, 
+                               admin_id, 
                                dates_available, 
                                age_ranges_available,
-                               accessToken="null") {
-                                   
-                                   
-    let date = dates_available[$(".Date-slider").slider("value")];       
+                               accessToken) {
     
-    let age_min_mal =  _utils.round5(age_ranges_available[$(".slider_age_selections").slider("values", 0)]);
-    let age_max_male =  age_ranges_available[$(".slider_age_selections").slider("values", 1)];
+    let date = dates_available[$(".Date-slider").slider("value")];       
+
+    let age_min_male =  _utils.round5(age_ranges_available[$(".slider_age_selections").slider("values", 0)]);
+    let age_max_male =  age_ranges_available[$(".slider_age_selections").slider("values", 1)]-1;
     let age_min_female =  _utils.round5(age_ranges_available[$(".slider_age_selections").slider("values", 0)]);
-    let age_max_female =  age_ranges_available[$(".slider_age_selections").slider("values", 1)];
+    let age_max_female =  age_ranges_available[$(".slider_age_selections").slider("values", 1)]-1;
     
     if (api_url.substr(-1) !== '/')
         api_url += '/';
@@ -23,6 +22,17 @@ export function get_population(api_url,
     
     let age_max_female_f = age_max_female >= 85 ? 80 : age_max_female;
     let age_max_male_f = age_max_male >= 85 ? 80 : age_max_male;
+    
+    let SelectedSex=$('#idSelectSex option').filter(":selected").val();
+ 
+    if (SelectedSex === "Female"){
+           age_min_male =  0;
+           age_max_male_f =  0;
+    }
+    if (SelectedSex === "Male"){
+           age_min_female =  0;
+           age_max_female_f =  0;
+    }    
 
     let data = {};
     data = {
@@ -30,7 +40,7 @@ export function get_population(api_url,
         admin_level: admin_level,
         date: date,
         admin_id: admin_id,
-        age_min_mal: age_min_mal,
+        age_min_male: age_min_male,
         age_max_male: age_max_male_f,
         age_min_female: age_min_female,
         age_max_female: age_max_female_f
@@ -44,10 +54,9 @@ export function get_population(api_url,
             data: data,
             dataType: 'json',
             beforeSend: function (request) {
-                if (accessToken !== "null"){
-                    request.setRequestHeader("Authorization", accessToken);
+                if (localStorage.getItem('access') === "true" ){
+                    request.setRequestHeader("Authorization", "Bearer " + accessToken);
                 }
-                //console.log(url);
             },
             success: function (data) {
                 resolve(data);
@@ -63,11 +72,11 @@ export function get_population(api_url,
 
 export function get_migration_probabilities(api_url, 
                                             country, 
-                                            admin_level = 1, 
-                                            admin_id=null, 
+                                            admin_level, 
+                                            admin_id, 
                                             dates_available, 
                                             age_ranges_available,
-                                            accessToken="null"){
+                                            accessToken){
   
   
     let rank_by="count";
@@ -80,7 +89,7 @@ export function get_migration_probabilities(api_url,
     
     let date = dates_available[$(".Date-slider").slider("value")];   
     
-    let age_min_mal =  _utils.round5(age_ranges_available[$(".slider_age_selections").slider("values", 0)]);
+    let age_min_male =  _utils.round5(age_ranges_available[$(".slider_age_selections").slider("values", 0)]);
     let age_max_male =  age_ranges_available[$(".slider_age_selections").slider("values", 1)];
     let age_min_female =  _utils.round5(age_ranges_available[$(".slider_age_selections").slider("values", 0)]);
     let age_max_female =  age_ranges_available[$(".slider_age_selections").slider("values", 1)];
@@ -92,6 +101,17 @@ export function get_migration_probabilities(api_url,
     
     let age_max_female_f = age_max_female >= 85 ? 80 : age_max_female;
     let age_max_male_f = age_max_male >= 85 ? 80 : age_max_male;
+    
+    let SelectedSex=$('#idSelectSex option').filter(":selected").val();
+ 
+    if (SelectedSex === "Female"){
+           age_min_male =  0;
+           age_max_male_f =  0;
+    }
+    if (SelectedSex === "Male"){
+           age_min_female =  0;
+           age_max_female_f =  0;
+    }      
 
     let data = {};
     data = {
@@ -99,7 +119,7 @@ export function get_migration_probabilities(api_url,
         admin_level: admin_level,
         date: date,
         admin_id: admin_id,
-        age_min_mal: age_min_mal,
+        age_min_male: age_min_male,
         age_max_male: age_max_male_f,
         age_min_female: age_min_female,
         age_max_female: age_max_female_f,
@@ -139,10 +159,9 @@ export function get_migration_probabilities(api_url,
             data: data,
             dataType: 'json',
             beforeSend: function (request) {
-                if (accessToken !== "null"){
-                    request.setRequestHeader("Authorization", accessToken);
+                if (localStorage.getItem('access') === "true" ){
+                    request.setRequestHeader("Authorization", "Bearer " + accessToken);
                 }
-                //console.log(url);
             },
             success: function (data) {
                 resolve(data);
@@ -158,4 +177,47 @@ export function get_migration_probabilities(api_url,
 }
 
 
+export function get_sign_in(api_url, username, password){
+  
+
+    if (api_url.substr(-1) !== '/')
+        api_url += '/';
+    
+    const fullUrl = api_url + 'login';
+
+    let result = {};
+
+    $.ajax({
+        url: fullUrl,
+        async: false,
+        type: 'POST',
+        data: JSON.stringify({
+            username: username,
+            password: password
+        }),
+        dataType: 'json',
+        headers: { 
+            'Accept': 'application/json',
+            'Content-Type': 'application/json' 
+        },        
+        success: function (data) {
+            result = {
+                status: 200,
+                access_token: data.access_token
+            };
+        },
+        error: function (xhr, ajaxOptions, thrownError) {
+            console.log(xhr.status);
+            console.log(thrownError);
+            $('#passwordsNoMatchRegister').show();
+            document.getElementById('passwordsNoMatchRegisterLabel').innerHTML =  thrownError; 
+            result = {
+                status: xhr.status,
+                access_token:""
+            };            
+        }
+    });
+    return result;
+    //event.preventDefault();
+}
 

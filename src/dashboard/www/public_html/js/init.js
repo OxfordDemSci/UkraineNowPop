@@ -112,25 +112,25 @@ export function initialise_migration_probabilities_chart_LG(root) {
         series.nodes.get("colors").set("step", 2);
 
 
-        series.bullets.push(function (_root, _series, dataItem) {
-            var bullet = am5.Bullet.new(root, {
-                locationY: Math.random(),
-                sprite: am5.Circle.new(root, {
-                    radius: 5,
-                    fill: dataItem.get("source").get("fill")
-                })
-            });
-
-            bullet.animate({
-                key: "locationY",
-                to: 1,
-                from: 0,
-                duration: Math.random() * 1000 + 2000,
-                loops: Infinity
-            });
-
-            return bullet;
-        });
+//        series.bullets.push(function (_root, _series, dataItem) {
+//            var bullet = am5.Bullet.new(root, {
+//                locationY: Math.random(),
+//                sprite: am5.Circle.new(root, {
+//                    radius: 5,
+//                    fill: dataItem.get("source").get("fill")
+//                })
+//            });
+//
+//            bullet.animate({
+//                key: "locationY",
+//                to: 1,
+//                from: 0,
+//                duration: Math.random() * 1000 + 2000,
+//                loops: Infinity
+//            });
+//
+//            return bullet;
+//        });
 
         series.nodes.labels.template.setAll({
             textType: "radial",
@@ -141,15 +141,15 @@ export function initialise_migration_probabilities_chart_LG(root) {
             radius: 0
         });
 
-        series.nodes.bullets.push(function (_root, _series, dataItem) {
-            return am5.Bullet.new(root, {
-                sprite: am5.Circle.new(root, {
-                    radius: 1,
-                    fill: dataItem.get("fill")
-                })
-            });
-        });
-        series.children.moveValue(series.bulletsContainer, 0);
+//        series.nodes.bullets.push(function (_root, _series, dataItem) {
+//            return am5.Bullet.new(root, {
+//                sprite: am5.Circle.new(root, {
+//                    radius: 1,
+//                    fill: dataItem.get("fill")
+//                })
+//            });
+//        });
+//        series.children.moveValue(series.bulletsContainer, 0);
 
     }); // end am5.ready()
 

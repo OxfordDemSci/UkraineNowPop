@@ -1,13 +1,13 @@
 var API_URL = "http://127.0.0.1:8000/api";
 
-import * as _api from './api.js?version=0.5'
-import * as _init from './init.js?version=0.4'
-import * as _utils from './utils.js?version=0.46'
+import * as _api from './api.js?version=0.92'
+import * as _init from './init.js?version=0.9'
+import * as _utils from './utils.js?version=0.53'
 import * as _quartile from './quartile.js?version=1'
 import * as _popMap from './population_map.js?version=0.6'
 import * as _popPyramid from './population_pyramid.js?version=0.1'
-import * as _migrationProb from './migration_probabilities.js?version=1.92'
-import * as _popPprobabilities from './pop_probabilities.js?version=0.17'
+import * as _migrationProb from './migration_probabilities.js?version=2.047'
+import * as _popPprobabilities from './pop_probabilities.js?version=0.19'
 
 //_utils.progressMenuOn();
 
@@ -64,10 +64,15 @@ var admin_names_total_count = Object.keys(admin_names).length;
 
 _utils.setGeoMenu(admin_names);
 
+console.log(initialData);
+
 var age_ranges_available = _utils.getAgeRanges(initialData);
 
 var age_min_selected = initialData.age_ranges[0]["age_min"];
-var age_max_selected = initialData.age_ranges[initialData.age_ranges.length - 1]["age_max"];
+var age_max_selected = initialData.age_ranges[initialData.age_ranges.length - 1]["age_min"];
+
+console.log(age_min_selected);
+console.log(age_ranges_available);
 
 var dates_available = _utils.getDates(initialData.dates);
 var date_selected = dates_available[dates_available.length - 1];
@@ -87,6 +92,7 @@ var basemaps = {
     )
 };
 
+
 var mapOptions = {
     zoomControl: false,
     attributionControl: false,
@@ -96,10 +102,8 @@ var mapOptions = {
     layers: [basemaps.OpenStreetMaps]
 };
 
-
 var map = L.map("map", mapOptions);
 map.invalidateSize();
-
 
 var CopyrightLayer = L.control({position: 'bottomleft'});
 
@@ -121,16 +125,27 @@ L.control.zoom({
     position: 'bottomleft'
 }).addTo(map);
 
-
-
 // create the control Probability
-var controlPanel_Probability = L.control({position: 'topright'});
+var controlPanel_Probability_Demographic  = L.control({position: 'topright'});
 
-controlPanel_Probability.onAdd = function () {
-    this._div = L.DomUtil.get('controlPanel_ProbabilityID');
+controlPanel_Probability_Demographic.onAdd = function () {
+    this._div = L.DomUtil.get('controlPanel_TopRightID');
     return this._div;
 };
-controlPanel_Probability.addTo(map);
+controlPanel_Probability_Demographic.addTo(map);
+
+
+// create the control population pyramid
+var controlPanel_Migration_Flow = L.control({position: 'topright'});
+
+controlPanel_Migration_Flow.onAdd = function (map) {
+    this._div = L.DomUtil.get('controlPanel_BottomRightID');
+    return this._div;
+};
+controlPanel_Migration_Flow.addTo(map);
+
+
+
 
 // create the control Panel
 var controlPanel_Controls = L.control({position: 'topleft'});
@@ -142,24 +157,16 @@ controlPanel_Controls.onAdd = function (map) {
 controlPanel_Controls.addTo(map);
 
 
-// create the control population pyramid
-var controlPanel_PopulationPyramid = L.control({position: 'topright'});
-
-controlPanel_PopulationPyramid.onAdd = function (map) {
-    this._div = L.DomUtil.get('controlPanel_PopulationPyramidID');
-    return this._div;
-};
-controlPanel_PopulationPyramid.addTo(map);
 
 // create the control Chord Diagram
-var controlPanel_ChordDiagram = L.control({position: 'topleft'});
+var controlPanel_Info = L.control({position: 'topleft'});
 
-controlPanel_ChordDiagram.onAdd = function (map) {
-    this._div = L.DomUtil.get('controlPanel_ChordDiagramID');
+controlPanel_Info.onAdd = function (map) {
+    this._div = L.DomUtil.get('controlPanel_BottomleftID');
     return this._div;
 };
-controlPanel_ChordDiagram.addTo(map);
-
+controlPanel_Info.addTo(map);
+//console.log((controlPanel_Info._map));
 
 // create the control
 var controlPanel_DateTime = L.control({position: 'bottomcenter'});
@@ -179,38 +186,38 @@ var cartocdn = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/
 }).addTo(map);
 
 
+var popupCode = L.popup({
+    closeButton: false,
+    className : 'another-popup',
+    maxWidth: 300,
+    minWidth: 100
+});
+
+
+
 var layerCountry = L.geoJson(null, {
     style: {
 
     },
     onEachFeature: function (feature, layer) {
-
+      
+    layer.bindPopup(popupCode);
+    
         layer.on({
+            mousemove: function (e) {
+              layer.openPopup(e.latlng);
+            },
             mouseover: function (e) {
-                _popMap.highlightFeaturePopulationMap(e, map);
-
-                var popup = $("<div></div>", {
-                    id: "popup-" + e.target.feature.properties.fid,
-                    css: {
-                        position: "absolute",
-                        top: "60px",
-                        left: "280px",
-                        zIndex: 1002,
-                        backgroundColor: "white",
-                        padding: "8px",
-                        border: "1px solid #ccc"
-                    }
-                });
-                var hedName = $("<div></div>", {
-                    html: "Name: <b> " + e.target.feature.properties.name_en + "</b><br/>Code : <b>"+ e.target.feature.properties.pcode + "</b><br/>Population: <b>"+e.target.feature.properties.population_totals+"<b>",
-                    css: {fontSize: "14px", marginBottom: "3px"}
-                }).appendTo(popup);
-                popup.appendTo("#map");
+                
+            layer.getPopup().setContent('<p class="m-0 p-0"><b>'+feature.properties.name_en+'</b><br/>code: '+feature.properties.pcode+'</p>');  
+            layer.getPopup().update();
+            _popMap.highlightFeaturePopulationMap(e, map);
 
             },
             mouseout: function (e) {
+                layer.closePopup();
                 _popMap.resetFeaturePopulationMap(e, map);
-                $("#popup-" + e.target.feature.properties.fid).remove();
+//                $("#popup-" + e.target.feature.properties.fid).remove();
             },
             click: function (e) {
                 
@@ -218,15 +225,24 @@ var layerCountry = L.geoJson(null, {
                 admin_name_en = e.target.feature.properties.name_en;
                 
                 main_get_pop_migration(API_URL, country_ISO3, admin_level, admin_pcode, dates_available, age_ranges_available,  accessToken);
+
+                document.getElementById('controlPanel_BottomleftID').style.height = '400px';
+                document.getElementById('controlPanel_InfoBoxCode').style.visibility = 'visible';
+                document.getElementById('adminTotalLabel').innerHTML = e.target.feature.properties.population_totals;
+                document.getElementById('adminNameLabel').innerHTML =  admin_name_en; 
+                document.getElementById('adminPCodeLabel').innerHTML =  admin_pcode; 
+                document.getElementById('controlPanel_BottomRightID_label').innerHTML =  "Migration to/from [ " + admin_pcode +" ]";
+                document.getElementById('controlPanel_TopRightID_label').innerHTML =  "Statistics [ " + admin_pcode +" ]"; 
                 
-                document.getElementById('adminTotalInfoBox').style.visibility = 'visible';
-                document.getElementById('adminTotalLabel').innerHTML = admin_pcode + " total : " + e.target.feature.properties.population_totals;
-                document.getElementById('adminNameLabel').innerHTML =  "Name : " + admin_name_en; 
+                var selGEO = document.getElementById("idSelectGeoLevel");
+                document.getElementById('infoGEOLabel').innerHTML = selGEO.options[selGEO.selectedIndex].text;
             }
         });
 
     }.bind(this)
 }).addTo(map);
+
+
 
 
 var legendPopMap = L.control({position: 'bottomright'});
@@ -261,9 +277,9 @@ $(".slider_age_selections")
     }
 })
         .on("slidestop", function (e, ui) {
-
-            main_get_pop_migration(API_URL, country_ISO3, admin_level, admin_pcode, dates_available, age_ranges_available,  accessToken);
-            
+            if (e.originalEvent) {
+                main_get_pop_migration(API_URL, country_ISO3, admin_level, admin_pcode, dates_available, age_ranges_available,  accessToken);
+            }            
         });
    
 
@@ -283,17 +299,44 @@ $(".Date-slider")
             step: 10
         })
         .on("slidechange", function (e, ui) {
-
-            main_get_pop_migration(API_URL, country_ISO3, admin_level, admin_pcode, dates_available, age_ranges_available,  accessToken);
-
+            if (e.originalEvent) {
+                main_get_pop_migration(API_URL, country_ISO3, admin_level, admin_pcode, dates_available, age_ranges_available,  accessToken);
+            }
         });
 
 
 
 $("#btnExpand_ChordDiagrams").on("click", function () {
+
+     // when open a big windows start shoing animation
+     series_plotChordDiagramt_LG.bullets.push(function (_root, _series, dataItem) {
+        var bullet = am5.Bullet.new(root_plotChordDiagramt_LG, {
+            locationY: Math.random(),
+            sprite: am5.Circle.new(root_plotChordDiagramt_LG, {
+                radius: 5,
+                fill: dataItem.get("source").get("fill")
+            })
+        });
+
+        bullet.animate({
+            key: "locationY",
+            to: 1,
+            from: 0,
+            duration: Math.random() * 1000 + 2000,
+            loops: Infinity
+        });
+
+        return bullet;
+    });  
+    
     $('#idMdPlotChordDiagram').modal('show');
 });
 
+
+ $("#idMdPlotChordDiagram").on('hide.bs.modal', function () {
+     series_plotChordDiagramt_LG.bulletsContainer.children.clear();
+     series_plotChordDiagramt_LG.bullets.clear();
+ });
 
 
 $('#plotChordDiagramDisplaySelect input').on("click", function () {
@@ -315,62 +358,49 @@ $('#plotChordDiagramDisplaySelect input').on("click", function () {
 });
 
 
-$( "#btnSettings" ).on( "click", function() {
-    $('#idMdSettings').modal('show');
+
+
+$("#fSignin").on("click", function () {
+    
+    $('#passwordsNoMatchRegister').hide();
+
+    let Username = document.getElementById("fInputUsername").value;
+    let Password = document.getElementById("fInputPassword").value;
+
+    let result = _api.get_sign_in(API_URL, Username, Password);
+
+    if (result.status === 200) {
+        accessToken = result.access_token;
+        localStorage.setItem('access', "true");
+        localStorage.setItem('token', accessToken);
+        _utils.setGeoMenu(admin_names);
+        $("#fInputUsername").val("");
+        $("#fInputPassword").val("");
+        document.getElementById("idFormToLogin").style.display = "none";
+        document.getElementById("idMdLoginFormHeader").style.display = "none";
+        $('#idSuccessfullyloggedin').show();
+        
+        _utils.resetSlider_age_selections(age_ranges_available);
+        _utils.resetDate_slider(dates_available);
+    }
+});
+
+
+$("#idSuccessfullyloggedinContinue").on("click", function () {
+
+    document.getElementById("idFormToLogin").style.display = "block";
+    document.getElementById("idMdLoginFormHeader").style.display = "block";
+    $('#passwordsNoMatchRegister').hide();
+    $('#idSuccessfullyloggedin').hide();
+    $("#fInputUsername").val("");
+    $("#fInputPassword").val("");
+    $('#idMdLoginForm').modal('hide');
+
 });
 
 
 
-// ****************************************************************************
-// ****************************************************************************
-// Initial request and initilisation during start up of the page
-// ****************************************************************************
-// ****************************************************************************
-
-//_api.get_population(API_URL,
-//        country_ISO3,
-//        admin_level,
-//        null,
-//        dates_available,
-//        age_ranges_available,
-//        accessToken).then(result => {
-//
-//        _popPyramid.updatePopulationPyramid(result.pyramid_, series_PopulationPyramid, initialData.age_ranges);
-//        _popPprobabilities.update_pop_probabilities(result.pop_posteriors);
-//        _popMap.updatePopulationMap(map, layerCountry, admin_units_geo, result.population_totals, palette_population);
-//        document.getElementById('cntrlTotalLabel').innerHTML = _utils.sumNumbersInJSON(result.population_totals);
-//        
-//            _api.get_migration_probabilities(API_URL, 
-//                                             country_ISO3, 
-//                                             admin_level, 
-//                                             null, 
-//                                             dates_available, 
-//                                             age_ranges_available, 
-//                                             migrationProbRank_by,
-//                                             accessToken).then(result => {
-//                                                 
-//            migrationProb=result;
-//            
-//            _migrationProb.update_migration_probabilities(result, series_plotChordDiagramt);
-//            _migrationProb.update_migration_probabilities_LG(result, series_plotChordDiagramt_LG);
-//
-//            }).then(() => {
-//            // _utils.progressMenuOff();
-//            console.log("get_migration_probabilities completed");
-//            }).catch(error => {
-//                console.log('In the catch', error);
-//            });
-//            
-//
-//}).then(() => {
-//    _utils.progressMenuOff();
-//    console.log("Initial request and initilisation during start up of the page");
-//}).catch(error => {
-//    console.log('In the catch', error);
-//});
-
-function main_get_pop_migration(api_url, country, admin_level = 1, admin_id = null, dates_available, age_ranges_available, accessToken = "null") {
-
+function main_get_pop_migration(api_url, country, admin_level = 1, admin_id = null, dates_available, age_ranges_available, accessToken) {
     let result_pyramid;
     
     _utils.progressMenuOn();
@@ -382,17 +412,23 @@ function main_get_pop_migration(api_url, country, admin_level = 1, admin_id = nu
             dates_available,
             age_ranges_available,
             accessToken).then(result => {
-
+               
          if (typeof admin_id !== "undefined" && admin_id !== null) {
              result_pyramid = result["pyramid_"+admin_id];
+             document.getElementById('adminFemaleTotalLabel').innerHTML = _utils.sumMaleFemaleInAdmin(result_pyramid.female_population);
+             document.getElementById('adminMaleTotalLabel').innerHTML = _utils.sumMaleFemaleInAdmin(result_pyramid.male_population);
          }else{
              result_pyramid = result["pyramid_"];
          }
          
         _popPyramid.updatePopulationPyramid(result_pyramid, series_PopulationPyramid, initialData.age_ranges);
-        _popPprobabilities.update_pop_probabilities(result.pop_posteriors);
+        _popPprobabilities.update_pop_probabilities(result.density_plots);
         _popMap.updatePopulationMap(map, layerCountry, admin_units_geo, result.population_totals, palette_population);
+        
         document.getElementById('cntrlTotalLabel').innerHTML = _utils.sumNumbersInJSON(result.population_totals);
+        document.getElementById('cntrlTotalFemalesLabel').innerHTML = _utils.sumFemaleInJSON(result.population_totals_by_sex);
+        document.getElementById('cntrlTotalMalesLabel').innerHTML = _utils.sumMaleInJSON(result.population_totals_by_sex);
+
 
         _api.get_migration_probabilities(api_url,
                 country,
@@ -402,8 +438,29 @@ function main_get_pop_migration(api_url, country, admin_level = 1, admin_id = nu
                 age_ranges_available,
                 accessToken).then(result => {
 
+            // ifg no data for migration
+            if (_utils.isObjectEmpty(result)){
+             
+                document.getElementById('controlPanel_BottomRightID').style.visibility = 'hidden';
+                document.getElementById('adminMigrationInLabel').innerHTML = "None";
+                document.getElementById('adminMigrationOutLabel').innerHTML = "None";
+                document.getElementById('adminMigrationTotalLabel').innerHTML = "None";
+                
+            }else{
+
+             document.getElementById('controlPanel_BottomRightID').style.visibility = 'visible';   
+            _migrationProb.update_total_in_out_for_admin(admin_id, result);
             _migrationProb.update_migration_probabilities(result, series_plotChordDiagramt);
-            _migrationProb.update_migration_probabilities_LG(result, series_plotChordDiagramt_LG);
+            //_migrationProb.update_migration_probabilities_LG(result, series_plotChordDiagramt_LG);
+            
+             series_plotChordDiagramt_LG.bulletsContainer.children.clear();
+             series_plotChordDiagramt_LG.bullets.clear();
+            _migrationProb.update_migration_probabilities_LG(result, series_plotChordDiagramt_LG, root_plotChordDiagramt_LG);
+            
+            }
+            
+
+            
 
         }).then(() => {
             // _utils.progressMenuOff();
@@ -418,6 +475,8 @@ function main_get_pop_migration(api_url, country, admin_level = 1, admin_id = nu
         //console.log("Initial request and initilisation during start up of the page");
     }).catch(error => {
         console.log('In the catch', error);
+        alert(error.responseText);
+        _utils.progressMenuOff();
     });
 
 }
@@ -432,14 +491,14 @@ main_get_pop_migration(API_URL, country_ISO3, admin_level, null, dates_available
 map.fitBounds(L.geoJson(admin_units_geo).getBounds());
 
 
-L.DomEvent.disableClickPropagation(controlPanel_ProbabilityID);
-L.DomEvent.disableScrollPropagation(controlPanel_ProbabilityID);
+L.DomEvent.disableClickPropagation(controlPanel_TopRightID);
+L.DomEvent.disableScrollPropagation(controlPanel_TopRightID);
 L.DomEvent.disableClickPropagation(controlPanel_ControlsID);
 L.DomEvent.disableScrollPropagation(controlPanel_ControlsID);
-L.DomEvent.disableClickPropagation(controlPanel_PopulationPyramidID);
-L.DomEvent.disableScrollPropagation(controlPanel_PopulationPyramidID);
-L.DomEvent.disableClickPropagation(controlPanel_ChordDiagramID);
-L.DomEvent.disableScrollPropagation(controlPanel_ChordDiagramID);
+L.DomEvent.disableClickPropagation(controlPanel_BottomRightID);
+L.DomEvent.disableScrollPropagation(controlPanel_BottomRightID);
+L.DomEvent.disableClickPropagation(controlPanel_BottomleftID);
+L.DomEvent.disableScrollPropagation(controlPanel_BottomleftID);
 L.DomEvent.disableClickPropagation(controlPanel_DateTimeID);
 L.DomEvent.disableScrollPropagation(controlPanel_DateTimeID);
 
@@ -452,12 +511,82 @@ $('#SwitchAnimationMigrationPlot_LG').change(function() {
    }
 });
 
-$( "#btnResetSelectedAdmin" ).on( "click", function() {
+
+$( "#btnResetSelectedAdmin_cros" ).on( "click", function() {
+    document.getElementById('adminTotalLabel').innerHTML = "";
+    document.getElementById('adminNameLabel').innerHTML =  ""; 
+    document.getElementById('controlPanel_InfoBoxCode').style.visibility = 'hidden';
+    document.getElementById('controlPanel_BottomleftID').style.height = '160px';
+    admin_pcode = null;   
+    main_get_pop_migration(API_URL, country_ISO3, admin_level, admin_pcode, dates_available, age_ranges_available,  accessToken);
+    document.getElementById('controlPanel_BottomRightID_label').innerHTML =  "Migration";
+    document.getElementById('controlPanel_TopRightID_label').innerHTML =  "Statistics"; 
+ 
+});
+
+$( "#btnResetAllSettingsSelected" ).on( "click", function() {
+    document.getElementById('adminTotalLabel').innerHTML = "";
+    document.getElementById('adminNameLabel').innerHTML =  ""; 
+    document.getElementById('controlPanel_InfoBoxCode').style.visibility = 'hidden';
+    document.getElementById('controlPanel_BottomleftID').style.height = '160px';
+    admin_pcode = null;
+    _utils.resetSlider_age_selections(age_ranges_available);
+    _utils.resetDate_slider(dates_available);
+    document.getElementById("idSelectSex").selectedIndex = 0;
+    document.getElementById("idSelectGeoLevel").selectedIndex = 0;   
+    main_get_pop_migration(API_URL, country_ISO3, admin_level, admin_pcode, dates_available, age_ranges_available,  accessToken);
+    document.getElementById('controlPanel_BottomRightID_label').innerHTML =  "Migration";
+    document.getElementById('controlPanel_TopRightID_label').innerHTML =  "Statistics"; 
+ 
+});
+
+
+
+$('#idSelectGeoLevel').change(function() {
     
     document.getElementById('adminTotalLabel').innerHTML = "";
     document.getElementById('adminNameLabel').innerHTML =  ""; 
-    document.getElementById('adminTotalInfoBox').style.visibility = 'hidden';
+    document.getElementById('controlPanel_InfoBoxCode').style.visibility = 'hidden';
+    document.getElementById('controlPanel_BottomleftID').style.height = '160px';
+    _utils.resetSlider_age_selections(age_ranges_available);
+    _utils.resetDate_slider(dates_available);
+    document.getElementById("idSelectSex").selectedIndex = 0;
     admin_pcode = null;
-    main_get_pop_migration(API_URL, country_ISO3, admin_level, admin_pcode, dates_available, age_ranges_available,  accessToken);
-    
+    admin_level = $(this).val();
+    admin_units_geo = _utils.get_admin_units_geo(API_URL, country_ISO3, $(this).val(), accessToken);
+     
+    main_get_pop_migration(API_URL, country_ISO3, admin_level, null, dates_available, age_ranges_available,  accessToken);
+    document.getElementById('controlPanel_BottomRightID_label').innerHTML =  "Migration";
+    document.getElementById('controlPanel_TopRightID_label').innerHTML =  "Statistics"; 
+});
+
+
+$('#idSelectSex').change(function() {
+    main_get_pop_migration(API_URL, country_ISO3, admin_level, null, dates_available, age_ranges_available,  accessToken);
+});
+
+$( "#btnSettings" ).on( "click", function() {
+    $('#idMdSettings').modal('show');
+});
+
+
+$( "#btnQuestionPanel_Controls" ).on( "click", function() {
+    $('#idMdHelpMainControle').modal('show');
+});
+
+$( "#btnQuestionTopRight_panel" ).on( "click", function() {
+    $('#idMdHelpTopRightPanel').modal('show');
+});
+
+$( "#btnQuestionBottomRight_panel" ).on( "click", function() {
+    $('#idMdHelpBottomRightPanel').modal('show');
+});
+
+$( "#btnQuestionBottomLeft_panel" ).on( "click", function() {
+    $('#idMdHelpBottomLeftPanel').modal('show');
+});
+
+$( "#btnLogin" ).on( "click", function() {
+    $('#idMdHelpMainControle').modal('hide');
+    $('#idMdLoginForm').modal('show');
 });

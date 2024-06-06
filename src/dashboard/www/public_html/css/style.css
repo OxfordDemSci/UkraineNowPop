@@ -38,8 +38,48 @@ html, body, #map {
     margin-bottom: 100px    
 }
 
-#controlPanel_ProbabilityID{
-    height: 260px;
+#controlPanel_ControlsID{
+    z-index: 1000 !important;
+    height: 200px;
+    width: 260px;
+    background-color: #fff;
+    border-left: 1px solid #ccc; 
+    background: white;
+    background: rgba(255,255,255,0.85);
+    box-shadow: 0 0 15px rgba(0,0,0,0.2); 
+    opacity: 0.96;
+    filter: alpha(opacity=10);    
+}
+
+
+#controlPanel_BottomleftID{
+    z-index: 1000 !important;
+    height: 160px;
+    width: 260px;
+    background-color: #fff;
+    border-left: 1px solid #ccc; 
+    background: white;
+    background: rgba(255,255,255,0.85);
+    box-shadow: 0 0 15px rgba(0,0,0,0.2); 
+    opacity: 0.96;
+    filter: alpha(opacity=10);    
+}
+
+/*.controlPanel_ControlsID_Expanded{
+    z-index: 1000 !important;
+    height: 600px;
+    width: 260px;
+    background-color: #fff;
+    border-left: 1px solid #ccc; 
+    background: white;
+    background: rgba(255,255,255,0.85);
+    box-shadow: 0 0 15px rgba(0,0,0,0.2); 
+    opacity: 0.96;
+    filter: alpha(opacity=10);    
+}*/
+
+#controlPanel_BottomRightID{
+    height: 300px;
     width: 260px;
     background-color: #fff;
     border-left: 1px solid #ccc; 
@@ -50,10 +90,9 @@ html, body, #map {
     filter: alpha(opacity=10);    
 }
 
-
-#controlPanel_ControlsID{
+#controlPanel_TopRightID{
     z-index: 1000 !important;
-    height: 260px;
+    height: 300px;
     width: 260px;
     background-color: #fff;
     border-left: 1px solid #ccc; 
@@ -61,31 +100,5 @@ html, body, #map {
     background: rgba(255,255,255,0.85);
     box-shadow: 0 0 15px rgba(0,0,0,0.2); 
     opacity: 0.96;
-    filter: alpha(opacity=10);    
-}
-
-#controlPanel_PopulationPyramidID{
-    z-index: 1000 !important;
-    height: 260px;
-    width: 260px;
-    background-color: #fff;
-    border-left: 1px solid #ccc; 
-    background: white;
-    background: rgba(255,255,255,0.85);
-    box-shadow: 0 0 15px rgba(0,0,0,0.2); 
-    opacity: 0.96;
-    filter: alpha(opacity=10);    
-}
-
-#controlPanel_ChordDiagramID{
-    z-index: 1000 !important;
-    height: 310px;
-    width: 260px;
-    background-color: #fff;
-    border-left: 1px solid #ccc; 
-    background: white;
-    background: rgba(255,255,255,0.85);
-    box-shadow: 0 0 15px rgba(0,0,0,0.2); 
-    opacity: 0.96;
-    filter: alpha(opacity=10);    
+    filter: alpha(opacity=10);   
 }
