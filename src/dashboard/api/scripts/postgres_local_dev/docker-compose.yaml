@@ -9,7 +9,7 @@ services:
       - now_pop_net
     volumes:
       #- ./init-scripts/:/docker-entrypoint-initdb.d
-      - now_pop_db_data:/var/lib/postgresql/data
+      - dashboard_now_pop_db_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     restart: unless-stopped
@@ -27,4 +27,5 @@ networks:
   now_pop_net:
 
 volumes:
-  now_pop_db_data:
+  dashboard_now_pop_db_data:
+    external: true
