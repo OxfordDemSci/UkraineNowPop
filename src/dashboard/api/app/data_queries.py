@@ -1,12 +1,13 @@
 from collections import defaultdict
-import json
+from datetime import timedelta
 from typing import Any, Dict, List, Union
 
 import numpy as np
 from scipy.stats import gaussian_kde
 import sqlalchemy
-from sqlalchemy import and_, distinct, func, or_
+from sqlalchemy import and_, distinct, func, or_, cast, DATE
 from sqlalchemy.engine import Row
+from sqlalchemy.sql import text
 
 from app import db
 
@@ -283,10 +284,14 @@ def get_migration_probabilities(
         else func.sum(Migration.count)
     )
     probabilities = defaultdict(list)
-
     closest_date_subquery = db.session.query(
-        func.min(func.abs(func.date(date) - func.date(Migration.day)))
-    ).subquery()
+        func.abs(cast(date, DATE) - cast(Migration.day, DATE))
+    ).filter(
+        Migration.day <= cast(date, DATE),
+        Migration.day >= cast(date, DATE) - timedelta(days=7)
+    ).order_by(
+        text("(date(day) - date(:date)) DESC")
+    ).limit(1).params(date=date).scalar_subquery()
 
     conditions = []
 
@@ -323,6 +328,7 @@ def get_migration_probabilities(
             Migration.admin_level == admin_level,
             func.abs(func.date(date) - func.date(Migration.day))
             == closest_date_subquery,
+            closest_date_subquery <= 7,
             Migration.country == country,
             Migration.origin == admin_id if admin_id else True,
         )
