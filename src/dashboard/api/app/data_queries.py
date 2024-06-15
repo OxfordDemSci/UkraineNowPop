@@ -76,12 +76,18 @@ def init(country: str) -> dict:
         {"adm1_name": adm1, "adm2_name": adm2, "adm3_name": adm3}
         for adm1, adm2, adm3 in admin_names
     ]
-    dates: List[Row] = (
+    dates_pop: List[Row] = (
         db.session.query(distinct(Population.day))
         .filter(Population.country == country)
         .all()
     )
-    init_data["dates"] = [date for date, in dates]
+    init_data["dates_pop"] = [date for date, in dates_pop]
+    dates_mig: List[Row] = (
+        db.session.query(distinct(Migration.day))
+        .filter(Migration.country == country)
+        .all()
+    )
+    init_data["dates_migration"] = [date for date, in dates_mig]
     languages = (
         db.session.query(Languages.lan2, Languages.lan3)
         .filter(Languages.country == country)
