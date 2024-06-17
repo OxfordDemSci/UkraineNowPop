@@ -214,13 +214,26 @@ export function setGeoMenu(t) {
 
 export function getAgeRanges(d) {
 
-    var age_ranges = [];
-    age_ranges.push(d.age_ranges[0]["age_min"]);
+//    var age_ranges = [];
+//    age_ranges.push(d.age_ranges[0]["age_min"]);
+//    for (var i = 1; i < d.age_ranges.length; i++) {
+//        age_ranges.push(d.age_ranges[i]["age_min"]);
+//    }
+//    
+//    return age_ranges;
+    
+    
+    var age_ranges_min = [];
+    var age_ranges_max = [];
+    age_ranges_min.push(d.age_ranges[0]["age_min"]);
+    age_ranges_max.push(d.age_ranges[0]["age_max"]);
     for (var i = 1; i < d.age_ranges.length; i++) {
-        age_ranges.push(d.age_ranges[i]["age_min"]);
+        age_ranges_min.push(d.age_ranges[i]["age_min"]);
+        age_ranges_max.push(d.age_ranges[i]["age_max"]);
     }
     
-    return age_ranges;
+    return [age_ranges_min,age_ranges_max];
+    
 }
 
 export function getDates (d) {
@@ -351,4 +364,30 @@ export function isObjectEmpty(objectName)
         }
     }
     return true;
+}
+
+
+export function update_Age_Range_labele(vFirst, vLast , age_ranges_available)
+{
+    let age_min = age_ranges_available[0][vFirst];    
+    let age_max = age_ranges_available[1][vLast];
+    if (vLast === age_ranges_available[1].length-1){
+          age_max = age_max + "+";
+    }    
+    document.getElementById('label_Age_range').innerHTML = "Age [ min: "+ age_min +" max: "+ age_max +" ]";   
+}
+
+
+/*
+a - let txt_Geo_DropDown 
+b - txt_Sex_DropDown 
+c - txt_Country_Total_Title 
+d - txt_Date_Bottom_Panel  
+ */
+export function update_Panels_labels(a, b, c, d)
+{
+    document.getElementById('lb_Geo_DropDown').innerHTML = a;   
+    document.getElementById('lb_Sex_DropDown').innerHTML = b;   
+    document.getElementById('lb_Country_Total_Title').innerHTML = c;   
+    document.getElementById('lb_Date_DateTimePanel').innerHTML = d;   
 }

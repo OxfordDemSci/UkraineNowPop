@@ -16,17 +16,11 @@
         <link rel="stylesheet" href="./lib/slider/jquery-ui-slider-pips.min.css">
         <link rel="stylesheet" href="./css/style.css?version=0.72">
 
-        
-<!--        <script src="https://cdn.amcharts.com/lib/5/index.js"></script>
-        <script src="https://cdn.amcharts.com/lib/5/flow.js"></script>
-        <script src="https://cdn.amcharts.com/lib/5/themes/Animated.js"></script>  
-        <script src="https://cdn.amcharts.com/lib/5/xy.js"></script>
--->
-        
-<script src="https://cdn.amcharts.com/lib/version/5.9.9/index.js"></script>
-<script src="https://cdn.amcharts.com/lib/version/5.9.9/flow.js"></script>
-<script src="https://cdn.amcharts.com/lib/version/5.9.9/xy.js"></script>
-<script src="https://cdn.amcharts.com/lib/version/5.9.9/themes/Animated.js"></script>     
+       
+        <script src="https://cdn.amcharts.com/lib/version/5.9.9/index.js"></script>
+        <script src="https://cdn.amcharts.com/lib/version/5.9.9/flow.js"></script>
+        <script src="https://cdn.amcharts.com/lib/version/5.9.9/xy.js"></script>
+        <script src="https://cdn.amcharts.com/lib/version/5.9.9/themes/Animated.js"></script>     
         
 <style>
     option:disabled {
@@ -235,14 +229,14 @@
                             <div class="row">
                                 <div class="col-6">
                                     <div class="form-group mb-1">
-                                        <label class="control_label mb-1">Geo</label>
+                                        <label class="control_label mb-1" id="lb_Geo_DropDown">Geo</label>
                                         <select class="form-select form-select-sm" id="idSelectGeoLevel" style="width: 80px">
                                         </select>
                                     </div>
                                 </div>
                                 <div class="col-6">
                                     <div class="form-group mb-1">
-                                        <label class="control_label mb-1">Sex</label>
+                                        <label class="control_label mb-1" id="lb_Sex_DropDown">Sex</label>
                                         <select class="form-select form-select-sm" id="idSelectSex"  style="width: 80px">
                                             <option value="Both" selected>Both</option>
                                             <option value="Female">Female</option>
@@ -259,14 +253,14 @@
                 <div class="row m-0">
                     <div class="col-12">
 
-                        <div class="container-fluid">      
-                            <div class="row align-items-center">
-                                <div class="pt-1 mb-3">
-                                    <label  class="control_label" style="">Age</label> 
+                        <div class="container-fluid pt-2">      
+                            <div class="row">
+                                <div class="pt-2">
+                                    <label  class="control_label" id="label_Age_range"></label>
                                 </div>
                             </div>                     
                             <div class="row align-items-center">
-                                <div class="p-4">
+                                <div class="p-3">
                                     <div class="slider_age_selections"></div> 
                                 </div>
                             </div>  
@@ -310,7 +304,8 @@
                                 <table class="table table-sm" style="margin-bottom: 0.10rem;">
                                     <tr>
                                         <td style="border-bottom-width:0px;" class="table-primary" colspan="2">
-                                            <b>Ukraine totals</b>    
+                                        <!--  <b>Ukraine totals</b> -->
+                                        <label style="font-weight: 600" id="lb_Country_Total_Title"></label>
                                         </td>
                                     </tr>                                            
 
@@ -554,7 +549,7 @@
         
         <div id="controlPanel_DateTimeID"  style="padding-left: 3em;padding-right: 3em">
             <div>
-                <label class="control_label mb-3 mt-3">Date</label>
+                <label class="control_label mb-3 mt-3" id="lb_Date_DateTimePanel">Date</label>
                 <div class="Date-slider" ></div>
            </div>
        </div> 
@@ -706,7 +701,7 @@
          id="idMdHelpMainControle-dialog">
         <div class="modal-content">
             <div class="modal-header" style="padding: 0.5rem;cursor: move;">
-                <h5 class="modal-title">About</h5>
+                <h5 class="modal-title" >About</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
@@ -922,7 +917,7 @@
 
 <script src="//cdn.jsdelivr.net/npm/jstat@latest/dist/jstat.min.js"></script>
 
-<script src="./js/main.js?version=2.01" type="module"></script>
+<script src="./js/main.js?version=2.02" type="module"></script>
 
 
 

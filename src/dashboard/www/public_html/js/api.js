@@ -10,10 +10,16 @@ export function get_population(api_url,
     
     let date = dates_available[$(".Date-slider").slider("value")];       
 
-    let age_min_male =  _utils.round5(age_ranges_available[$(".slider_age_selections").slider("values", 0)]);
-    let age_max_male =  age_ranges_available[$(".slider_age_selections").slider("values", 1)]-1;
-    let age_min_female =  _utils.round5(age_ranges_available[$(".slider_age_selections").slider("values", 0)]);
-    let age_max_female =  age_ranges_available[$(".slider_age_selections").slider("values", 1)]-1;
+    let age_min_male =  age_ranges_available[0][$(".slider_age_selections").slider("values", 0)];
+    let age_max_male =  age_ranges_available[1][$(".slider_age_selections").slider("values", 1)]-1;
+    
+    let age_min_female = age_ranges_available[0][$(".slider_age_selections").slider("values", 0)];
+    let age_max_female =  age_ranges_available[1][$(".slider_age_selections").slider("values", 1)]-1;
+    
+//    let age_min_male =  _utils.round5(age_ranges_available[0][$(".slider_age_selections").slider("values", 0)]);
+//    let age_max_male =  age_ranges_available[1][$(".slider_age_selections").slider("values", 1)]-1;
+//    let age_min_female =  _utils.round5(age_ranges_available[0][$(".slider_age_selections").slider("values", 0)]);
+//    let age_max_female =  age_ranges_available[1][$(".slider_age_selections").slider("values", 1)]-1;    
     
     if (api_url.substr(-1) !== '/')
         api_url += '/';
@@ -89,10 +95,16 @@ export function get_migration_probabilities(api_url,
     
     let date = dates_available[$(".Date-slider").slider("value")];   
     
-    let age_min_male =  _utils.round5(age_ranges_available[$(".slider_age_selections").slider("values", 0)]);
-    let age_max_male =  age_ranges_available[$(".slider_age_selections").slider("values", 1)];
-    let age_min_female =  _utils.round5(age_ranges_available[$(".slider_age_selections").slider("values", 0)]);
-    let age_max_female =  age_ranges_available[$(".slider_age_selections").slider("values", 1)];
+//    let age_min_male =  _utils.round5(age_ranges_available[$(".slider_age_selections").slider("values", 0)]);
+//    let age_max_male =  age_ranges_available[$(".slider_age_selections").slider("values", 1)];
+//    let age_min_female =  _utils.round5(age_ranges_available[$(".slider_age_selections").slider("values", 0)]);
+//    let age_max_female =  age_ranges_available[$(".slider_age_selections").slider("values", 1)];
+    
+    let age_min_male =  age_ranges_available[0][$(".slider_age_selections").slider("values", 0)];
+    let age_max_male =  age_ranges_available[1][$(".slider_age_selections").slider("values", 1)]-1;
+    
+    let age_min_female = age_ranges_available[0][$(".slider_age_selections").slider("values", 0)];
+    let age_max_female =  age_ranges_available[1][$(".slider_age_selections").slider("values", 1)]-1;    
 
     if (api_url.substr(-1) !== '/')
         api_url += '/';

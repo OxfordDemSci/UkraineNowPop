@@ -1,8 +1,8 @@
 var API_URL = "http://127.0.0.1:8000/api";
 
-import * as _api from './api.js?version=0.92'
+import * as _api from './api.js?version=0.95'
 import * as _init from './init.js?version=0.9'
-import * as _utils from './utils.js?version=0.53'
+import * as _utils from './utils.js?version=0.58'
 import * as _quartile from './quartile.js?version=1'
 import * as _popMap from './population_map.js?version=0.6'
 import * as _popPyramid from './population_pyramid.js?version=0.1'
@@ -10,6 +10,18 @@ import * as _migrationProb from './migration_probabilities.js?version=2.047'
 import * as _popPprobabilities from './pop_probabilities.js?version=0.19'
 
 //_utils.progressMenuOn();
+
+let txt_Geo_DropDown = "Geo";
+let txt_Sex_DropDown = "Sex";
+let txt_Country_Total_Title = "Ukraine totals";
+let txt_Title_Top_RightPanel  = "Statistics";
+let txt_Title_Bottom_RightPanel  = "Migration";
+let txt_Date_Bottom_Panel  = "Date";
+
+//let txt_title_TopLeftPanel_infobox = "Geo";
+//let txt_title_BottomLeftPanel_infobox = "Geo";
+//let txt_title_TopRightPanel_infobox = "Geo";
+//let txt_title_BottomRightPanel_infobox = "Geo";
 
 let root_plotChordDiagramt = null;
 let series_plotChordDiagramt = null;
@@ -68,13 +80,15 @@ console.log(initialData);
 
 var age_ranges_available = _utils.getAgeRanges(initialData);
 
-var age_min_selected = initialData.age_ranges[0]["age_min"];
-var age_max_selected = initialData.age_ranges[initialData.age_ranges.length - 1]["age_min"];
-
-console.log(age_min_selected);
 console.log(age_ranges_available);
 
-var dates_available = _utils.getDates(initialData.dates);
+var age_min_selected = initialData.age_ranges[0]["age_min"];
+var age_max_selected = initialData.age_ranges[initialData.age_ranges.length - 1]["age_max"];
+
+console.log(age_max_selected);
+
+
+var dates_available = _utils.getDates(initialData.dates_pop);
 var date_selected = dates_available[dates_available.length - 1];
 
 var migrationProb = null;
@@ -231,8 +245,8 @@ var layerCountry = L.geoJson(null, {
                 document.getElementById('adminTotalLabel').innerHTML = e.target.feature.properties.population_totals;
                 document.getElementById('adminNameLabel').innerHTML =  admin_name_en; 
                 document.getElementById('adminPCodeLabel').innerHTML =  admin_pcode; 
-                document.getElementById('controlPanel_BottomRightID_label').innerHTML =  "Migration to/from [ " + admin_pcode +" ]";
-                document.getElementById('controlPanel_TopRightID_label').innerHTML =  "Statistics [ " + admin_pcode +" ]"; 
+                document.getElementById('controlPanel_BottomRightID_label').innerHTML =  txt_Title_Bottom_RightPanel + " to/from [ " + admin_pcode +" ]";
+                document.getElementById('controlPanel_TopRightID_label').innerHTML =  txt_Title_Top_RightPanel + " [ " + admin_pcode +" ]"; 
                 
                 var selGEO = document.getElementById("idSelectGeoLevel");
                 document.getElementById('infoGEOLabel').innerHTML = selGEO.options[selGEO.selectedIndex].text;
@@ -262,21 +276,33 @@ legendPopMap.addTo(map);
 $(".slider_age_selections")
         .slider({
             min: 0,
-            max: age_ranges_available.length - 1,
+            max: age_ranges_available[0].length - 1,
             range: true,
-            values: [0, age_ranges_available.length - 1]
+            values: [0, age_ranges_available[0].length - 1]
         })
-        .slider("float", {
-            labels: age_ranges_available
-        })
+//        .slider("float", {
+//            rest: "label",
+//            labels: age_ranges_available,
+//            formatLabel: function(e){ 
+//                 return(e);
+//            }
+//        })
         .slider("pips", {
-            labels: {first: age_ranges_available[0].toString(), last: age_ranges_available[age_ranges_available.length - 1] + "+"}
+            labels: {first: "0", last: age_ranges_available[1][age_ranges_available[1].length - 1] + "+"}
         }).on("slide", function (e, ui) {
-    if (ui.values[1] === ui.values[0]) {
-        return false;
-    }
-})
-        .on("slidestop", function (e, ui) {
+               
+            if (ui.values[1] < ui.values[0]) {
+             return false;
+            }
+//            let age_min = age_ranges_available[0][ui.values[0]];    
+//            let age_max = age_ranges_available[1][ui.values[1]];
+//            if (ui.values[1] === age_ranges_available[1].length-1){
+//                age_max = age_max + "+";
+//            }
+            //document.getElementById('label_Age_range').innerHTML = "Age [ min: "+ age_min +" max: "+age_max+" ]";   
+            _utils.update_Age_Range_labele(ui.values[0], ui.values[1], age_ranges_available);
+      
+        }).on("slidestop", function (e, ui) {
             if (e.originalEvent) {
                 main_get_pop_migration(API_URL, country_ISO3, admin_level, admin_pcode, dates_available, age_ranges_available,  accessToken);
             }            
@@ -401,6 +427,7 @@ $("#idSuccessfullyloggedinContinue").on("click", function () {
 
 
 function main_get_pop_migration(api_url, country, admin_level = 1, admin_id = null, dates_available, age_ranges_available, accessToken) {
+    
     let result_pyramid;
     
     _utils.progressMenuOn();
@@ -420,7 +447,8 @@ function main_get_pop_migration(api_url, country, admin_level = 1, admin_id = nu
          }else{
              result_pyramid = result["pyramid_"];
          }
-         
+//         console.log(result_pyramid);
+//         console.log(initialData.age_ranges);
         _popPyramid.updatePopulationPyramid(result_pyramid, series_PopulationPyramid, initialData.age_ranges);
         _popPprobabilities.update_pop_probabilities(result.density_plots);
         _popMap.updatePopulationMap(map, layerCountry, admin_units_geo, result.population_totals, palette_population);
@@ -502,6 +530,7 @@ L.DomEvent.disableScrollPropagation(controlPanel_BottomleftID);
 L.DomEvent.disableClickPropagation(controlPanel_DateTimeID);
 L.DomEvent.disableScrollPropagation(controlPanel_DateTimeID);
 
+_utils.update_Age_Range_labele(0, age_ranges_available[0].length-1, age_ranges_available);
 
 $('#SwitchAnimationMigrationPlot_LG').change(function() {
    if ($(this).prop('checked')){
@@ -519,8 +548,8 @@ $( "#btnResetSelectedAdmin_cros" ).on( "click", function() {
     document.getElementById('controlPanel_BottomleftID').style.height = '160px';
     admin_pcode = null;   
     main_get_pop_migration(API_URL, country_ISO3, admin_level, admin_pcode, dates_available, age_ranges_available,  accessToken);
-    document.getElementById('controlPanel_BottomRightID_label').innerHTML =  "Migration";
-    document.getElementById('controlPanel_TopRightID_label').innerHTML =  "Statistics"; 
+    document.getElementById('controlPanel_BottomRightID_label').innerHTML =  txt_Title_Bottom_RightPanel;
+    document.getElementById('controlPanel_TopRightID_label').innerHTML =  txt_Title_Top_RightPanel; 
  
 });
 
@@ -533,10 +562,12 @@ $( "#btnResetAllSettingsSelected" ).on( "click", function() {
     _utils.resetSlider_age_selections(age_ranges_available);
     _utils.resetDate_slider(dates_available);
     document.getElementById("idSelectSex").selectedIndex = 0;
-    document.getElementById("idSelectGeoLevel").selectedIndex = 0;   
+    document.getElementById("idSelectGeoLevel").selectedIndex = 0;
+    admin_level=1;
+    admin_units_geo = _utils.get_admin_units_geo(API_URL, country_ISO3, admin_level, accessToken);
     main_get_pop_migration(API_URL, country_ISO3, admin_level, admin_pcode, dates_available, age_ranges_available,  accessToken);
-    document.getElementById('controlPanel_BottomRightID_label').innerHTML =  "Migration";
-    document.getElementById('controlPanel_TopRightID_label').innerHTML =  "Statistics"; 
+    document.getElementById('controlPanel_BottomRightID_label').innerHTML =  txt_Title_Bottom_RightPanel;
+    document.getElementById('controlPanel_TopRightID_label').innerHTML =  txt_Title_Top_RightPanel; 
  
 });
 
@@ -556,13 +587,13 @@ $('#idSelectGeoLevel').change(function() {
     admin_units_geo = _utils.get_admin_units_geo(API_URL, country_ISO3, $(this).val(), accessToken);
      
     main_get_pop_migration(API_URL, country_ISO3, admin_level, null, dates_available, age_ranges_available,  accessToken);
-    document.getElementById('controlPanel_BottomRightID_label').innerHTML =  "Migration";
-    document.getElementById('controlPanel_TopRightID_label').innerHTML =  "Statistics"; 
+    document.getElementById('controlPanel_BottomRightID_label').innerHTML =  txt_Title_Bottom_RightPanel;
+    document.getElementById('controlPanel_TopRightID_label').innerHTML =  txt_Title_Top_RightPanel; 
 });
 
 
 $('#idSelectSex').change(function() {
-    main_get_pop_migration(API_URL, country_ISO3, admin_level, null, dates_available, age_ranges_available,  accessToken);
+    main_get_pop_migration(API_URL, country_ISO3, admin_level, admin_pcode, dates_available, age_ranges_available,  accessToken);
 });
 
 $( "#btnSettings" ).on( "click", function() {
@@ -590,3 +621,10 @@ $( "#btnLogin" ).on( "click", function() {
     $('#idMdHelpMainControle').modal('hide');
     $('#idMdLoginForm').modal('show');
 });
+
+
+_utils.update_Panels_labels(txt_Geo_DropDown, 
+                            txt_Sex_DropDown, 
+                            txt_Country_Total_Title, 
+                            txt_Date_Bottom_Panel);
+
