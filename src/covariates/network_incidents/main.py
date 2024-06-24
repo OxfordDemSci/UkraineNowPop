@@ -12,7 +12,7 @@ from net_friction.data_preparation import data_pre_processing, get_acled_data_fr
 
 load_dotenv()
 
-BASE = Path(__file__).resolve().parent
+BASE = Path(__file__).resolve().parent.parent.parent.joinpath("data", "covariates", "network_incidents")
 
 
 def main(roads, subset_fields, subset_categories, crs, admin_levels, buffer_distance, start_date, end_date):
