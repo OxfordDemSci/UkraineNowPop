@@ -114,7 +114,7 @@ if __name__ == "__main__":
     subset_fields = ["osm_id", "fclass"]
     subset_categories = ["motorway", "trunk", "primary", "secondary", "tertiary"]
     crs = 6383
-    admin_levels = [1]
+    admin_levels = [1, 2]
     buffer_distance = 1000
     # EDITH PLEASE EDIT THE DATES BELOW - If only one range (i.e. 2024-02-01 - 2024-02-29), you only need one element in each list
     # for example start_dates = ["2024-02-01"] and end_dates = ["2024-02-29"]
