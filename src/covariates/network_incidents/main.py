@@ -12,7 +12,7 @@ from net_friction.data_preparation import data_pre_processing, get_acled_data_fr
 
 load_dotenv()
 
-BASE = Path(__file__).resolve().parent.parent.parent.joinpath("data", "covariates", "network_incidents")
+BASE = Path(__file__).resolve().parent.parent.parent.parent.joinpath("data", "covariates", "network_incidents")
 
 
 def main(roads, subset_fields, subset_categories, crs, admin_levels, buffer_distance, start_date, end_date):
@@ -66,7 +66,7 @@ def main(roads, subset_fields, subset_categories, crs, admin_levels, buffer_dist
             crs=crs,
             raster=raster,
             admin_boundaries=admin_boundaries,
-            control_areas_dir=control_areas_dir,
+            control_areas_dir=areas_of_control_dir,
             aceld_data=acled_subset,
             date_start=start_date,
             date_end=end_date,
@@ -106,13 +106,15 @@ def get_control_areas(control_areas_dir, start_date, end_date):
 if __name__ == "__main__":
     import time
     start = time.time()
+    print(BASE)
+    assert BASE.exists()
     # EDITH PLEASE EDIT THE PATH BELOW
     BASE_ROADS = Path(r"C:\Users\dkerr\Documents\GISRede\OXFORD_UNI_WORK\NET_FRICTION_DEBUGGING\data").resolve()
     roads = BASE_ROADS.joinpath("roads", "gis_osm_roads_free_1.shp")
     subset_fields = ["osm_id", "fclass"]
     subset_categories = ["motorway", "trunk", "primary", "secondary", "tertiary"]
     crs = 6383
-    admin_levels = [1, 2]
+    admin_levels = [1]
     buffer_distance = 1000
     # EDITH PLEASE EDIT THE DATES BELOW - If only one range (i.e. 2024-02-01 - 2024-02-29), you only need one element in each list
     # for example start_dates = ["2024-02-01"] and end_dates = ["2024-02-29"]
