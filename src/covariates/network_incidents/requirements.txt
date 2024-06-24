@@ -1,0 +1,2 @@
+git+https://github.com/GISRedeDev/PyNetworkFriction.git#egg=net-friction
+git+https://github.com/GISRedeDev/AreasofControl.git#egg=areasofcontrol

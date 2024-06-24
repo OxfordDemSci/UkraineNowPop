@@ -1,0 +1,13 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+areasofcontrol = {git = "git+https://github.com/GISRedeDev/AreasofControl.git"}
+net-friction = {git = "git+https://github.com/GISRedeDev/PyNetworkFriction"}
+
+[dev-packages]
+
+[requires]
+python_version = "3.11"
