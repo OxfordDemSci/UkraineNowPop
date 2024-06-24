@@ -4,8 +4,8 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-areasofcontrol = {git = "git+https://github.com/GISRedeDev/AreasofControl.git"}
 net-friction = {git = "git+https://github.com/GISRedeDev/PyNetworkFriction"}
+areasofcontrol = {git = "git+https://github.com/GISRedeDev/AreasofControl.git"}
 
 [dev-packages]
 

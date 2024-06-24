@@ -34,7 +34,7 @@
         },
         "areasofcontrol": {
             "git": "git+https://github.com/GISRedeDev/AreasofControl.git",
-            "ref": "0503817bda3951243765230868ffeba0ac84bf68"
+            "ref": "77d4baadc072637bc38a94f3f6e7cedfe228b237"
         },
         "attrs": {
             "hashes": [
