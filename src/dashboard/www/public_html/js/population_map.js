@@ -130,7 +130,7 @@ export function uniqueArray(arr) {
 }
 
 
-export function updatePopulationMap(_map, _layer, geoJson, data, palette_colors) {
+export function updatePopulationMap(_map, _layer, geoJson, data, palette_colors, title) {
     
    _layer.clearLayers();
    _map.removeLayer(_layer);
@@ -147,7 +147,7 @@ export function updatePopulationMap(_map, _layer, geoJson, data, palette_colors)
    let palette  = getPalettePopMap(data, palette_colors);
    RestyleLayerPopMap(_layer, palette);
     
-   loadLagentPopMap("Population", palette["colors"], palette["breaks"], "subtitles");
+   loadLagentPopMap(title, palette["colors"], palette["breaks"], "subtitles");
     
     const resizeObserver = new ResizeObserver(() => {
         _map.invalidateSize();

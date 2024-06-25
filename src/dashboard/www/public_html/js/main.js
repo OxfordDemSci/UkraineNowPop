@@ -4,7 +4,7 @@ import * as _api from './api.js?version=0.95'
 import * as _init from './init.js?version=0.9'
 import * as _utils from './utils.js?version=0.58'
 import * as _quartile from './quartile.js?version=1'
-import * as _popMap from './population_map.js?version=0.6'
+import * as _popMap from './population_map.js?version=0.7'
 import * as _popPyramid from './population_pyramid.js?version=0.1'
 import * as _migrationProb from './migration_probabilities.js?version=2.047'
 import * as _popPprobabilities from './pop_probabilities.js?version=0.19'
@@ -17,11 +17,8 @@ let txt_Country_Total_Title = "Ukraine totals";
 let txt_Title_Top_RightPanel  = "Statistics";
 let txt_Title_Bottom_RightPanel  = "Migration";
 let txt_Date_Bottom_Panel  = "Date";
+let txt_Title_Legend_Population  = "Population";
 
-//let txt_title_TopLeftPanel_infobox = "Geo";
-//let txt_title_BottomLeftPanel_infobox = "Geo";
-//let txt_title_TopRightPanel_infobox = "Geo";
-//let txt_title_BottomRightPanel_infobox = "Geo";
 
 let root_plotChordDiagramt = null;
 let series_plotChordDiagramt = null;
@@ -76,16 +73,12 @@ var admin_names_total_count = Object.keys(admin_names).length;
 
 _utils.setGeoMenu(admin_names);
 
-console.log(initialData);
-
 var age_ranges_available = _utils.getAgeRanges(initialData);
 
-console.log(age_ranges_available);
 
 var age_min_selected = initialData.age_ranges[0]["age_min"];
 var age_max_selected = initialData.age_ranges[initialData.age_ranges.length - 1]["age_max"];
 
-console.log(age_max_selected);
 
 
 var dates_available = _utils.getDates(initialData.dates_pop);
@@ -180,7 +173,6 @@ controlPanel_Info.onAdd = function (map) {
     return this._div;
 };
 controlPanel_Info.addTo(map);
-//console.log((controlPanel_Info._map));
 
 // create the control
 var controlPanel_DateTime = L.control({position: 'bottomcenter'});
@@ -280,13 +272,6 @@ $(".slider_age_selections")
             range: true,
             values: [0, age_ranges_available[0].length - 1]
         })
-//        .slider("float", {
-//            rest: "label",
-//            labels: age_ranges_available,
-//            formatLabel: function(e){ 
-//                 return(e);
-//            }
-//        })
         .slider("pips", {
             labels: {first: "0", last: age_ranges_available[1][age_ranges_available[1].length - 1] + "+"}
         }).on("slide", function (e, ui) {
@@ -294,12 +279,6 @@ $(".slider_age_selections")
             if (ui.values[1] < ui.values[0]) {
              return false;
             }
-//            let age_min = age_ranges_available[0][ui.values[0]];    
-//            let age_max = age_ranges_available[1][ui.values[1]];
-//            if (ui.values[1] === age_ranges_available[1].length-1){
-//                age_max = age_max + "+";
-//            }
-            //document.getElementById('label_Age_range').innerHTML = "Age [ min: "+ age_min +" max: "+age_max+" ]";   
             _utils.update_Age_Range_labele(ui.values[0], ui.values[1], age_ranges_available);
       
         }).on("slidestop", function (e, ui) {
@@ -447,11 +426,10 @@ function main_get_pop_migration(api_url, country, admin_level = 1, admin_id = nu
          }else{
              result_pyramid = result["pyramid_"];
          }
-//         console.log(result_pyramid);
-//         console.log(initialData.age_ranges);
+
         _popPyramid.updatePopulationPyramid(result_pyramid, series_PopulationPyramid, initialData.age_ranges);
         _popPprobabilities.update_pop_probabilities(result.density_plots);
-        _popMap.updatePopulationMap(map, layerCountry, admin_units_geo, result.population_totals, palette_population);
+        _popMap.updatePopulationMap(map, layerCountry, admin_units_geo, result.population_totals, palette_population, txt_Title_Legend_Population);
         
         document.getElementById('cntrlTotalLabel').innerHTML = _utils.sumNumbersInJSON(result.population_totals);
         document.getElementById('cntrlTotalFemalesLabel').innerHTML = _utils.sumFemaleInJSON(result.population_totals_by_sex);
@@ -500,7 +478,6 @@ function main_get_pop_migration(api_url, country, admin_level = 1, admin_id = nu
 
     }).then(() => {
         _utils.progressMenuOff();
-        //console.log("Initial request and initilisation during start up of the page");
     }).catch(error => {
         console.log('In the catch', error);
         alert(error.responseText);
@@ -617,6 +594,10 @@ $( "#btnQuestionBottomLeft_panel" ).on( "click", function() {
     $('#idMdHelpBottomLeftPanel').modal('show');
 });
 
+$( "#btnAboutPortal" ).on( "click", function() {
+    $('#idMdHelpMainPanel').modal('show');
+});
+
 $( "#btnLogin" ).on( "click", function() {
     $('#idMdHelpMainControle').modal('hide');
     $('#idMdLoginForm').modal('show');
@@ -628,3 +609,15 @@ _utils.update_Panels_labels(txt_Geo_DropDown,
                             txt_Country_Total_Title, 
                             txt_Date_Bottom_Panel);
 
+
+$('#idMdSettings').on('hidden.bs.modal', function (e) {
+
+    e.preventDefault();
+    
+    if ($("#idCheckCountryLabels").is(":checked")) {
+            map.addLayer(cartocdn);
+    } else {
+            map.removeLayer(cartocdn);
+    }
+    
+});   

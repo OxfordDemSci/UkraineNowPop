@@ -14,170 +14,13 @@
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/themes/base/jquery-ui.min.css">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/themes/base/theme.min.css">        
         <link rel="stylesheet" href="./lib/slider/jquery-ui-slider-pips.min.css">
-        <link rel="stylesheet" href="./css/style.css?version=0.72">
-
+        <link rel="stylesheet" href="./css/style.css?version=0.73">
        
         <script src="https://cdn.amcharts.com/lib/version/5.9.9/index.js"></script>
         <script src="https://cdn.amcharts.com/lib/version/5.9.9/flow.js"></script>
         <script src="https://cdn.amcharts.com/lib/version/5.9.9/xy.js"></script>
         <script src="https://cdn.amcharts.com/lib/version/5.9.9/themes/Animated.js"></script>     
         
-<style>
-    option:disabled {
-        color: #999;
-    }
-
-    #controlPanel_DateTimeID .ui-slider-pips .ui-slider-label{
-        width: 6em;
-        left: 0%;
-        margin-left: -2em
-    }
-
-    #controlPanel_DateTimeID .ui-slider-pips .ui-slider-tip, .ui-slider-float .ui-slider-tip-label {
-        width: 6em;
-        margin-left: -2.3em;
-        left: 0%;
-    }
-
-    #controlPanel_DateTimeID .ui-slider-pips .ui-slider-pip {
-        font-size: 0.9em;
-    }
-
-    .slider_age_selections .ui-slider-tip {
-        visibility: visible;
-        opacity: 1;
-        width: 2em;
-        top: -30px;
-        margin-left: -1em;
-        z-index: 1000 !important;
-    }
-
-    .control_label {
-        font-size: 1.1em;
-        font-weight: bolder;
-        line-height: 1em;
-        color: rgba(0, 0, 0, .6);
-    }
-
-    .info_box_label {
-        font-size: 1.0em;
-        font-weight: 400;
-        line-height: 1em;
-        color: rgba(0, 0, 0, .8);
-    }
-
-    #firstloader {
-        position: fixed;
-        left: 0px;
-        top: 0px;
-        width: 100%;
-        height: 100%;
-        z-index: 19999!important;
-        background: url('../img/firstloader_pixels_BW.gif') 50% 30% no-repeat rgba(245,245,245,0.9);
-        background-size: 45px 45px;
-    }
-
-    #legend_PopMap_info {
-        line-height: 1.2rem;
-        color: #333333;
-        font-family: 'Open Sans', Helvetica, sans-serif;
-        padding: 2px 4px;
-        background: white;
-        background: rgba(255,255,255,0.91);
-        box-shadow: 0 0 15px rgba(0,0,0,0.2);
-        border-radius: 5px;
-        float: left;
-        font-size: 0.90rem;
-        /*    z-index: 8000 !important;*/
-    }
-
-    #infoboxPopMapID {
-        height: 60px;
-        width: 260px;
-        background-color: #fff;
-        border-left: 1px solid #ccc;
-        background: white;
-        background: rgba(255,255,255,0.85);
-        box-shadow: 0 0 10px rgba(0,0,0,0.2);
-        opacity: 0.95;
-        filter: alpha(opacity=10);
-    }
-
-    #Copyright_info {
-        background-color: #fff;
-        border-left: 1px solid #ccc;
-        background: white;
-        background: rgba(255,255,255,0.55);
-        box-shadow: 0 0 1px rgba(0,0,0,0.2);
-        opacity: 0.90;
-        filter: alpha(opacity=10);
-    }
-
-
-    .winBar_top {
-        background-color: white;
-        box-shadow: 0 0 2px rgba(0,0,0,0.2);
-    }
-
-
-.form-signin {
-    width: 100%;
-    max-width: 330px;
-    padding: 15px;
-    margin: auto;
-}
-
-.form-signin .checkbox {
-    font-weight: 400;
-}
-
-.form-signin .form-floating:focus-within {
-    z-index: 2;
-}
-
-.form-signin input[type="email"] {
-    margin-bottom: -1px;
-    border-bottom-right-radius: 0;
-    border-bottom-left-radius: 0;
-}
-
-.form-signin input[type="password"] {
-    margin-bottom: 10px;
-    border-top-left-radius: 0;
-    border-top-right-radius: 0;
-}
-
-
-.ui-slider-pips [class*=ui-slider-pip-selected] {
-    font-weight: 300;
-    color: #333333;
-}
-
-.ui-slider-pips [class*=ui-slider-pip-initial] {
-    font-weight: 300;
-    color: #333333;
-}
-
-.another-popup .leaflet-popup-content {
-    margin: 10px 8px 8px 8px;
-    line-height: 1.2;
-    font-size: 12px;
-    font-size: 1.0em;
-    min-height: 1px;
-}
-
-.another-popup .leaflet-popup-content-wrapper {
-    padding: 1px;
-    text-align: left;
-    border-radius: 6px;
-}
-
-.another-popup .leaflet-popup-content p {
-    margin: 0px 0;
-    margin: 0em 0;
-}
-
-</style>        
     </head>
 
     <body>
@@ -334,20 +177,6 @@
 
                             <div id="controlPanel_InfoBoxCode" class="mt-0" style="visibility: hidden">
                                 <div class="container-fluid p-0">
-<!--                                    <div class="row m-0">
-                                        <div class="col-12 align-items-center d-flex justify-content-between p-0 winBar_top">
-                                            <div class="float-start ">
-                                                <span style="padding-left:4px"></span>
-                                            </div> 
-                                            <div class="float-end">
-                                                <a type="button" class="btn btn-labeled btn-light btn-sm" id="btnResetSelectedAdmin_cros" style="color: black" 
-                                                   data-toggle="tooltip" data-placement="top" title="Reset selection">
-                                                    <span class="btn-label"><i class="fa fa-times"></i></span> 
-                                                </a>                
-                                            </div>            
-                                        </div>
-                                    </div> -->
-
                                     <div class="row m-0">
                                         <div class="col-sm-12 pt-3" style="background-color: #fff;" id="adminTotalInfoBox">
                                             <div class="container-fluid">      
@@ -414,26 +243,15 @@
 
                                                     </div>
                                                 </div>
-
-<!--                                                <div class="row">
-                                                    <div class="col-12 d-flex flex-column justify-content-between align-items-center mt-0  p-0">
-                                                        <button id="btnResetSelectedAdmin" type="button" class="btn btn-secondary btn-sm" >Reset selection</button>
-                                                    </div>
-                                                </div>                             -->
-
                                             </div>                         
                                         </div>                  
                                     </div> 
-
                                 </div>
                             </div>                              
-
                         </div>                         
                     </div>
                 </div>                         
-
             </div>
-
         </div>        
         <!-------------------------------------------------------------------------------------------------------->
         <!--  controlPanel_BottomleftID panel End -->
@@ -485,8 +303,6 @@
 
                             </div>
                         </div>                        
-
-
                     </div>
                 </div>
             </div>
@@ -542,11 +358,7 @@
         <!--  controlPanel_BottomRightID Panel End -->
         <!-------------------------------------------------------------------------------------------------------->       
 
-        
 
-
-     
-        
         <div id="controlPanel_DateTimeID"  style="padding-left: 3em;padding-right: 3em">
             <div>
                 <label class="control_label mb-3 mt-3" id="lb_Date_DateTimePanel">Date</label>
@@ -625,7 +437,6 @@
                     </div>
 
                    <div class="row">
-
                         <div class="col-sm-10">
                             <label class="form-check-label label_settings" for="chCountryLabels">
                                 <strong>Population Map</strong>
@@ -635,12 +446,10 @@
 
                         <div class="col-sm-2">
                             <div class="text-center">
-                                <input class="form-check-input" type="checkbox" id="chCountryLabels" checked>
+                                <input class="form-check-input" type="checkbox" id="idCheckCountryLabels" checked>
                             </div>
                         </div>
-
                     </div>
-
                 </div>
             </div>
 
@@ -673,11 +482,11 @@
                     </div>                    
                     <form id="idFormToLogin">
                         <div class="form-floating">
-                            <input type="text" class="form-control" id="fInputUsername" placeholder="Username" value="un_user">
+                            <input type="text" class="form-control" id="fInputUsername" placeholder="Username" value="">
                             <label for="fInputUsername">Username</label>
                         </div>
                         <div class="form-floating">
-                            <input type="password" class="form-control" id="fInputPassword" placeholder="Password" value="123654">
+                            <input type="password" class="form-control" id="fInputPassword" placeholder="Password" value="">
                             <label for="fInputPassword">Password</label>
                         </div>
 
@@ -685,10 +494,6 @@
                     </form>  
                 </div>       
             </div>
-            <!--      <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary">Understood</button>
-                  </div>-->
         </div>
     </div>
 </div>
@@ -879,12 +684,7 @@
                     <p>"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."</p>
                     <p>"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."</p>
                     <p>"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."</p>
-                    <p>"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."</p>
-                    <p>"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."</p>
-                    <p>"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."</p>
-                    <p>"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."</p>
-                    <p>"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."</p>
-                    
+        
                     
                     <div class="mw-100">
                         <div class="form-group col-12">
@@ -900,6 +700,53 @@
     </div>
 </div>
 <!-- end modals Help Bottom Left panel  -->
+
+
+<!--  modals Main About/Help window -->
+<div class="modal fade " data-backdrop="false" id="idMdHelpMainPanel" tabindex="-1" aria-labelledby="MdHelpMainPanel"
+     style="opacity: 0.95;z-index: 2200">
+    <div class="modal-dialog modal-dialog-centered modal-lg" style="overflow-y: initial !important" role="document"
+         id="idMdHelpMainPanel-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="padding: 0.5rem;cursor: move;">
+                <h5 class="modal-title">About</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body" style="max-height: calc(100vh - 200px); overflow-y: auto">
+                <div class="container">
+
+                    <p>"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."</p>
+                    <p>"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."</p>
+                    <p>"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."</p>
+                    <p>"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."</p>
+                    <p>"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."</p>
+                    <p>"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."</p>
+                    <p>"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."</p>
+                    <p>"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."</p>
+                    <p>"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."</p>
+                    <p>"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."</p>
+                    <p>"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."</p>
+                    <p>"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."</p>
+                    <p>"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."</p>
+                    <p>"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."</p>
+                    <p>"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."</p>
+        
+                    
+                    <div class="mw-100">
+                        <div class="form-group col-12">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer p-1">
+                <button type="button" class="btn btn-secondary btn-sm mr-2" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- end modals Main About/Help window  -->
 
     </body>
 </html>
@@ -917,14 +764,4 @@
 
 <script src="//cdn.jsdelivr.net/npm/jstat@latest/dist/jstat.min.js"></script>
 
-<script src="./js/main.js?version=2.02" type="module"></script>
-
-
-
-</script>
-
-<!--<script type="text/javascript">
-    $(window).on('load', function() {
-        $('#idMdPlotChordDiagram').modal('show');
-    });
-</script>-->
+<script src="./js/main.js?version=2.03" type="module"></script>
