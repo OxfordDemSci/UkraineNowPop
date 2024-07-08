@@ -1,6 +1,7 @@
 private*
 .env
 /wd/
+/.idea/
 
 # History files
 .Rhistory
