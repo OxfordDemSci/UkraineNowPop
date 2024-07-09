@@ -1,0 +1,307 @@
+openapi: 3.0.0
+info:
+  title: "University of Oxford Now Pop Dashboard"
+  description: "REST API powering the Now Pop Dashboard - Nowcasting Ukraine's population subnationally every day: Bayesian methods and interactive dashboard"
+  version: "1.0.0"
+servers:
+  - url: "/api"
+paths:
+  
+  /login:
+    post:
+      summary: User login
+      operationId: app.endpoints.login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+        '401':
+          description: Unauthorized
+  /get_countries:
+    get:
+      operationId: "app.endpoints.get_countries"
+      tags:
+        - "Countries"
+      summary: "Get all countries"
+      responses:
+        "200":
+          description: "Successfully retrieved countries"
+  /init:
+    get:
+      operationId: "app.endpoints.init"
+      parameters:
+        - name: "country"
+          required: true
+          in: "query"
+          schema:
+            type: "string"
+          description: "Country code in ISO 3166-1 alpha-3 format"
+      tags:
+        - "Initialization"
+      summary: "Initialize the app"
+      responses:
+        "200":
+          description: "Successfully initialized"
+  /get_admin_units:
+    get:
+      operationId: "app.endpoints.get_admin_units"
+      parameters:
+        - name: "country"
+          required: true
+          in: "query"
+          schema:
+            type: "string"
+          description: "Country code in ISO 3166-1 alpha-3 format"
+        - name: "admin_level"
+          in: "query"
+          required: true
+          schema:
+            type: "integer"
+            minimum: 1
+            maximum: 3
+            default: 1
+          description: "Level of admin units to retrieve"
+      security:
+        - {}
+        - JWTAuth: []
+      tags:
+        - "Admin units"
+      summary: "Get all admin units in geojson format"
+      responses:
+        "200":
+          description: "Successfully retrieved admin units"
+  /get_population:
+    get:
+      operationId: "app.endpoints.get_population"
+      parameters:
+        - name: "country"
+          required: true
+          in: "query"
+          schema:
+            type: "string"
+          description: "Country code in ISO 3166-1 alpha-3 format"
+        - name: "admin_level"
+          in: "query"
+          required: true
+          schema:
+            type: "integer"
+            minimum: 1
+            maximum: 3
+            default: 1
+          description: "Level of admin units to retrieve"
+        - name: "date"
+          in: "query"
+          required: true
+          schema:
+            type: "string"
+            format: "date"
+          description: "Date in YYYY-MM-DD format"
+        - name: "admin_id"
+          in: "query"
+          required: false
+          schema:
+            type: "string"
+          description: "Admin unit id"
+        - name: "age_min_male"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            minimum: 0
+            maximum: 80
+            default: 0
+          description: "Minimum Male"
+        - name: "age_max_male"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            minimum: 0
+            maximum: 84
+            default: 84
+          description: "Maximum Male (81-84 represents 80+)"
+        - name: "age_min_female"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            minimum: 0
+            maximum: 80
+            default: 0
+          description: "Minimum Female"
+        - name: "age_max_female"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            minimum: 0
+            maximum: 84
+            default: 84
+          description: "Maximum Female (81-84 represents 80+)"
+      security:
+        - {}
+        - JWTAuth: []
+      tags:
+        - "Population"
+      summary: "Get population data"
+      responses:
+        "200":
+          description: "Successfully retrieved population data"
+  /get_migration_probabilities:
+    get:
+      operationId: "app.endpoints.get_migration_probabilities"
+      parameters:
+        - name: "country"
+          required: true
+          in: "query"
+          schema:
+            type: "string"
+          description: "Country code in ISO 3166-1 alpha-3 format"
+        - name: "admin_level"
+          in: "query"
+          required: true
+          schema:
+            type: "integer"
+            minimum: 1
+            maximum: 3
+            default: 1
+          description: "Level of admin units to retrieve"
+        - name: "date"
+          in: "query"
+          required: true
+          schema:
+            type: "string"
+            format: "date"
+          description: "Date in YYYY-MM-DD format"
+        - name: "admin_id"
+          in: "query"
+          required: false
+          schema:
+            type: "string"
+          description: "Admin unit id"
+        - name: "age_min_male"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            minimum: 0
+            maximum: 80
+            default: 0
+          description: "Minimum Male"
+        - name: "age_max_male"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            minimum: 0
+            maximum: 84
+            default: 84
+          description: "Maximum Male (81-84 represents 80+)"
+        - name: "age_min_female"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            minimum: 0
+            maximum: 80
+            default: 0
+          description: "Minimum Female"
+        - name: "age_max_female"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            minimum: 0
+            maximum: 84
+            default: 84
+          description: "Maximum Female (81-84 represents 80+)"
+        - name: "rank_by"
+          in: "query"
+          required: false
+          schema:
+            type: "string"
+            enum: ["count", "probability"]
+            default: "count"
+          description: "Rank results by count or probability"
+        - name: "limit"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            minimum: 1
+            maximum: 25
+            default: 10
+          description: "Limit the number of results"
+      security:
+        - {}
+        - JWTAuth: []
+      tags:
+        - "Migration"
+      summary: "Get migration probabilities"
+      responses:
+        "200":
+          description: "Successfully retrieved migration probabilities"
+
+  /test_get:
+    get:
+      operationId: "app.endpoints.test_get"
+      security:
+        - JWTAuth: []
+      tags:
+        - "Test functions"
+      summary: "Testing"
+      responses:
+        "200":
+          description: "Successfully tested"
+  /test_read:
+    get:
+      operationId: "app.endpoints.test_read"
+      security:
+        - JWTAuth: []
+      tags:
+        - "Test functions"
+      summary: "Testing"
+      responses:
+        "200":
+          description: "Successfully read"
+        "403":
+          description: "Unauthorized to read"
+  /test_write:
+    get:
+      operationId: "app.endpoints.test_write"
+      security:
+        - JWTAuth: []
+      tags:
+        - "Test functions"
+      summary: "Testing"
+      responses:
+        "200":
+          description: "Successfully written"
+        "403":
+          description: "Unauthorized to write"
+
+
+components:
+  securitySchemes:
+    JWTAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      x-bearerInfoFunc: app.endpoints.decodetoken

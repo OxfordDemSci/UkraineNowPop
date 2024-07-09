@@ -11,10 +11,9 @@ while ! database_ready; do
     sleep 2
 done
 
-# Run insert_data.py
-# TODO 
-# python3 ./scripts/insert_data.py
+# Run insert_data.py 
+python3 ./scripts/insert_data.py
 
 # Start the Flask app
-gunicorn --config gunicorn.config.py wsgi:app
+gunicorn --config gunicorn.config.py --preload wsgi:app
 

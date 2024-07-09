@@ -1,6 +1,5 @@
-#!/bin/bash
-
 # Function to check if a PostgreSQL database exists
+echo "------------------Running init-db.sh---------------"
 database_exists() {
   psql -U "$POSTGRES_USER" -d postgres -lqt | cut -d \| -f 1 | grep -qw "$1"
 }
@@ -25,5 +24,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO $POSTGRES_RE
 psql -U "$POSTGRES_USER" -d "$POSTGRES_DB_TEST" -c "
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO $POSTGRES_READONLY;
 "
+psql -U "$POSTGRES_USER" -d "$POSTGRES_DB_TEST" -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "CREATE EXTENSION IF NOT EXISTS postgis;"
 
 

@@ -1,6 +1,7 @@
 private*
 .env
 /wd/
+/.idea/
 
 # History files
 .Rhistory
@@ -52,5 +53,8 @@ po/*~
 # RStudio Connect folder
 rsconnect/
 
-# PyCharm project
+.vscode
+data/dummy_tables/dummy_migration.*
+data/dummy_tables/dummy_pop.*
+/data/control/
 .idea/
