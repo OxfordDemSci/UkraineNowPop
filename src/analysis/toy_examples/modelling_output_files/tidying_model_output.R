@@ -53,7 +53,9 @@ indata_dashboard_pop <- as.data.frame(as.mcmc(do.call(rbind, coda.complN))) %>%
              age_group==11 ~ "50-54", age_group==12 ~ "55-59", 
              age_group==13 ~ "60-64", age_group==14 ~ "65-69",
              age_group==15 ~ "70-74", age_group==16 ~ "75-79", 
-             age_group==17 ~ "80-999")   #17 groups
+             age_group==17 ~ "80-999"),   #17 groups
+
+           sex = recode(sex, 1="male", 2="female"),
            ) %>%
     separate(age_group, into = c("age_min", "age_max"), sep = "-") %>%
     select(country, admin_level,
@@ -113,7 +115,8 @@ indata_dashboard_mob <- as.data.frame(as.mcmc(do.call(rbind, coda.complNijast)))
            age_group==11 ~ "50-54", age_group==12 ~ "55-59", 
            age_group==13 ~ "60-64", age_group==14 ~ "65-69",
            age_group==15 ~ "70-74", age_group==16 ~ "75-79", 
-           age_group==17 ~ "80-999")   #17 groups
+           age_group==17 ~ "80-999"),   #17 groups
+         sex = recode(sex, 1="male", 2="female"),
   ) %>%
   separate(age_group, into = c("age_min", "age_max"), sep = "-") %>%
   select(country, admin_level,
