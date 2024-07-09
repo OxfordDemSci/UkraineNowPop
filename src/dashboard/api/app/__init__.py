@@ -1,24 +1,23 @@
+import logging
+import socket
+from datetime import datetime, timezone
+from pathlib import Path
+
 import connexion
-from flask.app import Flask
 from flask import Flask, request
 from flask_bcrypt import Bcrypt
+from flask_compress import Compress
 from flask_cors import CORS
+from flask_jwt_extended import JWTManager
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_sqlalchemy import SQLAlchemy
-import logging
-from alembic.config import Config
-from alembic import command
-import os
-from pathlib import Path
-import socket
-from datetime import datetime, timezone
-from flask_jwt_extended import JWTManager
-from flask_compress import Compress
 
+from alembic import command
+from alembic.config import Config
 from app.config import app_config
-from app.models import User
 from app.datatypes import UserRoleEnum
+from app.models import User
 
 BASE = Path(__file__).resolve().parent
 
@@ -39,12 +38,15 @@ def is_exempt():
 db = SQLAlchemy()
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=["60/minute", "1000/hour", "10000/day"],
+    default_limits=["600/minute", "1000/hour", "10000/day"],
     strategy="fixed-window-elastic-expiry",
     storage_uri="",  # Set in create_app()
     storage_options={},
     default_limits_exempt_when=is_exempt,
 )
+
+
+bcrypt = Bcrypt()
 
 
 def create_app(config_name: str) -> Flask:
@@ -56,14 +58,15 @@ def create_app(config_name: str) -> Flask:
     Compress(app)
     app.config["COMPRESS_ALWAYS"] = True
     db.init_app(app)
-    global bcrypt
-    bcrypt = Bcrypt(app)
+    # global bcrypt
+    # bcrypt = Bcrypt(app)
+    bcrypt.init_app(app)
     _ = JWTManager(app)
     CORS(app, resources={r"/*": {"origins": "*"}})
     if not logging.getLogger().handlers:
         logging.basicConfig(level=logging.INFO)
         app.logger.addHandler(logging.StreamHandler())  # Log to the terminal
-        log_path = BASE.parent.joinpath('api_logs.log')
+        log_path = BASE.parent.joinpath("api_logs.log")
         file_handler = logging.FileHandler(log_path)
         app.logger.addHandler(file_handler)
         app.logger.setLevel(logging.INFO)
@@ -71,16 +74,23 @@ def create_app(config_name: str) -> Flask:
         limiter._storage_uri = "memcached://now_pop_memcached:11211"
         limiter.init_app(app)
         upgrade_alembic(app)
-    create_users(app, db)
+    if config_name != "testing":
+        create_users(app, db)
+
+    # Revert to read-only database for read-only users after writing data
+    app.config["SQLALCHEMY_DATABASE_URI"] = app.config["DATABASE_URL_READONLY"]
 
     @app.before_request
     def before_request_function():
         args = request.args
-        app.logger.info(f"time={datetime.now(timezone.utc)}, url={request.url}, endpoint={request.path} params={dict(args.items())}")
+        app.logger.info(
+            f"time={datetime.now(timezone.utc)}, url={request.url}, endpoint={request.path} params={dict(args.items())}"
+        )
 
     @app.after_request
     def after_request_func(response):
         return response
+
     return app
 
 
@@ -89,9 +99,12 @@ def create_users(app: Flask, db) -> None:
     admin_password = app.config["DB_ADMIN_PASSWORD"]
     read_user = app.config["DB_USERNAME"]
     read_password = app.config["DB_PASSWORD"]
+    un_user = app.config["UN_STAFF_USERNAME"]
+    un_password = app.config["UN_STAFF_PASSWORD"]
 
     add_users_to_db(admin_user, admin_password, UserRoleEnum.WRITE, app, db)
     add_users_to_db(read_user, read_password, UserRoleEnum.READ, app, db)
+    add_users_to_db(un_user, un_password, UserRoleEnum.READ, app, db)
 
 
 def add_users_to_db(user_name: str, password: str, role: UserRoleEnum, app: Flask, db):
