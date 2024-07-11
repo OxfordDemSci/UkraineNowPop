@@ -81,6 +81,7 @@ def init(country: str) -> dict:
     dates_pop: List[Row] = (
         db.session.query(distinct(Population.day))
         .filter(Population.country == country)
+        .order_by(Population.day)
         .all()
     )
     init_data["dates_pop"] = [date for date, in dates_pop]
