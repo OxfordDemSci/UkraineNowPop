@@ -63,7 +63,9 @@ export function updatePopulationPyramid(data, series, initial_age_ranges) {
                     male: (male_population_entry.length > 0 ) ? male_population_entry[0] : null,
                     female: (female_population_entry.length > 0 ) ? female_population_entry[0] : null
                 }
-        );         
+        );   
+
+ 
 
     }       
     
@@ -120,7 +122,30 @@ export function updatePopulationPyramid(data, series, initial_age_ranges) {
 //        );
 //    }
 
-
+        let SelectedSex=$('#idSelectSex option').filter(":selected").val();
+ 
+        if (SelectedSex === "Female"){
+                for (var i = 0; i < values_pyramid.length; i++){
+                    var obj = values_pyramid[i];
+                    for (var key in obj){
+                        if (key === "male"){
+                            values_pyramid[i][key] = null;
+                        }
+                    }
+                }
+        }
+        
+        if (SelectedSex === "Male"){
+                for (var i = 0; i < values_pyramid.length; i++){
+                    var obj = values_pyramid[i];
+                    for (var key in obj){
+                        if (key === "female"){
+                            values_pyramid[i][key] = null;
+                        }
+                    }
+                }
+        }        
+ 
 
     values_pyramid = aggregateData(values_pyramid);
 
