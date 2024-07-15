@@ -58,6 +58,7 @@ def get_age_ranges(country: str) -> list[dict]:
     age_ranges = (
         db.session.query(Population.age_min, Population.age_max)
         .filter(Population.country == country)
+        .order_by(Population.age_min)
         .distinct()
         .all()
     )
@@ -80,6 +81,7 @@ def init(country: str) -> dict:
     dates_pop: List[Row] = (
         db.session.query(distinct(Population.day))
         .filter(Population.country == country)
+        .order_by(Population.day)
         .all()
     )
     init_data["dates_pop"] = [date for date, in dates_pop]
