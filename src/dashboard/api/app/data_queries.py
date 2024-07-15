@@ -102,9 +102,11 @@ def init(country: str) -> dict:
     return init_data
 
 
-def get_min_max_age_ranges(data: list, age_min: int, age_max: int):
+def get_min_max_age_ranges(data: list, age_min: int, age_max: int) -> list[dict[str, int]] | None:
     age_ranges = data
     result = []
+    if age_min >= data[-1]["age_min"] or age_max <= data[0]["age_max"]:
+        return None
     for age_range in age_ranges:
         if (
             age_range["age_min"] <= age_min < age_range["age_max"]
@@ -179,6 +181,8 @@ def get_population(
         )
 
     pop_per_unit_per_sex: Dict[str, Dict[str, Any]] = {}
+    m_pop_posteriors: list[int] | None = None
+    f_pop_posteriors: list[int] | None = None
 
     if male_min_max:
         m_pop_posteriors, male_query, male_pop_pyramid_query = get_age_sex_population(
@@ -211,9 +215,16 @@ def get_population(
         female_results = []
     population_data: Dict[str, Union[Dict[str, Any], List[Any]]] = {}
     population_data["population_totals"] = {}
-    concatenated = np.concatenate((f_pop_posteriors, m_pop_posteriors), axis=0)
-    population_data["pop_posteriors"] = np.sum(concatenated, axis=0).tolist()
-    population_data["density_plots"] = get_population_density_plots(np.sum(concatenated, axis=0).tolist())
+    try:
+        concatenated = np.concatenate([x for x in (f_pop_posteriors, m_pop_posteriors) if x is not None], axis=0)
+    except ValueError:
+        concatenated = None
+    if concatenated is not None:
+        population_data["density_plots"] = get_population_density_plots(np.sum(concatenated, axis=0).tolist())
+        population_data["pop_posteriors"] = np.sum(concatenated, axis=0).tolist()
+    else:
+        population_data["density_plots"] = []
+        population_data["pop_posteriors"] = []
     for (pcode, f_pop), (_, m_pop) in zip(female_results, male_results):
         population_data["population_totals"][pcode] = f_pop + m_pop
     population_data["population_totals_by_sex"] = pop_per_unit_per_sex
