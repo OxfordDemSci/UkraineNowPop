@@ -89,7 +89,7 @@ export function getColor(v, palette) {
 
 }
 
-export function RestyleLayerPopMap(_layer, palette) {
+export function RestyleLayerPopMap(_layer, palette, _admin_pcode) {
     
     let propertyName = "population_totals";
     let Opacity = 0.9; 
@@ -109,12 +109,23 @@ export function RestyleLayerPopMap(_layer, palette) {
         }else{
 
             var mFillColor = getColor(propertyValue, palette);
-            featureInstanceLayer.setStyle({
-                fillColor: mFillColor,
-                fillOpacity: Opacity,
-                color: "black",
-                weight: 0.3
-            });
+            
+                if (_admin_pcode === featureInstanceLayer.feature.properties["pcode"]){
+                    featureInstanceLayer.setStyle({
+                        fillColor: mFillColor,
+                        fillOpacity: Opacity,
+                        color: "black",
+                        weight: 2
+                    });
+                }else{
+                    featureInstanceLayer.setStyle({
+                        fillColor: mFillColor,
+                        fillOpacity: Opacity,
+                        color: "black",
+                        weight: 0.3
+                    });
+                }   
+
         }
         
         
@@ -130,7 +141,7 @@ export function uniqueArray(arr) {
 }
 
 
-export function updatePopulationMap(_map, _layer, geoJson, data, palette_colors, title) {
+export function updatePopulationMap(_map, _layer, geoJson, data, palette_colors, title, _admin_pcode) {
     
    _layer.clearLayers();
    _map.removeLayer(_layer);
@@ -145,7 +156,7 @@ export function updatePopulationMap(_map, _layer, geoJson, data, palette_colors,
    _layer.addData(geoJson); 
    
    let palette  = getPalettePopMap(data, palette_colors);
-   RestyleLayerPopMap(_layer, palette);
+   RestyleLayerPopMap(_layer, palette, _admin_pcode);
     
    loadLagentPopMap(title, palette["colors"], palette["breaks"], "subtitles");
     
@@ -195,31 +206,41 @@ export function highlightFeaturePopulationMap(e,  _map) {
                 fillOpacity: 1
             });
         }
-        
-//        if (!(_map.hasLayer(_infoBox))){
-//            //_map.addControl(_infoBox);   
-//            _infoBox.addTo(_map)
-//        }
-        
-//        
-//        document.getElementById('lblNameAdmin').innerHTML = e.target.feature.properties.name_en;        
-//        document.getElementById('lblAdminCode').innerHTML = e.target.feature.properties.pcode;
-//        document.getElementById('lblPopAdmin').innerHTML = e.target.feature.properties.population_totals;
 
     }
 
 }
 
+export function highlightFeaturePopulationMapSelected(e,  _map) {
 
-export function resetFeaturePopulationMap(e, _map) {
+    var layer = e.target;
+    
+    if (_map) {
+  
+        let country = e.target.feature.properties.country;
+        if (typeof country !== 'undefined' && country !== null) {
+            layer.setStyle({
+                weight: 2,
+                fillOpacity: 1
+            });
+        }
+    }
+
+}
+
+
+export function resetFeaturePopulationMap(e, _map, _admin_pcode) {
     
     var layer = e.target;
-
-    layer.setStyle({
-        weight: 0.5,
-        fillOpacity: 0.8
-    });
     
+    if (_admin_pcode !== e.target.feature.properties.pcode) {
+        
+        layer.setStyle({
+            weight: 0.5,
+            fillOpacity: 0.8
+        });
+
+    }
 //    let country = e.target.feature.properties.country;
 //    console.log(country);
 //    if (typeof country === 'undefined' && country === null) {

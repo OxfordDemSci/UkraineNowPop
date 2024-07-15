@@ -1,11 +1,11 @@
 var API_URL = "http://127.0.0.1:8000/api";
 
-import * as _api from './api.js?version=0.95'
+import * as _api from './api.js?version=0.96'
 import * as _init from './init.js?version=0.9'
-import * as _utils from './utils.js?version=0.58'
+import * as _utils from './utils.js?version=0.61'
 import * as _quartile from './quartile.js?version=1'
-import * as _popMap from './population_map.js?version=0.7'
-import * as _popPyramid from './population_pyramid.js?version=0.1'
+import * as _popMap from './population_map.js?version=0.93'
+import * as _popPyramid from './population_pyramid.js?version=0.2'
 import * as _migrationProb from './migration_probabilities.js?version=2.047'
 import * as _popPprobabilities from './pop_probabilities.js?version=0.19'
 
@@ -83,6 +83,9 @@ var age_max_selected = initialData.age_ranges[initialData.age_ranges.length - 1]
 
 var dates_available = _utils.getDates(initialData.dates_pop);
 var date_selected = dates_available[dates_available.length - 1];
+
+// what number to use to devide the lenght of dates to get 6
+var dates_devided_label = (dates_available.length)/6;
 
 var migrationProb = null;
 var migrationProbRank_by = "count";
@@ -215,15 +218,20 @@ var layerCountry = L.geoJson(null, {
             },
             mouseover: function (e) {
                 
-            layer.getPopup().setContent('<p class="m-0 p-0"><b>'+feature.properties.name_en+'</b><br/>code: '+feature.properties.pcode+'</p>');  
-            layer.getPopup().update();
-            _popMap.highlightFeaturePopulationMap(e, map);
+                if (admin_pcode === e.target.feature.properties.pcode){
+                    _popMap.highlightFeaturePopulationMapSelected(e, map);
+                }else{
+                    _popMap.highlightFeaturePopulationMap(e, map);
+                }                  
+                
+                layer.getPopup().setContent('<p class="m-0 p-0"><b>'+feature.properties.name_en+'</b><br/>code: '+feature.properties.pcode+'</p>');  
+                layer.getPopup().update();
 
             },
             mouseout: function (e) {
-                layer.closePopup();
-                _popMap.resetFeaturePopulationMap(e, map);
-//                $("#popup-" + e.target.feature.properties.fid).remove();
+                
+                  _popMap.resetFeaturePopulationMap(e, map, admin_pcode);
+                  layer.closePopup();
             },
             click: function (e) {
                 
@@ -231,7 +239,7 @@ var layerCountry = L.geoJson(null, {
                 admin_name_en = e.target.feature.properties.name_en;
                 
                 main_get_pop_migration(API_URL, country_ISO3, admin_level, admin_pcode, dates_available, age_ranges_available,  accessToken);
-
+                
                 document.getElementById('controlPanel_BottomleftID').style.height = '400px';
                 document.getElementById('controlPanel_InfoBoxCode').style.visibility = 'visible';
                 document.getElementById('adminTotalLabel').innerHTML = e.target.feature.properties.population_totals;
@@ -242,6 +250,8 @@ var layerCountry = L.geoJson(null, {
                 
                 var selGEO = document.getElementById("idSelectGeoLevel");
                 document.getElementById('infoGEOLabel').innerHTML = selGEO.options[selGEO.selectedIndex].text;
+                
+                _popMap.highlightFeaturePopulationMapSelected(e, map);
             }
         });
 
@@ -279,6 +289,12 @@ $(".slider_age_selections")
             if (ui.values[1] < ui.values[0]) {
              return false;
             }
+//            if (ui.values[0] > age_ranges_available[1].length - 2) {
+//                return false;
+//            }  
+//            if (ui.values[1] < 1) {
+//                return false;
+//            }  
             _utils.update_Age_Range_labele(ui.values[0], ui.values[1], age_ranges_available);
       
         }).on("slidestop", function (e, ui) {
@@ -301,11 +317,12 @@ $(".Date-slider")
         .slider("pips", {
             rest: "label",
             labels: dates_available,
-            step: 10
+            step: Math.ceil(dates_available.length/dates_devided_label)
         })
         .on("slidechange", function (e, ui) {
             if (e.originalEvent) {
                 main_get_pop_migration(API_URL, country_ISO3, admin_level, admin_pcode, dates_available, age_ranges_available,  accessToken);
+                document.getElementById('lb_Country_Total_Title').innerHTML = txt_Country_Total_Title + " [ " + dates_available[$(".Date-slider").slider("value")] + " ] "; 
             }
         });
 
@@ -429,7 +446,7 @@ function main_get_pop_migration(api_url, country, admin_level = 1, admin_id = nu
 
         _popPyramid.updatePopulationPyramid(result_pyramid, series_PopulationPyramid, initialData.age_ranges);
         _popPprobabilities.update_pop_probabilities(result.density_plots);
-        _popMap.updatePopulationMap(map, layerCountry, admin_units_geo, result.population_totals, palette_population, txt_Title_Legend_Population);
+        _popMap.updatePopulationMap(map, layerCountry, admin_units_geo, result.population_totals, palette_population, txt_Title_Legend_Population, admin_pcode);
         
         document.getElementById('cntrlTotalLabel').innerHTML = _utils.sumNumbersInJSON(result.population_totals);
         document.getElementById('cntrlTotalFemalesLabel').innerHTML = _utils.sumFemaleInJSON(result.population_totals_by_sex);
@@ -464,9 +481,6 @@ function main_get_pop_migration(api_url, country, admin_level = 1, admin_id = nu
             _migrationProb.update_migration_probabilities_LG(result, series_plotChordDiagramt_LG, root_plotChordDiagramt_LG);
             
             }
-            
-
-            
 
         }).then(() => {
             // _utils.progressMenuOff();
@@ -607,7 +621,8 @@ $( "#btnLogin" ).on( "click", function() {
 _utils.update_Panels_labels(txt_Geo_DropDown, 
                             txt_Sex_DropDown, 
                             txt_Country_Total_Title, 
-                            txt_Date_Bottom_Panel);
+                            txt_Date_Bottom_Panel,
+                            dates_available);
 
 
 $('#idMdSettings').on('hidden.bs.modal', function (e) {

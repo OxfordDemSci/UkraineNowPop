@@ -324,16 +324,21 @@ export function resetSlider_age_selections(d)
     
         $(".slider_age_selections").slider({
             min: 0,
-            max: d.length - 1,
+            max: d[0].length - 1,
             range: true,
-            values: [0, d.length - 1]
+            values: [0, d[0].length - 1]
         })
-        .slider("float", {
-            labels: d
-        })
+//        .slider("float", {
+//            labels: d
+//        })
         .slider("pips", {
-            labels: {first: d[0].toString(), last: d[d.length - 1] + "+"}
+            labels: {first: "0", last: d[1][d[1].length - 1] + "+"}
         });
+        
+        let age_min = 0;    
+        let age_max = d[1][d[1].length - 1];
+        document.getElementById('label_Age_range').innerHTML = "Age [ min: "+ age_min +" max: "+ age_max +" ]";
+        
         event.preventDefault();
 }
 
@@ -384,10 +389,10 @@ b - txt_Sex_DropDown
 c - txt_Country_Total_Title 
 d - txt_Date_Bottom_Panel  
  */
-export function update_Panels_labels(a, b, c, d)
+export function update_Panels_labels(a, b, c, d, _dates_available)
 {
     document.getElementById('lb_Geo_DropDown').innerHTML = a;   
     document.getElementById('lb_Sex_DropDown').innerHTML = b;   
-    document.getElementById('lb_Country_Total_Title').innerHTML = c;   
+    document.getElementById('lb_Country_Total_Title').innerHTML = c + " [ " + _dates_available[_dates_available.length-1] + " ] ";   
     document.getElementById('lb_Date_DateTimePanel').innerHTML = d;   
 }
