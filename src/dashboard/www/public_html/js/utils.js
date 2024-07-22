@@ -272,6 +272,22 @@ export function nFormatter(num, digits) {
   return  item ? (num / item.value).toFixed(digits).concat(item.symbol) : "0";
 }
 
+export function nFormatter_Space(num, digits) {
+  const lookup = [
+    { value: 1, symbol: "" },
+    { value: 1e3, symbol: " k" },
+    { value: 1e6, symbol: " M" },
+    { value: 1e9, symbol: " G" },
+    { value: 1e12, symbol: " T" },
+    { value: 1e15, symbol: " P" },
+    { value: 1e18, symbol: " E" }
+  ];
+  const regexp = /\.0+$|(?<=\.[0-9]*[1-9])0+$/;
+  const item = lookup.findLast(item => num >= item.value);
+  //return item ? (num / item.value).toFixed(digits).replace(regexp, "").concat(item.symbol) : "0";
+  return  item ? (num / item.value).toFixed(digits).concat(item.symbol) : "0";
+}
+
 export function sumNumbersInJSON(obj) { 
   let total = 0; 
  
@@ -377,7 +393,7 @@ export function update_Age_Range_labele(vFirst, vLast , age_ranges_available)
     let age_min = age_ranges_available[0][vFirst];    
     let age_max = age_ranges_available[1][vLast];
     if (vLast === age_ranges_available[1].length-1){
-          age_max = age_max + "+";
+          age_max = age_ranges_available[0][age_ranges_available[0].length - 1] + "+";
     }    
     document.getElementById('label_Age_range').innerHTML = "Age [ min: "+ age_min +" max: "+ age_max +" ]";   
 }
@@ -395,4 +411,79 @@ export function update_Panels_labels(a, b, c, d, _dates_available)
     document.getElementById('lb_Sex_DropDown').innerHTML = b;   
     document.getElementById('lb_Country_Total_Title').innerHTML = c + " [ " + _dates_available[_dates_available.length-1] + " ] ";   
     document.getElementById('lb_Date_DateTimePanel').innerHTML = d;   
+}
+
+
+export function update_mainPanels_Totalslabels(result)
+{
+    let SelectedSex = $('#idSelectSex option').filter(":selected").val();
+
+    if (SelectedSex === "Female") {
+        document.getElementById('cntrlTotalLabel').innerHTML = "-";
+        document.getElementById('cntrlTotalFemalesLabel').innerHTML = sumFemaleInJSON(result.population_totals_by_sex).toLocaleString();
+        document.getElementById('cntrlTotalMalesLabel').innerHTML = "-";
+    }
+    if (SelectedSex === "Male") {
+        document.getElementById('cntrlTotalLabel').innerHTML = "-";
+        document.getElementById('cntrlTotalFemalesLabel').innerHTML = "-";
+        document.getElementById('cntrlTotalMalesLabel').innerHTML = sumMaleInJSON(result.population_totals_by_sex).toLocaleString();
+    }
+    if (SelectedSex === "Both") {
+        document.getElementById('cntrlTotalLabel').innerHTML = sumNumbersInJSON(result.population_totals).toLocaleString();
+        document.getElementById('cntrlTotalFemalesLabel').innerHTML = sumFemaleInJSON(result.population_totals_by_sex).toLocaleString();
+        document.getElementById('cntrlTotalMalesLabel').innerHTML = sumMaleInJSON(result.population_totals_by_sex).toLocaleString();
+    }    
+
+}
+
+export function update_mainPanels_AdminTotalslabels(result_pyramid)
+{
+    let SelectedSex = $('#idSelectSex option').filter(":selected").val();
+
+    if (SelectedSex === "Female") {
+        document.getElementById('adminFemaleTotalLabel').innerHTML = sumMaleFemaleInAdmin(result_pyramid.female_population).toLocaleString();
+        document.getElementById('adminMaleTotalLabel').innerHTML = "-";
+        document.getElementById('adminTotalLabel').innerHTML = "-";
+    }
+    if (SelectedSex === "Male") {
+        document.getElementById('adminFemaleTotalLabel').innerHTML = "-";
+        document.getElementById('adminTotalLabel').innerHTML = "-";
+        document.getElementById('adminMaleTotalLabel').innerHTML = sumMaleFemaleInAdmin(result_pyramid.male_population).toLocaleString();
+    }
+    if (SelectedSex === "Both") {
+        let tM = sumMaleFemaleInAdmin(result_pyramid.male_population);
+        let tF = sumMaleFemaleInAdmin(result_pyramid.female_population);
+        let tMF= tM + tF;
+        document.getElementById('adminMaleTotalLabel').innerHTML = tM.toLocaleString();
+        document.getElementById('adminFemaleTotalLabel').innerHTML = tF.toLocaleString();
+        document.getElementById('adminTotalLabel').innerHTML = tMF.toLocaleString();
+    }    
+
+}
+
+
+export function preproces_results_for_updatePopulationMap(result)
+{
+    var result_out = [];
+    
+    let SelectedSex = $('#idSelectSex option').filter(":selected").val();
+
+    if (SelectedSex === "Female") {
+            for (let key in result.population_totals_by_sex) { 
+                result_out[key]=  result.population_totals_by_sex[key].female_population;                     
+            }
+    }
+    if (SelectedSex === "Male") {
+            for (let key in result.population_totals_by_sex) { 
+                result_out[key]=  result.population_totals_by_sex[key].male_population;                     
+            }
+    }
+    if (SelectedSex === "Both") {
+            for (let key in result.population_totals_by_sex) { 
+                result_out[key]=  result.population_totals_by_sex[key].male_population + result.population_totals_by_sex[key].female_population;                     
+            }
+    }
+    
+    return result_out;
+
 }

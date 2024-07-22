@@ -63,13 +63,13 @@ export function update_pop_probabilities(d) {
 
     option = {
         grid: {
-            left: '22%',
+            left: '26%',
             bottom: '20%',
             top: '13%'
         },
         tooltip: {
             trigger: 'axis',
-            formatter: 'Population: {b}<br/>  Density: {c}'
+            formatter: 'Population: {b}<br/>  Probability: {c}'
         },
         xAxis: {
             type: 'category',
@@ -100,7 +100,7 @@ export function update_pop_probabilities(d) {
         },
         yAxis: {
             type: 'value',
-            name: 'Density',
+            name: 'Probability',
             nameLocation: 'center',
             nameTextStyle: {
                 align: 'center',
@@ -109,7 +109,7 @@ export function update_pop_probabilities(d) {
                  * the top padding will shift the name down so that it does not overlap with the axis-labels
                  * t-l-b-r
                  */
-                padding: [-35, 0, 0, 0]
+                padding: [-45, 0, 0, 0]
             }
         },
         series: [

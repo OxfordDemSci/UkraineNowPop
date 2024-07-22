@@ -74,6 +74,10 @@ export function initialise_migration_probabilities_chart(root) {
         }));
 
         series.nodes.get("colors").set("step", 2);
+        
+        series.links.template.setAll({
+            tooltipText: "{sourceId} -> {targetId} : {value}"
+        });            
 
         series.nodes.labels.template.setAll({
             textType: "radial",
@@ -88,6 +92,7 @@ export function initialise_migration_probabilities_chart(root) {
 
     return(series);
 }
+// https://www.amcharts.com/docs/v5/charts/flow-charts/chord-diagram/
 
 export function initialise_migration_probabilities_chart_LG(root) {
 
@@ -110,6 +115,10 @@ export function initialise_migration_probabilities_chart_LG(root) {
         }));
 
         series.nodes.get("colors").set("step", 2);
+        
+series.links.template.setAll({
+  tooltipText: "From: {sourceId}\nTo: {targetId}\nValue: {value}"
+});            
 
 
 //        series.bullets.push(function (_root, _series, dataItem) {
@@ -212,14 +221,25 @@ export function initialise_PopulationPyramid_chart(root) {
 
 
 
-        var xAxis = chart.xAxes.push(am5xy.ValueAxis.new(root, {
-            min: -10,
-            max: 10,
-            numberFormat: "#.s'%'",
-            renderer: am5xy.AxisRendererX.new(root, {
-                minGridDistance: 40
-            })
-        }));
+//        var xAxis = chart.xAxes.push(am5xy.ValueAxis.new(root, {
+//            min: -10,
+//            max: 10,
+//            extraMax: 5,
+//            numberFormat: "#.s'%'",
+//            renderer: am5xy.AxisRendererX.new(root, {
+//                minGridDistance: 20
+//            })
+//        }));
+
+var xAxis = chart.xAxes.push(
+  am5xy.ValueAxis.new(root, {
+
+    renderer: am5xy.AxisRendererX.new(root, {
+      minGridDistance: 20
+    })
+  })
+);
+
 
         xAxis.get("renderer").labels.template.set("fontSize", 11);
 
@@ -289,6 +309,8 @@ export function initialise_PopulationPyramid_chart(root) {
 
     }); // end am5.ready()    
 
-
+    
     return([maleSeries, femaleSeries, yAxis1]);
 }
+
+

@@ -89,10 +89,27 @@ export function getColor(v, palette) {
 
 }
 
+export function RestyleLayerPopMapOpacity(_layer) {
+    
+    
+    let Opacity =  document.getElementById("customRangeOpacity").value; 
+        
+    _layer.eachLayer(function(featureInstanceLayer) {
+      
+                    featureInstanceLayer.setStyle({
+                        fillOpacity: Opacity
+                    });
+  
+        
+        
+    });
+    
+}
+
 export function RestyleLayerPopMap(_layer, palette, _admin_pcode) {
     
     let propertyName = "population_totals";
-    let Opacity = 0.9; 
+    let Opacity =  document.getElementById("customRangeOpacity").value; 
         
     _layer.eachLayer(function(featureInstanceLayer) {
        var propertyValue = featureInstanceLayer.feature.properties[propertyName];
@@ -185,7 +202,7 @@ export function loadLagentPopMap(title, colors, breaks, subtitles) {
         var rgb = _ImageFromRGB.hexToRGB(colors[i]);
         var mCanvas = _ImageFromRGB.createImageFromRGBdata(rgb.r, rgb.g, rgb.b, 20, 20);
 
-        html += '<li><img width="16px" height="16px" src="' + mCanvas.toDataURL() + '"><span>&#32;&#32;&#32;&#32; &nbsp;&nbsp;' + breaks[i] + '</span></li>';
+        html += '<li><img width="16px" height="16px" src="' + mCanvas.toDataURL() + '"><span>&#32;&#32;&#32;&#32; &nbsp;&nbsp;' + _utils.nFormatter_Space(breaks[i], 1) + '</span></li>';
     }
     html += '</ul>';
 
@@ -197,13 +214,15 @@ export function highlightFeaturePopulationMap(e,  _map) {
 
     var layer = e.target;
     
+    var Opacity = 0.7;
+    
     if (_map) {
   
         let country = e.target.feature.properties.country;
         if (typeof country !== 'undefined' && country !== null) {
             layer.setStyle({
                 weight: 1,
-                fillOpacity: 1
+                fillOpacity: Opacity
             });
         }
 
@@ -215,13 +234,15 @@ export function highlightFeaturePopulationMapSelected(e,  _map) {
 
     var layer = e.target;
     
+    var Opacity =  document.getElementById("customRangeOpacity").value;
+    
     if (_map) {
   
         let country = e.target.feature.properties.country;
         if (typeof country !== 'undefined' && country !== null) {
             layer.setStyle({
                 weight: 2,
-                fillOpacity: 1
+                fillOpacity: Opacity
             });
         }
     }
@@ -233,11 +254,13 @@ export function resetFeaturePopulationMap(e, _map, _admin_pcode) {
     
     var layer = e.target;
     
+    var Opacity =  document.getElementById("customRangeOpacity").value;
+    
     if (_admin_pcode !== e.target.feature.properties.pcode) {
         
         layer.setStyle({
             weight: 0.5,
-            fillOpacity: 0.8
+            fillOpacity: Opacity
         });
 
     }
