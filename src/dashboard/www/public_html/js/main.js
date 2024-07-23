@@ -1,22 +1,22 @@
 var API_URL = "http://127.0.0.1:8000/api";
 
-import * as _api from './api.js?version=0.96'
-import * as _init from './init.js?version=0.9'
-import * as _utils from './utils.js?version=0.61'
+import * as _api from './api.js?version=0.97'
+import * as _init from './init.js?version=0.20'
+import * as _utils from './utils.js?version=0.69'
 import * as _quartile from './quartile.js?version=1'
-import * as _popMap from './population_map.js?version=0.93'
-import * as _popPyramid from './population_pyramid.js?version=0.2'
-import * as _migrationProb from './migration_probabilities.js?version=2.047'
-import * as _popPprobabilities from './pop_probabilities.js?version=0.19'
+import * as _popMap from './population_map.js?version=0.98'
+import * as _popPyramid from './population_pyramid.js?version=0.33'
+import * as _migrationProb from './migration_probabilities.js?version=2.048'
+import * as _popPprobabilities from './pop_probabilities.js?version=0.21'
 
 //_utils.progressMenuOn();
 
 let txt_Geo_DropDown = "Geo";
 let txt_Sex_DropDown = "Sex";
-let txt_Country_Total_Title = "Ukraine totals";
-let txt_Title_Top_RightPanel  = "Statistics";
-let txt_Title_Bottom_RightPanel  = "Migration";
-let txt_Date_Bottom_Panel  = "Date";
+let txt_Country_Total_Title = "National totals";
+let txt_Title_Top_RightPanel  = "Demographics";
+let txt_Title_Bottom_RightPanel  = "Mobility";
+let txt_Date_Bottom_Panel  = "&nbsp;";
 let txt_Title_Legend_Population  = "Population";
 
 
@@ -42,8 +42,13 @@ let series_PopulationPyramid = null;
 
 am5.ready(function () {
     root_PopulationPyramid = am5.Root.new("plotPopulationPyramid");
-    series_PopulationPyramid = _init.initialise_PopulationPyramid_chart(root_PopulationPyramid);
+    //series_PopulationPyramid = _init.initialise_PopulationPyramid_chart(root_PopulationPyramid);
+    
 });
+
+
+
+
 
 let palette_population = ["#f7fbff", "#e9f2f9", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6", "#4292c6", "#2171b5", "#08519c", "#08306b"];
 var country_ISO3 = "";
@@ -84,7 +89,7 @@ var age_max_selected = initialData.age_ranges[initialData.age_ranges.length - 1]
 var dates_available = _utils.getDates(initialData.dates_pop);
 var date_selected = dates_available[dates_available.length - 1];
 
-// what number to use to divide the length of dates to get 6
+// what number to use to devide the lenght of dates to get 6
 var dates_devided_label = (dates_available.length)/20;
 
 var migrationProb = null;
@@ -108,7 +113,8 @@ var mapOptions = {
     attributionControl: false,
     center: [48.383022, 31.1828699],
     zoom: 1,
-    maxZoom: 11,
+    maxZoom: 8,
+    minZoom: 5,
     layers: [basemaps.OpenStreetMaps]
 };
 
@@ -242,7 +248,7 @@ var layerCountry = L.geoJson(null, {
                 
                 document.getElementById('controlPanel_BottomleftID').style.height = '400px';
                 document.getElementById('controlPanel_InfoBoxCode').style.visibility = 'visible';
-                document.getElementById('adminTotalLabel').innerHTML = e.target.feature.properties.population_totals;
+//                document.getElementById('adminTotalLabel').innerHTML = Number(e.target.feature.properties.population_totals).toLocaleString();;
                 document.getElementById('adminNameLabel').innerHTML =  admin_name_en; 
                 document.getElementById('adminPCodeLabel').innerHTML =  admin_pcode; 
                 document.getElementById('controlPanel_BottomRightID_label').innerHTML =  txt_Title_Bottom_RightPanel + " to/from [ " + admin_pcode +" ]";
@@ -283,7 +289,7 @@ $(".slider_age_selections")
             values: [0, age_ranges_available[0].length - 1]
         })
         .slider("pips", {
-            labels: {first: "0", last: age_ranges_available[1][age_ranges_available[1].length - 1] + "+"}
+            labels: {first: "0", last: age_ranges_available[0][age_ranges_available[0].length - 1] + "+"}
         }).on("slide", function (e, ui) {
                
             if (ui.values[1] < ui.values[0]) {
@@ -435,22 +441,29 @@ function main_get_pop_migration(api_url, country, admin_level = 1, admin_id = nu
             dates_available,
             age_ranges_available,
             accessToken).then(result => {
+
                
          if (typeof admin_id !== "undefined" && admin_id !== null) {
              result_pyramid = result["pyramid_"+admin_id];
-             document.getElementById('adminFemaleTotalLabel').innerHTML = _utils.sumMaleFemaleInAdmin(result_pyramid.female_population);
-             document.getElementById('adminMaleTotalLabel').innerHTML = _utils.sumMaleFemaleInAdmin(result_pyramid.male_population);
+//             document.getElementById('adminFemaleTotalLabel').innerHTML = _utils.sumMaleFemaleInAdmin(result_pyramid.female_population).toLocaleString();
+//             document.getElementById('adminMaleTotalLabel').innerHTML = _utils.sumMaleFemaleInAdmin(result_pyramid.male_population).toLocaleString();
+             _utils.update_mainPanels_AdminTotalslabels(result_pyramid);
          }else{
              result_pyramid = result["pyramid_"];
          }
-
-        _popPyramid.updatePopulationPyramid(result_pyramid, series_PopulationPyramid, initialData.age_ranges);
-        _popPprobabilities.update_pop_probabilities(result.density_plots);
-        _popMap.updatePopulationMap(map, layerCountry, admin_units_geo, result.population_totals, palette_population, txt_Title_Legend_Population, admin_pcode);
+         
+         let preproces_results = _utils.preproces_results_for_updatePopulationMap(result);
+         
+//        _popPyramid.updatePopulationPyramid(result_pyramid, series_PopulationPyramid, initialData.age_ranges);
+        _popPyramid.updatePopulationPyramid(root_PopulationPyramid, result_pyramid, initialData.age_ranges);
         
-        document.getElementById('cntrlTotalLabel').innerHTML = _utils.sumNumbersInJSON(result.population_totals);
-        document.getElementById('cntrlTotalFemalesLabel').innerHTML = _utils.sumFemaleInJSON(result.population_totals_by_sex);
-        document.getElementById('cntrlTotalMalesLabel').innerHTML = _utils.sumMaleInJSON(result.population_totals_by_sex);
+        _popPprobabilities.update_pop_probabilities(result.density_plots);
+        _popMap.updatePopulationMap(map, layerCountry, admin_units_geo, preproces_results , palette_population, txt_Title_Legend_Population, admin_pcode);
+        
+//        document.getElementById('cntrlTotalLabel').innerHTML = _utils.sumNumbersInJSON(result.population_totals).toLocaleString();
+//        document.getElementById('cntrlTotalFemalesLabel').innerHTML = _utils.sumFemaleInJSON(result.population_totals_by_sex).toLocaleString();
+//        document.getElementById('cntrlTotalMalesLabel').innerHTML = _utils.sumMaleInJSON(result.population_totals_by_sex).toLocaleString();
+        _utils.update_mainPanels_Totalslabels(result);
 
 
         _api.get_migration_probabilities(api_url,
@@ -465,9 +478,9 @@ function main_get_pop_migration(api_url, country, admin_level = 1, admin_id = nu
             if (_utils.isObjectEmpty(result)){
              
                 document.getElementById('controlPanel_BottomRightID').style.visibility = 'hidden';
-                document.getElementById('adminMigrationInLabel').innerHTML = "None";
-                document.getElementById('adminMigrationOutLabel').innerHTML = "None";
-                document.getElementById('adminMigrationTotalLabel').innerHTML = "None";
+                document.getElementById('adminMigrationInLabel').innerHTML = "-";
+                document.getElementById('adminMigrationOutLabel').innerHTML = "-";
+                document.getElementById('adminMigrationTotalLabel').innerHTML = "-";
                 
             }else{
 
@@ -636,3 +649,8 @@ $('#idMdSettings').on('hidden.bs.modal', function (e) {
     }
     
 });   
+
+
+$('#customRangeOpacity').change(function () {
+    _popMap.RestyleLayerPopMapOpacity(layerCountry);
+});

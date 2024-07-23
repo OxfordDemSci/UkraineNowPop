@@ -70,9 +70,9 @@ export function update_total_in_out_for_admin(pcdoe, d) {
         }           
    }
 
-document.getElementById('adminMigrationInLabel').innerHTML = total_in;
-document.getElementById('adminMigrationOutLabel').innerHTML = total_out;
-document.getElementById('adminMigrationTotalLabel').innerHTML = total_in - total_out;
+document.getElementById('adminMigrationInLabel').innerHTML = Number(total_in).toLocaleString();
+document.getElementById('adminMigrationOutLabel').innerHTML = Number(total_out).toLocaleString();
+document.getElementById('adminMigrationTotalLabel').innerHTML = Number(total_in - total_out).toLocaleString();
 
 
 }
@@ -144,7 +144,6 @@ export function update_migration_probabilities_LG(d, series, root) {
         }
 
     }
-
 
     series.data.setAll(values_flows);
     
