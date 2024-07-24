@@ -19,7 +19,7 @@ est_log_N <- as.data.frame(as.mcmc(do.call(rbind, coda.complN))) %>% t() %>%
   mutate(parameter = str_sub(parameter, 6, -2)) %>%
   separate(col = parameter, into = c("pcode", "age_group", "sex", "day0"), sep = ",") %>%
   mutate(country = rep("UKR", length(pcode)),
-         admin_level = rep(1, length(pcode)),
+         admin_level = rep(1, length(pcode) %>% as.integer(),
          pcode = case_when(
            pcode==1 ~ "UA01", pcode==2 ~ "UA05", pcode==3 ~ "UA07", 
            pcode==4 ~ "UA12", pcode==5 ~ "UA14", pcode==6 ~ "UA18", 
@@ -33,6 +33,9 @@ est_log_N <- as.data.frame(as.mcmc(do.call(rbind, coda.complN))) %>% t() %>%
          start_date = as.Date("2022-02-25"),
          day0 = as.numeric(day0),
          day = start_date + day0,
+         day = format(day, format="%d/%m/%Y"),
+         
+         sex =  as.integer(sex),
          
          age_group = case_when(
            age_group==1 ~ "0-4", age_group==2 ~ "5-9", 
@@ -47,8 +50,10 @@ est_log_N <- as.data.frame(as.mcmc(do.call(rbind, coda.complN))) %>% t() %>%
          
          pop = round(rowMeans(as.matrix(est_log_N %>% dplyr::select(starts_with("V"))), na.rm = TRUE), 0) %>% as.integer(),
          pop_lower = round(rowQuantiles(as.matrix(est_log_N %>% dplyr::select(starts_with("V"))), probs=0.025), 0) %>% as.integer(),
-         pop_upper = round(rowQuantiles(as.matrix(est_log_N %>% dplyr::select(starts_with("V"))), probs=0.975), 0) %>% as.integer()) %>%
+         pop_upper = round(rowQuantiles(as.matrix(est_log_N %>% dplyr::select(starts_with("V"))), probs=0.975), 0) %>% as.integer())) %>%
   separate(age_group, into = c("age_min", "age_max"), sep = "-") %>% 
+  mutate(age_min = as.integer(age_min),
+         age_max = as.integer(age_max)) %>%
   dplyr::select(country, admin_level,
                 pcode, day, 
                 age_min, age_max,  
