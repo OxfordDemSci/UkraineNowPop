@@ -375,12 +375,12 @@ $('#plotChordDiagramDisplaySelect input').on("click", function () {
     if (this.id === "btnradioPlotChordDiagramCount") {
         
         migrationProbRank_by = "count";
-        document.getElementById('idMdPlotChordDiagram_lable').innerHTML = "Count";
+        document.getElementById('idMdPlotChordDiagram_lable').innerHTML = "Population Mobility (Counts)";
 
     } else if (this.id === "btnradioPlotChordDiagramProbability") {
 
         migrationProbRank_by = "probability";
-        document.getElementById('idMdPlotChordDiagram_lable').innerHTML = "Probability";
+        document.getElementById('idMdPlotChordDiagram_lable').innerHTML = "Population Mobility (Probabilities)";
     }
     
 });
