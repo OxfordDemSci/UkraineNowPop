@@ -282,7 +282,7 @@ var xAxis = chart.xAxes.push(
         }));
 
         femaleSeries.columns.template.setAll({
-            tooltipText: "[fontSize: 12px;]Femail, age {categoryY}: {female} ({femalePercent.formatNumber('#.0s')}%)",
+            tooltipText: "[fontSize: 12px;]Female, age {categoryY}: {female} ({femalePercent.formatNumber('#.0s')}%)",
             tooltipX: am5.p50
         });
 
