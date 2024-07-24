@@ -26,8 +26,8 @@ export function get_population(api_url,
     
     const fullUrl = api_url + 'get_population';
     
-    let age_max_female_f = age_max_female >= 85 ? 80 : age_max_female;
-    let age_max_male_f = age_max_male >= 85 ? 80 : age_max_male;
+    let age_max_female_f = age_max_female >= 85 ? 84 : age_max_female;
+    let age_max_male_f = age_max_male >= 85 ? 84 : age_max_male;
     
     let SelectedSex=$('#idSelectSex option').filter(":selected").val();
  
@@ -101,18 +101,18 @@ export function get_migration_probabilities(api_url,
 //    let age_max_female =  age_ranges_available[$(".slider_age_selections").slider("values", 1)];
     
     let age_min_male =  age_ranges_available[0][$(".slider_age_selections").slider("values", 0)];
-    let age_max_male =  age_ranges_available[1][$(".slider_age_selections").slider("values", 1)]-1;
+    let age_max_male =  age_ranges_available[1][$(".slider_age_selections").slider("values", 1)];
     
     let age_min_female = age_ranges_available[0][$(".slider_age_selections").slider("values", 0)];
-    let age_max_female =  age_ranges_available[1][$(".slider_age_selections").slider("values", 1)]-1;    
+    let age_max_female =  age_ranges_available[1][$(".slider_age_selections").slider("values", 1)];    
 
     if (api_url.substr(-1) !== '/')
         api_url += '/';
     
     const fullUrl = api_url + 'get_migration_probabilities';
     
-    let age_max_female_f = age_max_female >= 85 ? 80 : age_max_female;
-    let age_max_male_f = age_max_male >= 85 ? 80 : age_max_male;
+    let age_max_female_f = age_max_female >= 85 ? 84 : age_max_female;
+    let age_max_male_f = age_max_male >= 85 ? 84 : age_max_male;
     
     let SelectedSex=$('#idSelectSex option').filter(":selected").val();
  

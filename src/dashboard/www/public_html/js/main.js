@@ -1,13 +1,13 @@
 var API_URL = "http://127.0.0.1:8000/api";
 
 import * as _api from './api.js?version=0.97'
-import * as _init from './init.js?version=0.20'
-import * as _utils from './utils.js?version=0.69'
+import * as _init from './init.js?version=0.24'
+import * as _utils from './utils.js?version=0.72'
 import * as _quartile from './quartile.js?version=1'
 import * as _popMap from './population_map.js?version=0.98'
-import * as _popPyramid from './population_pyramid.js?version=0.33'
-import * as _migrationProb from './migration_probabilities.js?version=2.048'
-import * as _popPprobabilities from './pop_probabilities.js?version=0.21'
+import * as _popPyramid from './population_pyramid.js?version=0.34'
+import * as _migrationProb from './migration_probabilities.js?version=2.06'
+import * as _popPprobabilities from './pop_probabilities.js?version=0.22'
 
 //_utils.progressMenuOn();
 
@@ -47,15 +47,15 @@ am5.ready(function () {
 });
 
 
-
-
-
 let palette_population = ["#f7fbff", "#e9f2f9", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6", "#4292c6", "#2171b5", "#08519c", "#08306b"];
 var country_ISO3 = "";
 var accessToken = "null";
 var admin_level = 1;
 var admin_pcode = null;
 var admin_name_en = null;
+
+var initialPcodsTotalsData = null;
+var initialCountry_Total = 0;
 
 localStorage.setItem('access', "false");
 localStorage.setItem('token', "null");
@@ -72,6 +72,9 @@ var initBounding_centroid = initialCountries[0].centroid;
 let initialData = _init.getInitData(API_URL, country_ISO3);
 
 let admin_units_geo = _utils.get_admin_units_geo(API_URL, country_ISO3, admin_level);
+let adminunits_names_eng = _utils.get_adminunits_names(admin_units_geo);
+
+//let test  = adminunits_names.filter(entry => (entry.pcode === "UA07")).map(entry => entry.name);
 
 var admin_names = _utils.get_admin_names(initialData);
 var admin_names_total_count = Object.keys(admin_names).length;
@@ -80,13 +83,15 @@ _utils.setGeoMenu(admin_names);
 
 var age_ranges_available = _utils.getAgeRanges(initialData);
 
-
 var age_min_selected = initialData.age_ranges[0]["age_min"];
 var age_max_selected = initialData.age_ranges[initialData.age_ranges.length - 1]["age_max"];
 
 
-
 var dates_available = _utils.getDates(initialData.dates_pop);
+var dates_available_string = _utils.getDates(initialData.dates_pop);
+
+dates_available_string.forEach((e,i)=> dates_available_string[i] = _utils.parsing_string_date_new_format(dates_available_string[i]));
+
 var date_selected = dates_available[dates_available.length - 1];
 
 // what number to use to devide the lenght of dates to get 6
@@ -159,8 +164,6 @@ controlPanel_Migration_Flow.onAdd = function (map) {
     return this._div;
 };
 controlPanel_Migration_Flow.addTo(map);
-
-
 
 
 // create the control Panel
@@ -318,19 +321,19 @@ $(".Date-slider")
             value: dates_available.length - 1
         })
         .slider("float", {
-            labels: dates_available
+            labels: dates_available_string
         })
         .slider("pips", {
             rest: "label",
-            labels: dates_available,
+            labels: dates_available_string,
             step: Math.ceil(dates_available.length/dates_devided_label)
         })
         .on("slidechange", function (e, ui) {
             if (e.originalEvent) {
                 main_get_pop_migration(API_URL, country_ISO3, admin_level, admin_pcode, dates_available, age_ranges_available,  accessToken);
-                document.getElementById('lb_Country_Total_Title').innerHTML = txt_Country_Total_Title + " [ " + dates_available[$(".Date-slider").slider("value")] + " ] "; 
+                document.getElementById('lb_Country_Total_Title').innerHTML = txt_Country_Total_Title + " [ " + dates_available_string[$(".Date-slider").slider("value")] + " ] "; 
             }
-        });
+});
 
 
 
@@ -409,7 +412,7 @@ $("#fSignin").on("click", function () {
         $('#idSuccessfullyloggedin').show();
         
         _utils.resetSlider_age_selections(age_ranges_available);
-        _utils.resetDate_slider(dates_available);
+        _utils.resetDate_slider(dates_available, dates_devided_label);
     }
 });
 
@@ -441,21 +444,32 @@ function main_get_pop_migration(api_url, country, admin_level = 1, admin_id = nu
             dates_available,
             age_ranges_available,
             accessToken).then(result => {
+                
+         if (initialPcodsTotalsData === null){
+             initialPcodsTotalsData = result.population_totals;
+             for (const key in initialPcodsTotalsData) {
+                initialCountry_Total +=  initialPcodsTotalsData[key];
+             }
+         }  
 
-               
+        
+         let denominator_PopulationPyramid=0;
          if (typeof admin_id !== "undefined" && admin_id !== null) {
              result_pyramid = result["pyramid_"+admin_id];
 //             document.getElementById('adminFemaleTotalLabel').innerHTML = _utils.sumMaleFemaleInAdmin(result_pyramid.female_population).toLocaleString();
 //             document.getElementById('adminMaleTotalLabel').innerHTML = _utils.sumMaleFemaleInAdmin(result_pyramid.male_population).toLocaleString();
              _utils.update_mainPanels_AdminTotalslabels(result_pyramid);
+             denominator_PopulationPyramid=initialPcodsTotalsData[admin_id]; 
          }else{
              result_pyramid = result["pyramid_"];
+             denominator_PopulationPyramid=initialCountry_Total;
          }
+
          
          let preproces_results = _utils.preproces_results_for_updatePopulationMap(result);
          
 //        _popPyramid.updatePopulationPyramid(result_pyramid, series_PopulationPyramid, initialData.age_ranges);
-        _popPyramid.updatePopulationPyramid(root_PopulationPyramid, result_pyramid, initialData.age_ranges);
+        _popPyramid.updatePopulationPyramid(root_PopulationPyramid, result_pyramid, initialData.age_ranges, denominator_PopulationPyramid);
         
         _popPprobabilities.update_pop_probabilities(result.density_plots);
         _popMap.updatePopulationMap(map, layerCountry, admin_units_geo, preproces_results , palette_population, txt_Title_Legend_Population, admin_pcode);
@@ -486,12 +500,12 @@ function main_get_pop_migration(api_url, country, admin_level = 1, admin_id = nu
 
              document.getElementById('controlPanel_BottomRightID').style.visibility = 'visible';   
             _migrationProb.update_total_in_out_for_admin(admin_id, result);
-            _migrationProb.update_migration_probabilities(result, series_plotChordDiagramt);
+            _migrationProb.update_migration_probabilities(result, series_plotChordDiagramt, adminunits_names_eng);
             //_migrationProb.update_migration_probabilities_LG(result, series_plotChordDiagramt_LG);
             
              series_plotChordDiagramt_LG.bulletsContainer.children.clear();
              series_plotChordDiagramt_LG.bullets.clear();
-            _migrationProb.update_migration_probabilities_LG(result, series_plotChordDiagramt_LG, root_plotChordDiagramt_LG);
+            _migrationProb.update_migration_probabilities_LG(result, series_plotChordDiagramt_LG, root_plotChordDiagramt_LG, adminunits_names_eng);
             
             }
 
@@ -569,6 +583,7 @@ $( "#btnResetAllSettingsSelected" ).on( "click", function() {
     document.getElementById("idSelectGeoLevel").selectedIndex = 0;
     admin_level=1;
     admin_units_geo = _utils.get_admin_units_geo(API_URL, country_ISO3, admin_level, accessToken);
+    adminunits_names_eng = _utils.get_adminunits_names(admin_units_geo);
     main_get_pop_migration(API_URL, country_ISO3, admin_level, admin_pcode, dates_available, age_ranges_available,  accessToken);
     document.getElementById('controlPanel_BottomRightID_label').innerHTML =  txt_Title_Bottom_RightPanel;
     document.getElementById('controlPanel_TopRightID_label').innerHTML =  txt_Title_Top_RightPanel; 
@@ -579,6 +594,7 @@ $( "#btnResetAllSettingsSelected" ).on( "click", function() {
 
 $('#idSelectGeoLevel').change(function() {
     
+    initialPcodsTotalsData=null;
     document.getElementById('adminTotalLabel').innerHTML = "";
     document.getElementById('adminNameLabel').innerHTML =  ""; 
     document.getElementById('controlPanel_InfoBoxCode').style.visibility = 'hidden';
@@ -589,7 +605,7 @@ $('#idSelectGeoLevel').change(function() {
     admin_pcode = null;
     admin_level = $(this).val();
     admin_units_geo = _utils.get_admin_units_geo(API_URL, country_ISO3, $(this).val(), accessToken);
-     
+    adminunits_names_eng = _utils.get_adminunits_names(admin_units_geo); 
     main_get_pop_migration(API_URL, country_ISO3, admin_level, null, dates_available, age_ranges_available,  accessToken);
     document.getElementById('controlPanel_BottomRightID_label').innerHTML =  txt_Title_Bottom_RightPanel;
     document.getElementById('controlPanel_TopRightID_label').innerHTML =  txt_Title_Top_RightPanel; 
@@ -635,7 +651,7 @@ _utils.update_Panels_labels(txt_Geo_DropDown,
                             txt_Sex_DropDown, 
                             txt_Country_Total_Title, 
                             txt_Date_Bottom_Panel,
-                            dates_available);
+                            dates_available_string);
 
 
 $('#idMdSettings').on('hidden.bs.modal', function (e) {
