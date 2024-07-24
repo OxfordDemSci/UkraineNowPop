@@ -310,7 +310,7 @@ export function updatePopulationPyramid(root, data, initial_age_ranges) {
         }));
 
         femaleSeries.columns.template.setAll({
-            tooltipText: "[fontSize: 12px;]Femail, age {categoryY}: {female} ({femalePercent.formatNumber('#.0s')}%)",
+            tooltipText: "[fontSize: 12px;]Female, age {categoryY}: {female} ({femalePercent.formatNumber('#.0s')}%)",
             tooltipX: am5.p50
         });
 

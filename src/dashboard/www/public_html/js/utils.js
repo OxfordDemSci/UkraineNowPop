@@ -353,7 +353,7 @@ export function resetSlider_age_selections(d)
         
         let age_min = 0;    
         let age_max = d[1][d[1].length - 1];
-        document.getElementById('label_Age_range').innerHTML = "Age [ min: "+ age_min +" max: "+ age_max +" ]";
+        document.getElementById('label_Age_range').innerHTML = "Ages: "+ age_min +" - "+ age_max;
         
         event.preventDefault();
 }
@@ -395,7 +395,7 @@ export function update_Age_Range_labele(vFirst, vLast , age_ranges_available)
     if (vLast === age_ranges_available[1].length-1){
           age_max = age_ranges_available[0][age_ranges_available[0].length - 1] + "+";
     }    
-    document.getElementById('label_Age_range').innerHTML = "Age [ min: "+ age_min +" max: "+ age_max +" ]";   
+    document.getElementById('label_Age_range').innerHTML = "Ages: "+ age_min +" - "+ age_max;
 }
 
 
