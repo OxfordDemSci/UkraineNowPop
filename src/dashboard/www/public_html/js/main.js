@@ -89,9 +89,6 @@ var age_max_selected = initialData.age_ranges[initialData.age_ranges.length - 1]
 var dates_available = _utils.getDates(initialData.dates_pop);
 var date_selected = dates_available[dates_available.length - 1];
 
-// what number to use to devide the lenght of dates to get 6
-var dates_devided_label = (dates_available.length)/20;
-
 var migrationProb = null;
 var migrationProbRank_by = "count";
 
@@ -323,7 +320,7 @@ $(".Date-slider")
         .slider("pips", {
             rest: "label",
             labels: dates_available,
-            step: Math.ceil(dates_available.length/dates_devided_label)
+            step: Math.floor(dates_available.length / 8)
         })
         .on("slidechange", function (e, ui) {
             if (e.originalEvent) {
