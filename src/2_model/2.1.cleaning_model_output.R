@@ -1,12 +1,17 @@
-packages <- c("tidyverse", "MASS", "truncnorm", "rjags", "runjags", 
-              "R2jags", "coda", "dclone", "parallel", "viridis", "matrixStats")
+packages <- c("tidyverse", 
+              "dotenv")
 
-if(!require(packages))install.packages(packages)
+if(!require(packages)) install.packages(packages)
 
 lapply(packages, library, character.only = TRUE)
 
+load_dot_env('.env')
+data_dir <- Sys.getenv('data_dir')
+
 #Loading file to clean
-load("./output/model/coda.complN_20240702.RData")
+load(file.path(
+  data_dir,
+  "model/coda.complN_20240702.RData"))
 
 
 # Tidying up subnational population sizes [N_j,a,s,t]
@@ -59,4 +64,7 @@ est_log_N <- as.data.frame(as.mcmc(do.call(rbind, coda.complN))) %>% t() %>%
                 age_min, age_max,  
                 sex, pop, pop_lower, pop_upper, pop_posterior)
 
-write.csv(est_log_N, "./output/model/mod_output_pop.csv")
+write.csv(est_log_N, 
+          file.path(
+            data_dir,
+            "/model/cleaning_model_output/mod_output_pop.csv"))
