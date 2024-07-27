@@ -105,7 +105,7 @@ def init(country: str) -> dict:
 def get_min_max_age_ranges(data: list, age_min: int, age_max: int) -> list[dict[str, int]] | None:
     age_ranges = data
     result = []
-    if age_min >= data[-1]["age_min"] or age_max <= data[0]["age_max"]:
+    if age_min > data[-1]["age_min"] or age_max < data[0]["age_max"]:
         return None
     for age_range in age_ranges:
         if (

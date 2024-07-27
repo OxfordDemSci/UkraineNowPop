@@ -134,8 +134,8 @@ paths:
           schema:
             type: "integer"
             minimum: 0
-            maximum: 84
-            default: 84
+            maximum: 999
+            default: 999
           description: "Maximum Male (81-84 represents 80+)"
         - name: "age_min_female"
           in: "query"
@@ -152,15 +152,15 @@ paths:
           schema:
             type: "integer"
             minimum: 0
-            maximum: 84
-            default: 84
+            maximum: 999
+            default: 999
           description: "Maximum Female (81-84 represents 80+)"
       security:
         - {}
         - JWTAuth: []
       tags:
         - "Population"
-      summary: "Get population data"
+      summary: "Get population data. Responses will be a combination of age/sex groups within ranges available"
       responses:
         "200":
           description: "Successfully retrieved population data"
@@ -211,8 +211,8 @@ paths:
           schema:
             type: "integer"
             minimum: 0
-            maximum: 84
-            default: 84
+            maximum: 999
+            default: 999
           description: "Maximum Male (81-84 represents 80+)"
         - name: "age_min_female"
           in: "query"
@@ -229,8 +229,8 @@ paths:
           schema:
             type: "integer"
             minimum: 0
-            maximum: 84
-            default: 84
+            maximum: 999
+            default: 999
           description: "Maximum Female (81-84 represents 80+)"
         - name: "rank_by"
           in: "query"
