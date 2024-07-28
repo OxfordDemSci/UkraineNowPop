@@ -2,12 +2,13 @@ from datetime import datetime
 from functools import wraps
 
 import app.models as m
-from app import db
+from app.data_queries import get_age_ranges, get_dates
 
 
 def validate_input(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        from app import db
         if country := kwargs.get("country", None):
             try:
                 db.session.query(m.Countries.country).filter(
@@ -18,11 +19,6 @@ def validate_input(f):
         if admin_level := kwargs.get("admin_level", None):
             if admin_level not in [1, 2, 3]:
                 return "Invalid admin level", 400
-        if date := kwargs.get("date", None):
-            try:
-                datetime.strptime(date, "%Y-%m-%d")
-            except ValueError:
-                return "Invalid date", 400
         if admin_id := kwargs.get("admin_id", None):
             try:
                 db.session.query(m.AdminUnits.pcode).filter(
@@ -30,18 +26,42 @@ def validate_input(f):
                 ).first()[0]
             except TypeError:
                 return "Invalid admin_id", 400
+        age_ranges = get_age_ranges(country)
+        age_mins = [age_range["age_min"] for age_range in age_ranges]
+        age_maxs = [age_range["age_max"] for age_range in age_ranges]
         if age_min_male := kwargs.get("age_min_male", None):
-            if not isinstance(age_min_male, int):
-                return "Invalid age_min", 400
+            if not isinstance(age_min_male, int) or age_min_male not in age_mins:
+                return f"Invalid age_min -> Accepted values: {age_mins}", 400
         if age_max_male := kwargs.get("age_max_male", None):
-            if not isinstance(age_max_male, int):
-                return "Invalid age_max_male", 400
+            if not isinstance(age_max_male, int) or age_max_male not in age_maxs:
+                return f"Invalid age_max_male -> Accepted values: {age_maxs}", 400
         if age_min_female := kwargs.get("age_min_female", None):
-            if not isinstance(age_min_female, int):
-                return "Invalid age_min", 400
+            if not isinstance(age_min_female, int) or age_min_female not in age_mins:
+                return f"Invalid age_min -> Accepted values: {age_mins}", 400
         if age_max_female := kwargs.get("age_max_female", None):
-            if not isinstance(age_max_female, int):
-                return "Invalid age_max_female", 400
+            if not isinstance(age_max_female, int) or age_max_female not in age_maxs:
+                return f"Invalid age_max_female -> Accepted values: {age_maxs}", 400
         return f(*args, **kwargs)
+
+    return decorated_function
+
+
+def validate_dates(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        country = kwargs.get("country", None)
+        if date := kwargs.get("date", None):
+            try:
+                datetime.strptime(date, "%Y-%m-%d")
+            except ValueError:
+                return "Invalid date formate -> Must be YYYY-MM-DD", 400
+            dates = {key: [d.strftime("%Y-%m-%d") for d in value] for key, value in get_dates(country).items()}
+            if f.__name__ == "get_population":
+                if date not in dates["dates_pop"]:
+                    return "Invalid date -> See /get_dates endpoint for valid dates", 400
+            elif f.__name__ == "get_migration_probabilities":
+                if date not in dates["dates_migration"]:
+                    return "Invalid date -> See /get_dates endpoint for valid dates", 400
+            return f(*args, **kwargs)
 
     return decorated_function

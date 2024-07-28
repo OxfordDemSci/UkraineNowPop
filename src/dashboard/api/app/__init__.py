@@ -55,7 +55,7 @@ def create_app(config_name: str) -> Flask:
         __name__, specification_dir="./",
         options=options
     )
-    connexion_app.add_api("api-config.yaml")
+    connexion_app.add_api("api-config.yaml", resolver=connexion.resolver.RelativeResolver("app.endpoints"))
     app = connexion_app.app
     app.config.from_object(app_config[config_name])
     app.config["ENV"] = config_name
