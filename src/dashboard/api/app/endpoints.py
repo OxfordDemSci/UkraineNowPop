@@ -37,7 +37,6 @@ def decodetoken(token):
     decoded_token = decode_token(token)
     return decoded_token
 
-
 def login():
     from app import bcrypt
 
