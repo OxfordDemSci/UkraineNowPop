@@ -110,7 +110,7 @@ def get_min_max_age_ranges(data: list, age_min: int, age_max: int) -> list[dict[
     for age_range in age_ranges:
         if (
             age_range["age_min"] <= age_min < age_range["age_max"]
-            or age_range["age_min"] < age_max <= age_range["age_max"]
+            or age_range["age_min"] <= age_max < age_range["age_max"]
         ):
             result.append(age_range)
     if len(result) == 1:
