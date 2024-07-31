@@ -321,9 +321,9 @@ def get_migration_probabilities(
         conditions.append(
             and_(
                 Migration.age_min >= male_min_max[0]["age_min"],
-                Migration.age_min <= male_min_max[1]["age_min"],
+                Migration.age_min <= male_min_max[-1]["age_min"],
                 Migration.age_max >= male_min_max[0]["age_max"],
-                Migration.age_max <= male_min_max[1]["age_max"],
+                Migration.age_max <= male_min_max[-1]["age_max"],
                 Migration.sex == 1,  # 1 for male
             )
         )
@@ -332,9 +332,9 @@ def get_migration_probabilities(
         conditions.append(
             and_(
                 Migration.age_min >= female_min_max[0]["age_min"],
-                Migration.age_min <= female_min_max[1]["age_min"],
+                Migration.age_min <= female_min_max[-1]["age_min"],
                 Migration.age_max >= female_min_max[0]["age_max"],
-                Migration.age_max <= female_min_max[1]["age_max"],
+                Migration.age_max <= female_min_max[-1]["age_max"],
                 Migration.sex == 2,  # 2 for female
             )
         )
