@@ -59,9 +59,9 @@ def validate_dates(f):
             if f.__name__ == "get_population":
                 if date not in dates["dates_pop"]:
                     return "Invalid date -> See /get_dates endpoint for valid dates", 400
-            elif f.__name__ == "get_migration_probabilities":
-                if date not in dates["dates_migration"]:
-                    return "Invalid date -> See /get_dates endpoint for valid dates", 400
+            # elif f.__name__ == "get_migration_probabilities":
+            #     if date not in dates["dates_migration"]:
+            #         return "Invalid date -> See /get_dates endpoint for valid dates", 400
             return f(*args, **kwargs)
 
     return decorated_function
