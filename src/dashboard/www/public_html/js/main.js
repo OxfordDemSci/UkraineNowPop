@@ -1,6 +1,6 @@
 var API_URL = "http://127.0.0.1:8000/api";
 
-import * as _api from './api.js?version=0.97'
+import * as _api from './api.js?version=0.98'
 import * as _init from './init.js?version=0.24'
 import * as _utils from './utils.js?version=0.72'
 import * as _quartile from './quartile.js?version=1'
@@ -83,12 +83,17 @@ _utils.setGeoMenu(admin_names);
 
 var age_ranges_available = _utils.getAgeRanges(initialData);
 
+console.log(age_ranges_available);
+
 var age_min_selected = initialData.age_ranges[0]["age_min"];
 var age_max_selected = initialData.age_ranges[initialData.age_ranges.length - 1]["age_max"];
 
 
 var dates_available = _utils.getDates(initialData.dates_pop);
 var dates_available_string = _utils.getDates(initialData.dates_pop);
+
+// what number to use to divide the length of dates to get 6
+var dates_devided_label = (dates_available.length)/12;
 
 dates_available_string.forEach((e,i)=> dates_available_string[i] = _utils.parsing_string_date_new_format(dates_available_string[i]));
 
@@ -323,7 +328,7 @@ $(".Date-slider")
         .slider("pips", {
             rest: "label",
             labels: dates_available_string,
-            step: Math.floor(dates_available.length/8)
+            step: Math.ceil(dates_available.length/dates_devided_label) 
         })
         .on("slidechange", function (e, ui) {
             if (e.originalEvent) {
@@ -375,12 +380,12 @@ $('#plotChordDiagramDisplaySelect input').on("click", function () {
     if (this.id === "btnradioPlotChordDiagramCount") {
         
         migrationProbRank_by = "count";
-        document.getElementById('idMdPlotChordDiagram_lable').innerHTML = "Population Mobility (Counts)";
+        //document.getElementById('idMdPlotChordDiagram_lable').innerHTML = "Population Mobility (Counts)";
 
     } else if (this.id === "btnradioPlotChordDiagramProbability") {
 
         migrationProbRank_by = "probability";
-        document.getElementById('idMdPlotChordDiagram_lable').innerHTML = "Population Mobility (Probabilities)";
+        //document.getElementById('idMdPlotChordDiagram_lable').innerHTML = "Population Mobility (Probabilities)";
     }
     
 });

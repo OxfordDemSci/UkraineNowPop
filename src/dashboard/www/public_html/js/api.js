@@ -26,8 +26,11 @@ export function get_population(api_url,
     
     const fullUrl = api_url + 'get_population';
     
-    let age_max_female_f = age_max_female >= 85 ? 84 : age_max_female;
-    let age_max_male_f = age_max_male >= 85 ? 84 : age_max_male;
+//    let age_max_female_f = age_max_female >= 85 ? 84 : age_max_female;
+//    let age_max_male_f = age_max_male >= 85 ? 84 : age_max_male;
+    
+    let age_max_female_f = age_max_female;
+    let age_max_male_f = age_max_male;
     
     let SelectedSex=$('#idSelectSex option').filter(":selected").val();
  
@@ -111,8 +114,12 @@ export function get_migration_probabilities(api_url,
     
     const fullUrl = api_url + 'get_migration_probabilities';
     
-    let age_max_female_f = age_max_female >= 85 ? 84 : age_max_female;
-    let age_max_male_f = age_max_male >= 85 ? 84 : age_max_male;
+//    let age_max_female_f = age_max_female >= 85 ? 84 : age_max_female;
+//    let age_max_male_f = age_max_male >= 85 ? 84 : age_max_male;
+    
+    let age_max_female_f = age_max_female;
+    let age_max_male_f = age_max_male;
+
     
     let SelectedSex=$('#idSelectSex option').filter(":selected").val();
  
