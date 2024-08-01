@@ -358,7 +358,7 @@ export function resetSlider_age_selections(d)
         event.preventDefault();
 }
 
-export function resetDate_slider(d, dates_devided_label)
+export function resetDate_slider(d)
 {
         $(".Date-slider").slider({
             min: 0,

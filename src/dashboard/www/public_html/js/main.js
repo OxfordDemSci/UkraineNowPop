@@ -92,9 +92,6 @@ var age_max_selected = initialData.age_ranges[initialData.age_ranges.length - 1]
 var dates_available = _utils.getDates(initialData.dates_pop);
 var dates_available_string = _utils.getDates(initialData.dates_pop);
 
-// what number to use to divide the length of dates to get 6
-var dates_devided_label = (dates_available.length)/12;
-
 dates_available_string.forEach((e,i)=> dates_available_string[i] = _utils.parsing_string_date_new_format(dates_available_string[i]));
 
 var date_selected = dates_available[dates_available.length - 1];
@@ -328,7 +325,7 @@ $(".Date-slider")
         .slider("pips", {
             rest: "label",
             labels: dates_available_string,
-            step: Math.ceil(dates_available.length/dates_devided_label) 
+            step: Math.ceil(dates_available.length/7)
         })
         .on("slidechange", function (e, ui) {
             if (e.originalEvent) {
@@ -414,7 +411,7 @@ $("#fSignin").on("click", function () {
         $('#idSuccessfullyloggedin').show();
         
         _utils.resetSlider_age_selections(age_ranges_available);
-        _utils.resetDate_slider(dates_available, dates_devided_label);
+        _utils.resetDate_slider(dates_available);
     }
 });
 
