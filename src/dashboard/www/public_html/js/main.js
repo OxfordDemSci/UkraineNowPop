@@ -1,4 +1,6 @@
-var API_URL = "http://127.0.0.1:8000/api";
+import * as _env from './env.js?version=0.3'
+
+var API_URL = _env.get_api_url()
 
 import * as _api from './api.js?version=0.98'
 import * as _init from './init.js?version=0.24'
@@ -8,6 +10,7 @@ import * as _popMap from './population_map.js?version=0.98'
 import * as _popPyramid from './population_pyramid.js?version=0.34'
 import * as _migrationProb from './migration_probabilities.js?version=2.06'
 import * as _popPprobabilities from './pop_probabilities.js?version=0.22'
+
 
 //_utils.progressMenuOn();
 
