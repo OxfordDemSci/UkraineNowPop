@@ -70,14 +70,14 @@ export function update_total_in_out_for_admin(pcdoe, d) {
         }           
    }
 
-document.getElementById('adminMigrationInLabel').innerHTML = Number(total_in).toLocaleString();
-document.getElementById('adminMigrationOutLabel').innerHTML = Number(total_out).toLocaleString();
-document.getElementById('adminMigrationTotalLabel').innerHTML = Number(total_in - total_out).toLocaleString();
+document.getElementById('adminMigrationInLabel').innerHTML = Number(total_in).toLocaleString().replace(/,/g," ",);
+document.getElementById('adminMigrationOutLabel').innerHTML = Number(total_out).toLocaleString().replace(/,/g," ",);
+document.getElementById('adminMigrationTotalLabel').innerHTML = Number(total_in - total_out).toLocaleString().replace(/,/g," ",);
 
 
 }
 
-export function update_migration_probabilities(d, series) {
+export function update_migration_probabilities(d, series, adminunits_names) {
     
     let typeData="count";
     
@@ -97,7 +97,9 @@ export function update_migration_probabilities(d, series) {
                         {
                             from: key,
                             to: d[key][i].destination,
-                            value: d[key][i][typeData]
+                            value: d[key][i][typeData],
+                            fromName: adminunits_names.filter(entry => (entry.pcode === key)).map(entry => entry.name),
+                            toName: adminunits_names.filter(entry => (entry.pcode === d[key][i].destination)).map(entry => entry.name)
                         }
                 );
             //}
@@ -113,7 +115,7 @@ export function update_migration_probabilities(d, series) {
 
 
 
-export function update_migration_probabilities_LG(d, series, root) {
+export function update_migration_probabilities_LG(d, series, root, adminunits_names) {
 
 //
 //    let series_plotChordDiagramt_LG = null;
@@ -138,7 +140,9 @@ export function update_migration_probabilities_LG(d, series, root) {
                     {
                         from: key,
                         to: d[key][i].destination,
-                        value: d[key][i][typeData]
+                        value: d[key][i][typeData],
+                        fromName: adminunits_names.filter(entry => (entry.pcode === key)).map(entry => entry.name),
+                        toName: adminunits_names.filter(entry => (entry.pcode === d[key][i].destination)).map(entry => entry.name)
                     }
             );
         }

@@ -69,7 +69,7 @@ export function update_pop_probabilities(d) {
         },
         tooltip: {
             trigger: 'axis',
-            formatter: 'Population: {b}<br/>  Probability: {c}'
+            formatter: 'Population: {b}'
         },
         xAxis: {
             type: 'category',

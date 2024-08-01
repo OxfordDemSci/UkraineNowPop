@@ -70,14 +70,20 @@ export function initialise_migration_probabilities_chart(root) {
             sourceIdField: "from",
             targetIdField: "to",
             valueField: "value",
+            sourceNameField: "fromName",
+            targetNameField: "toName",            
             radius: am5.percent(80)
         }));
 
         series.nodes.get("colors").set("step", 2);
         
+//        series.links.template.setAll({
+//            tooltipText: "{sourceId} -> {targetId} : {value}"
+//        });   
+        
         series.links.template.setAll({
-            tooltipText: "{sourceId} -> {targetId} : {value}"
-        });            
+            tooltipText: "{fromName} -> {toName} : {value}"
+        });             
 
         series.nodes.labels.template.setAll({
             textType: "radial",
@@ -111,15 +117,20 @@ export function initialise_migration_probabilities_chart_LG(root) {
             sourceIdField: "from",
             targetIdField: "to",
             valueField: "value",
+            sourceNameField: "fromName",
+            targetNameField: "toName",  
             radius: am5.percent(80)
         }));
 
         series.nodes.get("colors").set("step", 2);
         
-series.links.template.setAll({
-  tooltipText: "From: {sourceId}\nTo: {targetId}\nValue: {value}"
-});            
+//series.links.template.setAll({
+//  tooltipText: "From: {sourceId}\nTo: {targetId}\nValue: {value}"
+//});            
 
+        series.links.template.setAll({
+            tooltipText: "From: {fromName}\nTo: {toName}\nValue: {value}"
+        });     
 
 //        series.bullets.push(function (_root, _series, dataItem) {
 //            var bullet = am5.Bullet.new(root, {

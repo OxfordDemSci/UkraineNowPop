@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import timedelta
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Union, Optional
 
 import numpy as np
 from scipy.stats import gaussian_kde
@@ -12,10 +12,15 @@ from sqlalchemy.sql import text
 from app import db
 
 from .datatypes import RankBy
-from .models import AdminUnits, Countries, Languages, Migration, Population
+from .models import AdminUnits, Countries, Languages, Migration, Population, User
 
 
-def get_geodata(country: str, admin_level: int) -> dict:
+def get_user(username: str) -> Optional[User]:    
+    user = db.session.query(User).filter_by(username=username).first()
+    return user
+
+
+def get_geodata(country: str, admin_level: int) -> dict:    
     admin_units = (
         db.session.query(AdminUnits)
         .filter_by(country=country, admin_level=admin_level)
@@ -65,8 +70,26 @@ def get_age_ranges(country: str) -> list[dict]:
     return [{"age_min": age_min, "age_max": age_max} for age_min, age_max in age_ranges]
 
 
-def init(country: str) -> dict:
-    init_data = {}
+def get_dates(country: str) -> dict[str, list[str]]:    
+    dates_pop: List[Row] = (
+        db.session.query(distinct(Population.day))
+        .filter(Population.country == country)
+        .order_by(Population.day)
+        .all()
+    )
+    dates_migration: List[Row] = (
+        db.session.query(distinct(Migration.day))
+        .filter(Migration.country == country)
+        .all()
+    )
+    return {
+        "dates_pop": [date for date, in dates_pop],
+        "dates_migration": [date for date, in dates_migration],
+    }
+
+
+def init(country: str) -> dict:    
+    init_data: Dict[str, Any] = {}
     age_ranges = get_age_ranges(country)
     init_data["age_ranges"] = age_ranges
     admin_names = (
@@ -78,19 +101,8 @@ def init(country: str) -> dict:
         {"adm1_name": adm1, "adm2_name": adm2, "adm3_name": adm3}
         for adm1, adm2, adm3 in admin_names
     ]
-    dates_pop: List[Row] = (
-        db.session.query(distinct(Population.day))
-        .filter(Population.country == country)
-        .order_by(Population.day)
-        .all()
-    )
-    init_data["dates_pop"] = [date for date, in dates_pop]
-    dates_mig: List[Row] = (
-        db.session.query(distinct(Migration.day))
-        .filter(Migration.country == country)
-        .all()
-    )
-    init_data["dates_migration"] = [date for date, in dates_mig]
+    dates = get_dates(country)
+    init_data.update(dates)
     languages = (
         db.session.query(Languages.lan2, Languages.lan3)
         .filter(Languages.country == country)
@@ -105,13 +117,10 @@ def init(country: str) -> dict:
 def get_min_max_age_ranges(data: list, age_min: int, age_max: int) -> list[dict[str, int]] | None:
     age_ranges = data
     result = []
-    if age_min >= data[-1]["age_min"] or age_max <= data[0]["age_max"]:
+    if age_min > data[-1]["age_min"] or age_max < data[0]["age_max"]:
         return None
     for age_range in age_ranges:
-        if (
-            age_range["age_min"] <= age_min < age_range["age_max"]
-            or age_range["age_min"] < age_max <= age_range["age_max"]
-        ):
+        if age_range["age_min"] >= age_min and age_range["age_max"] <= age_max:
             result.append(age_range)
     if len(result) == 1:
         result.append(result[0])
@@ -128,9 +137,9 @@ def get_age_sex_population(
 ) -> tuple[list, sqlalchemy.orm.query.Query, sqlalchemy.orm.query.Query]:
     sub_query = db.session.query(Population.id).filter(
         Population.age_min >= min_max[0]["age_min"],
-        Population.age_min <= min_max[1]["age_min"],
+        Population.age_min <= min_max[-1]["age_min"],
         Population.age_max >= min_max[0]["age_max"],
-        Population.age_max <= min_max[1]["age_max"],
+        Population.age_max <= min_max[-1]["age_max"],
         Population.sex == sex,
         Population.admin_level == admin_level,
         Population.day == date,
@@ -312,9 +321,9 @@ def get_migration_probabilities(
         conditions.append(
             and_(
                 Migration.age_min >= male_min_max[0]["age_min"],
-                Migration.age_min <= male_min_max[1]["age_min"],
+                Migration.age_min <= male_min_max[-1]["age_min"],
                 Migration.age_max >= male_min_max[0]["age_max"],
-                Migration.age_max <= male_min_max[1]["age_max"],
+                Migration.age_max <= male_min_max[-1]["age_max"],
                 Migration.sex == 1,  # 1 for male
             )
         )
@@ -323,9 +332,9 @@ def get_migration_probabilities(
         conditions.append(
             and_(
                 Migration.age_min >= female_min_max[0]["age_min"],
-                Migration.age_min <= female_min_max[1]["age_min"],
+                Migration.age_min <= female_min_max[-1]["age_min"],
                 Migration.age_max >= female_min_max[0]["age_max"],
-                Migration.age_max <= female_min_max[1]["age_max"],
+                Migration.age_max <= female_min_max[-1]["age_max"],
                 Migration.sex == 2,  # 2 for female
             )
         )

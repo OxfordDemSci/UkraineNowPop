@@ -6,8 +6,7 @@ from flask_jwt_extended import (create_access_token, decode_token, get_jwt,
                                 get_jwt_identity, jwt_required)
 
 from app import data_queries as dq
-from app import db
-from app.data_validation import validate_input
+from app.data_validation import validate_input, validate_dates
 from app.datatypes import RankBy
 from app.models import User
 
@@ -49,7 +48,7 @@ def login():
         if not username or not password:
             return jsonify({"message": "Missing username or password"}), 400
 
-        user = db.session.query(User).filter_by(username=username).first()
+        user = dq.get_user(username)
         if not user or not bcrypt.check_password_hash(user.password, password):
             return jsonify({"message": "Invalid username or password"}), 401
         additional_claims = {"scope": user.role.value}
@@ -79,8 +78,26 @@ def init(country: str):
         return make_response("An error occurred while fetching the data", 500)
 
 
-@jwt_required(optional=True)
 @validate_input
+def get_age_ranges(country: str):
+    try:
+        return dq.get_age_ranges(country)
+    except Exception as e:
+        current_app.logger.error(e)
+        return make_response("An error occurred while fetching the data", 500)
+
+
+@validate_input
+def get_dates(country: str):
+    try:
+        return dq.get_dates(country)
+    except Exception as e:
+        current_app.logger.error(e)
+        return make_response("An error occurred while fetching the data", 500)
+
+
+@validate_input
+@jwt_required(optional=True)
 def get_admin_units(
     country: str,
     admin_level: int,
@@ -101,8 +118,9 @@ def get_admin_units(
     return data
 
 
-@jwt_required(optional=True)
 @validate_input
+@validate_dates
+@jwt_required(optional=True)
 def get_population(
     country: str,
     admin_level: int,
@@ -138,8 +156,9 @@ def get_population(
     return data
 
 
-@jwt_required(optional=True)
 @validate_input
+@validate_dates
+@jwt_required(optional=True)
 def get_migration_probabilities(
     country: str,
     admin_level: int,
@@ -178,17 +197,3 @@ def get_migration_probabilities(
         return make_response("An error occurred while fetching the data", 500)
     return data
 
-
-@check_scope("read")
-def test_get():
-    return "Hello GISRede"
-
-
-@check_scope("read")
-def test_read():
-    return "Hello GISRede Reader"
-
-
-@check_scope("write")
-def test_write():
-    return "Hello GISRede Writer"

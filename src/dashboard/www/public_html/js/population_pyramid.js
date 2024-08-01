@@ -15,7 +15,7 @@ export function getPopulationPyramidData(d) {
 
 }
 
-function aggregateData(list) {
+function aggregateData(list, _denominator) {
     var maleTotal = 0;
     var femaleTotal = 0;
 
@@ -27,9 +27,11 @@ function aggregateData(list) {
 
     for (var i = 0; i < list.length; i++) {
         var row = list[i];
-        row.malePercent = -1 * Math.round((row.male / maleTotal) * 10000) / 100;
-        row.femalePercent = Math.round((row.female / femaleTotal) * 10000) / 100;
+//        row.malePercent = -1 * Math.round((row.male / maleTotal) * 10000) / 100;
+//        row.femalePercent = Math.round((row.female / femaleTotal) * 10000) / 100;
 
+        row.malePercent = -1 * Math.round((row.male / _denominator) * 10000) / 100;
+        row.femalePercent = Math.round((row.female / _denominator) * 10000) / 100;
     }
 
     return list;
@@ -130,7 +132,7 @@ function isEmpty(value){
 }
 
 
-export function updatePopulationPyramid(root, data, initial_age_ranges) {
+export function updatePopulationPyramid(root, data, initial_age_ranges, _denominator) {
 
     var values_pyramid = [];
     
@@ -201,7 +203,7 @@ export function updatePopulationPyramid(root, data, initial_age_ranges) {
     }
 
 
-    values_pyramid = aggregateData(values_pyramid);
+    values_pyramid = aggregateData(values_pyramid, _denominator);
     
     if (SelectedSex === "Female") {
         for (var i = 0; i < values_pyramid.length; i++) {
@@ -276,6 +278,7 @@ export function updatePopulationPyramid(root, data, initial_age_ranges) {
                 am5xy.ValueAxis.new(root, {
                     min: -1 * min_fm,
                     max: min_fm,
+                    numberFormat: "#.s'%'",
                     renderer: am5xy.AxisRendererX.new(root, {
                         minGridDistance: 20
                     })
