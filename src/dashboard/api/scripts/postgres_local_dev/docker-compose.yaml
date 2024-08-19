@@ -1,26 +1,31 @@
 version: '3'
 
 services:
-  pop_now_postgres:
-    container_name: oxford_pop_now_dashboard_db
+  now_pop_postgres:
+    container_name: oxford_now_pop_dashboard_db
     build: .
     env_file: .env
     networks:
-      - pop_now_net
+      - now_pop_net
     volumes:
-      - ./init-scripts/:/docker-entrypoint-initdb.d
+      #- ./init-scripts/:/docker-entrypoint-initdb.d
+      - dashboard_now_pop_db_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     restart: unless-stopped
 
-  pop_now_memcached:
-    container_name: pop_now_cache
+  now_pop_memcached:
+    container_name: now_pop_cache
     image: memcached:latest
     networks:
-      - pop_now_net
+      - now_pop_net
     ports:
       - "11211:11211"
     restart: unless-stopped
 
 networks:
-  pop_now_net:
+  now_pop_net:
+
+volumes:
+  dashboard_now_pop_db_data:
+    external: true

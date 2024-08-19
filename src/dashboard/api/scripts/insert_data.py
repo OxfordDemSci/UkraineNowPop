@@ -186,13 +186,14 @@ def add_migration_data(overwrite_existing: bool = False):
         session.query(Migration).delete(synchronize_session=False)
     if not query or overwrite_existing:
         for chunk in pd.read_csv(dummy_migration, chunksize=CHUNK_SIZE):
+            chunk['day'] = pd.to_datetime(chunk['day'], dayfirst=True)
             chunk = chunk.astype({
                 "country": "string",
                 "admin_level": "int8",
                 "origin": "string",
                 "destination": "string",
                 "age_min": "int8",
-                "age_max": "int8",
+                "age_max": "int16",
                 "sex": "int8",
                 "probability": "float32",
                 "count": "int32",
@@ -230,12 +231,13 @@ def add_pop_data(overwrite_existing: bool = False):
     if not query or overwrite_existing:
         for chunk in pd.read_csv(dummy_pop, chunksize=CHUNK_SIZE):
             chunk["sex"] = chunk["sex"].replace({"male": 1, "female": 2})
+            chunk['day'] = pd.to_datetime(chunk['day'], dayfirst=True)
             chunk = chunk.astype({
                 "country": "string",
                 "admin_level": "int8",
                 "pcode": "string",
                 "age_min": "int8",
-                "age_max": "int8",
+                "age_max": "int16",
                 "pop": "int32",
                 "pop_upper": "int32",
                 "pop_lower": "int32",

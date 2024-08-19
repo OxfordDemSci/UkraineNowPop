@@ -10,7 +10,8 @@ paths:
   /login:
     post:
       summary: User login
-      operationId: app.endpoints.login
+      x-swagger-router-controller: app.endpoints
+      operationId: login
       requestBody:
         required: true
         content:
@@ -36,16 +37,71 @@ paths:
           description: Unauthorized
   /get_countries:
     get:
-      operationId: "app.endpoints.get_countries"
+      x-swagger-router-controller: app.endpoints
+      operationId: "get_countries"
       tags:
         - "Countries"
-      summary: "Get all countries"
+      summary: "Get all valid countries, their centroid and bounding box"
       responses:
         "200":
           description: "Successfully retrieved countries"
+        "400":
+          description: "Invalid request parameters"
+        "401":
+          description: "Unauthorized"
+        "500":
+          description: "Internal server error"
   /init:
+      get:
+        x-swagger-router-controller: app.endpoints
+        operationId: "init"
+        parameters:
+          - name: "country"
+            required: true
+            in: "query"
+            schema:
+              type: "string"
+            description: "Country code in ISO 3166-1 alpha-3 format"
+        tags:
+          - "Initialization"
+        summary: "Initialisation endpoint to set up app. Returns age groups dates in which data is available for country selected"
+        responses:
+          "200":
+            description: "Successfully initialized"
+          "400":
+            description: "Invalid request parameters"
+          "401":
+            description: "Unauthorized"
+          "500":
+            description: "Internal server error"
+  /get_age_ranges:
     get:
-      operationId: "app.endpoints.init"
+      x-swagger-router-controller: app.endpoints
+      operationId: "get_age_ranges"
+      parameters:
+        - name: "country"
+          required: true
+          in: "query"
+          schema:
+            type: "string"
+          example: "UKR"
+          description: "Country code in ISO 3166-1 alpha-3 format"
+      tags:
+        - "Ages"
+      summary: "Get all age groups (min in group - max in group) available for the country selected. For use when querying population/migration data."
+      responses:
+        "200":
+          description: "Successfully retrieved age groups"
+        "400":
+          description: "Invalid request parameters"
+        "401":
+          description: "Unauthorized"
+        "500":
+          description: "Internal server error"
+  /get_dates:
+    get:
+      x-swagger-router-controller: app.endpoints
+      operationId: "get_dates"
       parameters:
         - name: "country"
           required: true
@@ -53,15 +109,23 @@ paths:
           schema:
             type: "string"
           description: "Country code in ISO 3166-1 alpha-3 format"
+          example: "UKR"
       tags:
-        - "Initialization"
-      summary: "Initialize the app"
+        - "Dates"
+      summary: "Get all dates available for the country selected for both migration (dates_migration) and population (dates_pop) queries. For use when querying population/migration data."
       responses:
         "200":
-          description: "Successfully initialized"
+          description: "Successfully retrieved dates"
+        "400":
+          description: "Invalid request parameters"
+        "401":
+          description: "Unauthorized"
+        "500":
+          description: "Internal server error"
   /get_admin_units:
     get:
-      operationId: "app.endpoints.get_admin_units"
+      x-swagger-router-controller: app.endpoints
+      operationId: "get_admin_units"
       parameters:
         - name: "country"
           required: true
@@ -83,13 +147,20 @@ paths:
         - JWTAuth: []
       tags:
         - "Admin units"
-      summary: "Get all admin units in geojson format"
+      summary: "Get all admin units in geojson format for the country and admin level selected"
       responses:
         "200":
           description: "Successfully retrieved admin units"
+        "400":
+          description: "Invalid request parameters"
+        "401":
+          description: "Unauthorized"
+        "500":
+          description: "Internal server error"
   /get_population:
     get:
-      operationId: "app.endpoints.get_population"
+      x-swagger-router-controller: app.endpoints
+      operationId: "get_population"
       parameters:
         - name: "country"
           required: true
@@ -97,6 +168,7 @@ paths:
           schema:
             type: "string"
           description: "Country code in ISO 3166-1 alpha-3 format"
+          example: "UKR"
         - name: "admin_level"
           in: "query"
           required: true
@@ -106,6 +178,7 @@ paths:
             maximum: 3
             default: 1
           description: "Level of admin units to retrieve"
+          example: 1
         - name: "date"
           in: "query"
           required: true
@@ -113,6 +186,7 @@ paths:
             type: "string"
             format: "date"
           description: "Date in YYYY-MM-DD format"
+          example: "2024-01-01"
         - name: "admin_id"
           in: "query"
           required: false
@@ -125,179 +199,240 @@ paths:
           schema:
             type: "integer"
             minimum: 0
-            maximum: 80
             default: 0
           description: "Minimum Male"
+          example: 0
         - name: "age_max_male"
           in: "query"
           required: false
           schema:
             type: "integer"
             minimum: 0
-            maximum: 84
-            default: 84
-          description: "Maximum Male (81-84 represents 80+)"
+            maximum: 999
+            default: 999
+          description: "Maximum Male"
+          example: 999
         - name: "age_min_female"
           in: "query"
           required: false
           schema:
             type: "integer"
             minimum: 0
-            maximum: 80
             default: 0
           description: "Minimum Female"
+          example: 0
         - name: "age_max_female"
           in: "query"
           required: false
           schema:
             type: "integer"
             minimum: 0
-            maximum: 84
-            default: 84
-          description: "Maximum Female (81-84 represents 80+)"
+            maximum: 999
+            default: 999
+          description: "Maximum Female"
+          example: 999
       security:
         - {}
         - JWTAuth: []
       tags:
         - "Population"
-      summary: "Get population data"
+      summary: "Get population data. Responses will be a combination of age/sex groups within ranges and dates available. See /get_ages and /get_dates for available age groups and dates."
       responses:
         "200":
           description: "Successfully retrieved population data"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  population:
+                    type: "integer"
+                    description: "Total population"
+                  breakdown:
+                    type: "array"
+                    items:
+                      type: "object"
+                      properties:
+                        age_group:
+                          type: "string"
+                          description: "Age group"
+                        male:
+                          type: "integer"
+                          description: "Male population"
+                        female:
+                          type: "integer"
+                          description: "Female population"
+              examples:
+                example1:
+                  summary: "Example response"
+                  value:
+                    population: 1000000
+                    breakdown:
+                      - age_group: "0-10"
+                        male: 50000
+                        female: 48000
+                      - age_group: "11-20"
+                        male: 52000
+                        female: 50000
+        "400":
+          description: "Bad Request - Invalid parameters"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  error:
+                    type: "string"
+                    description: "Error message"
+              examples:
+                example1:
+                  summary: "Invalid date format"
+                  value:
+                    error: "Invalid date format. Expected YYYY-MM-DD."
+        "401":
+          description: "Unauthorized - Invalid or missing JWT token"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  error:
+                    type: "string"
+                    description: "Error message"
+              examples:
+                example1:
+                  summary: "Missing token"
+                  value:
+                    error: "JWT token is missing or invalid."
+        "404":
+          description: "Not Found - No data found for the given parameters"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  error:
+                    type: "string"
+                    description: "Error message"
+              examples:
+                example1:
+                  summary: "No data found"
+                  value:
+                    error: "No population data found for the given parameters."
+        "500":
+          description: "Internal Server Error"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  error:
+                    type: "string"
+                    description: "Error message"
+              examples:
+                example1:
+                  summary: "Server error"
+                  value:
+                    error: "An unexpected error occurred."
   /get_migration_probabilities:
-    get:
-      operationId: "app.endpoints.get_migration_probabilities"
-      parameters:
-        - name: "country"
-          required: true
-          in: "query"
-          schema:
-            type: "string"
-          description: "Country code in ISO 3166-1 alpha-3 format"
-        - name: "admin_level"
-          in: "query"
-          required: true
-          schema:
-            type: "integer"
-            minimum: 1
-            maximum: 3
-            default: 1
-          description: "Level of admin units to retrieve"
-        - name: "date"
-          in: "query"
-          required: true
-          schema:
-            type: "string"
-            format: "date"
-          description: "Date in YYYY-MM-DD format"
-        - name: "admin_id"
-          in: "query"
-          required: false
-          schema:
-            type: "string"
-          description: "Admin unit id"
-        - name: "age_min_male"
-          in: "query"
-          required: false
-          schema:
-            type: "integer"
-            minimum: 0
-            maximum: 80
-            default: 0
-          description: "Minimum Male"
-        - name: "age_max_male"
-          in: "query"
-          required: false
-          schema:
-            type: "integer"
-            minimum: 0
-            maximum: 84
-            default: 84
-          description: "Maximum Male (81-84 represents 80+)"
-        - name: "age_min_female"
-          in: "query"
-          required: false
-          schema:
-            type: "integer"
-            minimum: 0
-            maximum: 80
-            default: 0
-          description: "Minimum Female"
-        - name: "age_max_female"
-          in: "query"
-          required: false
-          schema:
-            type: "integer"
-            minimum: 0
-            maximum: 84
-            default: 84
-          description: "Maximum Female (81-84 represents 80+)"
-        - name: "rank_by"
-          in: "query"
-          required: false
-          schema:
-            type: "string"
-            enum: ["count", "probability"]
-            default: "count"
-          description: "Rank results by count or probability"
-        - name: "limit"
-          in: "query"
-          required: false
-          schema:
-            type: "integer"
-            minimum: 1
-            maximum: 25
-            default: 10
-          description: "Limit the number of results"
-      security:
-        - {}
-        - JWTAuth: []
-      tags:
-        - "Migration"
-      summary: "Get migration probabilities"
-      responses:
-        "200":
-          description: "Successfully retrieved migration probabilities"
-
-  /test_get:
-    get:
-      operationId: "app.endpoints.test_get"
-      security:
-        - JWTAuth: []
-      tags:
-        - "Test functions"
-      summary: "Testing"
-      responses:
-        "200":
-          description: "Successfully tested"
-  /test_read:
-    get:
-      operationId: "app.endpoints.test_read"
-      security:
-        - JWTAuth: []
-      tags:
-        - "Test functions"
-      summary: "Testing"
-      responses:
-        "200":
-          description: "Successfully read"
-        "403":
-          description: "Unauthorized to read"
-  /test_write:
-    get:
-      operationId: "app.endpoints.test_write"
-      security:
-        - JWTAuth: []
-      tags:
-        - "Test functions"
-      summary: "Testing"
-      responses:
-        "200":
-          description: "Successfully written"
-        "403":
-          description: "Unauthorized to write"
-
-
+      get:
+        x-swagger-router-controller: app.endpoints
+        operationId: "get_migration_probabilities"
+        parameters:
+          - name: "country"
+            required: true
+            in: "query"
+            schema:
+              type: "string"
+            description: "Country code in ISO 3166-1 alpha-3 format"
+          - name: "admin_level"
+            in: "query"
+            required: true
+            schema:
+              type: "integer"
+              minimum: 1
+              maximum: 3
+              default: 1
+            description: "Level of admin units to retrieve"
+          - name: "date"
+            in: "query"
+            required: true
+            schema:
+              type: "string"
+              format: "date"
+            description: "Date in YYYY-MM-DD format"
+          - name: "admin_id"
+            in: "query"
+            required: false
+            schema:
+              type: "string"
+            description: "Admin unit id"
+          - name: "age_min_male"
+            in: "query"
+            required: false
+            schema:
+              type: "integer"
+              minimum: 0
+              default: 0
+            description: "Minimum Male"
+          - name: "age_max_male"
+            in: "query"
+            required: false
+            schema:
+              type: "integer"
+              minimum: 0
+              maximum: 999
+              default: 999
+            description: "Maximum Male"
+          - name: "age_min_female"
+            in: "query"
+            required: false
+            schema:
+              type: "integer"
+              minimum: 0
+              default: 0
+            description: "Minimum Female"
+          - name: "age_max_female"
+            in: "query"
+            required: false
+            schema:
+              type: "integer"
+              minimum: 0
+              maximum: 999
+              default: 999
+            description: "Maximum Female"
+          - name: "rank_by"
+            in: "query"
+            required: false
+            schema:
+              type: "string"
+              enum: ["count", "probability"]
+              default: "count"
+            description: "Rank results by count or probability"
+          - name: "limit"
+            in: "query"
+            required: false
+            schema:
+              type: "integer"
+              minimum: 1
+              maximum: 25
+              default: 10
+            description: "Limit the number of results"
+        security:
+          - {}
+          - JWTAuth: []
+        tags:
+          - "Migration"
+        summary: "Get migration probabilities. Responses will be a combination of age groups within ranges and dates available. See /get_ages and /get_dates for available age groups and dates for available age groups."
+        responses:
+          "200":
+            description: "Successfully retrieved migration probabilities"
+          "400":
+            description: "Invalid request parameters"
+          "401":
+            description: "Unauthorized"
+          "500":
+            description: "Internal server error"
 components:
   securitySchemes:
     JWTAuth:
