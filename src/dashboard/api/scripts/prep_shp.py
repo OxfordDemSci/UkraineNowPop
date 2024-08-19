@@ -63,7 +63,7 @@ def prep_shp(
 
 
 if __name__ == "__main__":
-    shp = r"C:\Users\dkerr\Documents\GISRede\OXFORD_UNI_WORK\UKR_data_playground\ukr_admbnda_sspe_20230201_shp\ukr_admbnda_sspe_20230201_SHP\ukr_admbnda_adm3_sspe_20230201.shp"
+    shp = "SHAPEFILE_PATH"
     languages = ["EN", "UA", "RU"]
     levels = [0, 1, 2, 3]
     prep_shp(shp, "UKR", languages=languages, levels=levels)

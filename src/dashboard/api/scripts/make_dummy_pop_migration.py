@@ -7,6 +7,9 @@ from random import uniform
 from itertools import product
 
 BASE = Path(__file__).resolve().parent
+TEST_DIR = BASE.parent.joinpath("tests", "data")
+if not TEST_DIR.exists():
+    TEST_DIR.mkdir(parents=True)
 
 UKRAINE_POPULATION = 50000000
 
@@ -154,9 +157,56 @@ def main_pop(
         df_out.to_csv(out_file, index=False)
 
 
+def main_make_test_data(
+        pop_file: str | Path,
+        migration_file: str | Path,
+        pop_out_file: str | Path,
+        migration_out_file: str | Path,
+        geo_out_file: str | Path
+) -> None:
+    gdf = gpd.read_file(pop_file.parent.joinpath("GEODATA.gpkg"), layer="UKR")
+    df = pd.read_csv(pop_file)
+    migration = pd.read_csv(migration_file)
+    # Only filtering within 2 ADMIN1 units and their children
+    pop_filtered = df.loc[((df['pcode'].str.startswith('UA80')) | (df['pcode'].str.startswith('UA73'))) &
+                          (df['day'] >= '2024-01-01') &
+                          (df['day'] <= '2024-01-03')]
+    admin_units = pop_filtered['pcode'].unique()
+    gdf = gdf[gdf['pcode'].isin(admin_units)]
+    gdf.to_file(TEST_DIR.joinpath("GEODATA.gpkg"), layer="UKR", driver="GPKG")
+    pop_filtered[pop_filtered.age_min.isin([0, 5])].to_parquet(TEST_DIR.joinpath("pop.parquet"), index=False, compression="gzip")
+    migration[migration.age_min.isin([0, 5])].to_parquet(TEST_DIR.joinpath("migration.parquet"), index=False, compression="gzip")
+
+
 if __name__ == "__main__":
     out_file = BASE.parent.joinpath("app", "data", "db-data", "pop.csv")
     migration_out_file = BASE.parent.joinpath("app", "data", "db-data", "migration.csv")
     migration_levels = [1]
-    main_migration(migration_out_file, migration_levels)
-    main_pop(out_file)
+    ############## TEST DATA ################
+    pop_out_file = TEST_DIR.joinpath("pop.parquet")
+    migration_out_file = TEST_DIR.joinpath("migration.parquet")
+    geo_out_file = TEST_DIR.joinpath("GEODATA.gpkg")
+    #########################################
+    if not migration_out_file.exists():
+        print("Generating migration data")
+        main_migration(migration_out_file, migration_levels)
+    else:
+        print("MIGRATION data already exists. Delete to regenerate.")
+    if not out_file.exists():
+        main_pop(out_file)
+    else:
+        print("POPULATION data already exists. Delete to regenerate.")
+
+    # This is to make unit test data
+    if not pop_out_file.exists():
+        main_make_test_data(
+            out_file,
+            migration_out_file,
+            pop_out_file,
+            migration_out_file,
+            geo_out_file)
+    else:
+        print(
+            "TEST data already exists. Delete to regenerate. Be careful when doing this as you may need to adjust \
+                tests to match new data."
+            )

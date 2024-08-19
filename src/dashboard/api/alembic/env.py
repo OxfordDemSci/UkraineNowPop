@@ -10,11 +10,13 @@ from alembic import context
 
 from app.models import Base
 
-load_dotenv()
+load_dotenv(override=False)
 
 environment = os.getenv("ENV", "DEV")
 if environment.lower() == "local":
     DATABASE_URL = os.getenv("DATABASE_URL_LOCAL")
+elif environment.lower() == "test":
+    DATABASE_URL = os.getenv("DATABASE_URL_TEST")
 else:
     DATABASE_URL = os.getenv("DATABASE_URL")
 
@@ -37,7 +39,6 @@ target_metadata = Base.metadata
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
-
 config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
 
@@ -59,6 +60,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        include_object=include_object
     )
 
     with context.begin_transaction():
@@ -84,7 +86,6 @@ def run_migrations_online() -> None:
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
-
     with connectable.connect() as connection:
         context.configure(
             connection=connection, target_metadata=target_metadata, include_object=include_object
