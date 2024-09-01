@@ -41,6 +41,12 @@ def validate_input(f):
         if age_max_female := kwargs.get("age_max_female", None):
             if not isinstance(age_max_female, int) or age_max_female not in age_maxs:
                 return f"Invalid age_max_female -> Accepted values: {age_maxs}", 400
+        if age_min := kwargs.get("age_min", None):
+            if not isinstance(age_min, int) or age_min not in age_mins:
+                return f"Invalid age_min -> Accepted values: {age_mins}", 400
+        if age_max := kwargs.get("age_max", None):
+            if not isinstance(age_max, int) or age_max not in age_maxs:
+                return f"Invalid age_max -> Accepted values: {age_maxs}", 400
         return f(*args, **kwargs)
 
     return decorated_function
@@ -50,18 +56,29 @@ def validate_dates(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         country = kwargs.get("country", None)
+        dates = {key: [d.strftime("%Y-%m-%d") for d in value] for key, value in get_dates(country).items()}
         if date := kwargs.get("date", None):
             try:
                 datetime.strptime(date, "%Y-%m-%d")
             except ValueError:
                 return "Invalid date formate -> Must be YYYY-MM-DD", 400
-            dates = {key: [d.strftime("%Y-%m-%d") for d in value] for key, value in get_dates(country).items()}
             if f.__name__ == "get_population":
                 if date not in dates["dates_pop"]:
                     return "Invalid date -> See /get_dates endpoint for valid dates", 400
-            # elif f.__name__ == "get_migration_probabilities":
-            #     if date not in dates["dates_migration"]:
-            #         return "Invalid date -> See /get_dates endpoint for valid dates", 400
             return f(*args, **kwargs)
-
+        if date_start := kwargs.get("date_start", None):
+            try:
+                datetime.strptime(date_start, "%Y-%m-%d")
+            except ValueError:
+                return "Invalid date_start formate -> Must be YYYY-MM-DD", 400
+        if date_end := kwargs.get("date_end", None):
+            try:
+                datetime.strptime(date_end, "%Y-%m-%d")
+            except ValueError:
+                return "Invalid date_end formate -> Must be YYYY-MM-DD", 400
+        if (date_start and date_end) and (date_start > date_end):
+            return "Invalid date range -> date_start must be before date_end", 400
+        if date_start not in dates["dates_pop"] or date_end not in dates["dates_pop"]:
+            return "Invalid dates -> See /get_dates endpoint for valid dates", 400
+        return f(*args, **kwargs)
     return decorated_function

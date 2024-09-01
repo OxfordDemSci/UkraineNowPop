@@ -7,7 +7,7 @@ from flask_jwt_extended import (create_access_token, decode_token, get_jwt,
 
 from app import data_queries as dq
 from app.data_validation import validate_input, validate_dates
-from app.datatypes import RankBy
+from app.datatypes import RankBy, FileTypes, SexType
 from app.models import User
 
 
@@ -197,3 +197,44 @@ def get_migration_probabilities(
         return make_response("An error occurred while fetching the data", 500)
     return data
 
+
+@validate_input
+@validate_dates
+@jwt_required(optional=True)
+def data_download(
+    country: str,
+    admin_level: int,
+    date_start: str,
+    date_end: str,
+    age_min: int = 0,
+    age_max: int = 990,
+    sex: str = "both",
+    file_format: str = 'csv',
+) -> Union[Dict[Any, Any], Response]:
+    if admin_level not in [1, 2, 3]:
+        return make_response("Invalid admin level", 400)
+    if admin_level > 1:
+        current_user = get_jwt_identity()
+        if current_user is None:
+            return make_response(
+                "You need to be logged in to access this resource", 401
+            )
+    try:
+        file_format_enum = FileTypes(file_format)
+    except ValueError:
+        return make_response("Invalid file format", 400)
+    try:
+        sex_enum = SexType(sex)
+    except ValueError:
+        return make_response("Invalid sex - accepted types are [male, female, both]", 400)
+    data = dq.data_download(
+        country,
+        admin_level,
+        date_start,
+        date_end,
+        age_min,
+        age_max,
+        sex_enum,
+        file_format_enum
+    )
+    return make_response(data, 200)

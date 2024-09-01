@@ -433,6 +433,87 @@ paths:
             description: "Unauthorized"
           "500":
             description: "Internal server error"
+  /data_download:
+      get:
+        x-swagger-router-controller: app.endpoints
+        operationId: "data_download"
+        parameters:
+          - name: "country"
+            required: true
+            in: "query"
+            schema:
+              type: "string"
+            description: "Country code in ISO 3166-1 alpha-3 format"
+          - name: "admin_level"
+            in: "query"
+            required: true
+            schema:
+              type: "integer"
+              minimum: 1
+              maximum: 3
+              default: 1
+            description: "Level of admin units to retrieve"
+          - name: "date_start"
+            in: "query"
+            required: true
+            schema:
+              type: "string"
+              format: "date"
+            description: "Date from in YYYY-MM-DD format"
+          - name: "date_end"
+            in: "query"
+            required: true
+            schema:
+              type: "string"
+              format: "date"
+            description: "Date to in YYYY-MM-DD format"
+          - name: "age_min"
+            in: "query"
+            required: true
+            schema:
+              type: "integer"
+              minimum: 0
+              default: 0
+            description: "Minimum age"
+          - name: "age_max"
+            in: "query"
+            required: true
+            schema:
+              type: "integer"
+              minimum: 0
+              maximum: 999
+              default: 999
+            description: "Maximum age"
+          - name: "sex"
+            in: "query"
+            required: true
+            schema:
+              type: "string"
+              enum: ["both", "male", "female"]
+              default: "both"          
+          - name: "file_format"
+            in: "query"
+            required: true
+            schema:
+              type: "string"
+              enum: ["csv", "json"]
+              default: "csv"
+            description: "File format to download"
+        security:
+          - {}
+          - JWTAuth: []
+        tags:
+          - "Download"
+        summary: "Download data for age/sex selection in admin level/country in dates range."
+        responses:
+          "200":
+            description: "Successfully downloaded data"
+          "400":
+            description: "Invalid request parameters"
+          "401":
+            description: "Unauthorized"
+          "500":
+            description: "Internal server error"            
 components:
   securitySchemes:
     JWTAuth:
