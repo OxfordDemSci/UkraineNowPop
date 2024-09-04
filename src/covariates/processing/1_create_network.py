@@ -49,8 +49,9 @@ def create_network(roads, weighting_method, population, boundaries, centroid_fil
     edges_subset = edges[edges.index.isin(edge_ids)]
 
     # Save edges as future input for roads for improved performance
-    edges_subset.to_file(edge_file_path, driver="GPKG")
-    src_dst_points.to_csv(matrix_file_path, index=False)
+    route_geom_ids['edge_geometries_ids']=route_geom_ids['edge_geometries_ids'].apply(lambda x: ','.join(map(str, x)))
+    edges.to_file(edge_file_path, driver="GPKG")
+    route_geom_ids.to_csv(matrix_file_path, index=False)
 
 
 # Continuous raster for use in weighting
