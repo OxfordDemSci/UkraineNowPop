@@ -19,7 +19,7 @@ columns={'ADM1_PCODE': 'pcode'}
 
 
 
-def count_points_in_polygons(gdf_points, gdf_polygons, varname='count'):
+def count_points_in_polygons(gdf_points, gdf_polygons, varname='count', start_date='2022-02-26', end_date='2024-05-15'):
     """
     Count the number of points within each polygon and return a GeoDataFrame with this information.
 
@@ -41,7 +41,7 @@ def count_points_in_polygons(gdf_points, gdf_polygons, varname='count'):
 
     # Generate all combinations of pcode and time
     all_pcodes = gdf_polygons['pcode'].unique()
-    all_dates = pd.date_range(start=gdf_points['time'].min(), end=gdf_points['time'].max(),
+    all_dates = pd.date_range(start=start_date, end=end_date,
                               freq='D').strftime('%Y-%m-%d')
     all_combinations = pd.MultiIndex.from_product([all_pcodes, all_dates], names=['pcode', 'time'])
 
@@ -52,15 +52,14 @@ def count_points_in_polygons(gdf_points, gdf_polygons, varname='count'):
     return point_counts_df
 
 # 1. Process ACLED
-acled = gpd.read_file(out_dir / 'covariates' / 'acled.gpkg').rename(
+acled = gpd.read_file(out_dir / 'covariates' / 'raw' / 'acled.gpkg').rename(
 columns={'event_date': 'time'}
 )
 
-acled_oblast = {}
+acled_oblast = count_points_in_polygons(acled, boundaries_oblast, 'acled_all')
 
 # Define the filtering conditions in acled and corresponding variable name
 conditions = {
-    'acled_all': None,
     'acled_withfatalities': acled['fatalities'] != '0',
     'acled_disorderPolitical': acled['disorder_type'] == 'Political violence',
     'acled_disorderStrategic': acled['disorder_type'] == 'Strategic developments',
@@ -75,10 +74,25 @@ conditions = {
 }
 
 # Calculate counts for each condition
+
 for key, condition in conditions.items():
-    filtered_acled = acled if condition is None else acled[condition]
+    filtered_acled = acled[condition]
     acled_oblast[key] = count_points_in_polygons(filtered_acled, boundaries_oblast)['count']
 
 acled_oblast = pd.DataFrame(acled_oblast)
 
-acled_oblast.to_csv(out_dir / 'covariates' / 'interim' / 'acled_oblast.csv')
+acled_oblast.to_csv(out_dir / 'covariates' / 'interim' / 'acled_oblast.csv',
+                  index=False)
+
+
+# Combine all summaries in one output
+
+covariates_file_paths = [
+    out_dir / 'covariates' / 'interim' / 'acled_oblast.csv'
+]
+covariates = [pd.read_csv(file) for file in covariates_file_paths]
+
+covariates = pd.concat(covariates, axis=0, ignore_index=True)
+
+covariates.to_csv(out_dir / 'covariates' / 'final' / 'covariates_location.csv',
+                  index=False)
