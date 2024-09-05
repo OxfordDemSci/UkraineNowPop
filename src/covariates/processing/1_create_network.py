@@ -45,8 +45,6 @@ def create_network(roads, weighting_method, population, boundaries, centroid_fil
 
     # Subset 'global' edges to edges between source and destination pairs
     route_geom_ids = prep.get_route_geoms_ids(src_dst_points.copy(), edges)
-    edge_ids = route_geom_ids.explode("edge_geometries_ids")["edge_geometries_ids"].unique()
-    edges_subset = edges[edges.index.isin(edge_ids)]
 
     # Save edges as future input for roads for improved performance
     route_geom_ids['edge_geometries_ids']=route_geom_ids['edge_geometries_ids'].apply(lambda x: ','.join(map(str, x)))
