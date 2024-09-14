@@ -1,16 +1,17 @@
 import * as _env from './env.js?version=0.3'
 
-var API_URL = _env.get_api_url()
+//var API_URL = _env.get_api_url();
+var API_URL = "http://127.0.0.1:8000/api";
 
 import * as _api from './api.js?version=0.98'
 import * as _init from './init.js?version=0.24'
-import * as _utils from './utils.js?version=0.72'
+import * as _utils from './utils.js?version=0.75'
 import * as _quartile from './quartile.js?version=1'
 import * as _popMap from './population_map.js?version=0.98'
 import * as _popPyramid from './population_pyramid.js?version=0.34'
 import * as _migrationProb from './migration_probabilities.js?version=2.06'
 import * as _popPprobabilities from './pop_probabilities.js?version=0.22'
-
+import * as _download from './download_csv.js?version=0.1'
 
 //_utils.progressMenuOn();
 
@@ -86,15 +87,16 @@ _utils.setGeoMenu(admin_names);
 
 var age_ranges_available = _utils.getAgeRanges(initialData);
 
-console.log(age_ranges_available);
+//console.log(age_ranges_available);
 
 var age_min_selected = initialData.age_ranges[0]["age_min"];
 var age_max_selected = initialData.age_ranges[initialData.age_ranges.length - 1]["age_max"];
 
 
 var dates_available = _utils.getDates(initialData.dates_pop);
-var dates_available_string = _utils.getDates(initialData.dates_pop);
 
+var dates_available_string = _utils.getDates(initialData.dates_pop);
+console.log(dates_available_string);
 dates_available_string.forEach((e,i)=> dates_available_string[i] = _utils.parsing_string_date_new_format(dates_available_string[i]));
 
 var date_selected = dates_available[dates_available.length - 1];
@@ -611,11 +613,14 @@ $('#idSelectGeoLevel').change(function() {
     main_get_pop_migration(API_URL, country_ISO3, admin_level, null, dates_available, age_ranges_available,  accessToken);
     document.getElementById('controlPanel_BottomRightID_label').innerHTML =  txt_Title_Bottom_RightPanel;
     document.getElementById('controlPanel_TopRightID_label').innerHTML =  txt_Title_Top_RightPanel; 
+    document.getElementById('idGeoLabelDownloadWindow').innerHTML = $(this).val();  
+    
 });
 
 
 $('#idSelectSex').change(function() {
     main_get_pop_migration(API_URL, country_ISO3, admin_level, admin_pcode, dates_available, age_ranges_available,  accessToken);
+    //document.getElementById('idSexLabelDownloadWindow').innerHTML = $(this).val();  
 });
 
 $( "#btnSettings" ).on( "click", function() {
@@ -648,6 +653,20 @@ $( "#btnLogin" ).on( "click", function() {
     $('#idMdLoginForm').modal('show');
 });
 
+$( "#btnDownload" ).on( "click", function() {
+    $('#idMdDownload').modal('show');
+});
+
+$('#idMdDownload').on('show.bs.modal', function (e) {
+//            
+  var selGEO = document.getElementById("idSelectGeoLevel");
+  document.getElementById('idGeoLabelDownloadWindow').innerHTML = selGEO.options[selGEO.selectedIndex].text;  
+
+  var SelectSex = document.getElementById("idSelectSex");
+  document.getElementById('idSexLabelDownloadWindow').innerHTML = SelectSex.options[SelectSex.selectedIndex].text;
+
+});
+
 
 _utils.update_Panels_labels(txt_Geo_DropDown, 
                             txt_Sex_DropDown, 
@@ -671,4 +690,48 @@ $('#idMdSettings').on('hidden.bs.modal', function (e) {
 
 $('#customRangeOpacity').change(function () {
     _popMap.RestyleLayerPopMapOpacity(layerCountry);
+});
+
+
+
+
+$.fn.datepicker.defaults.format = "yyyy-mm-dd";
+
+$('#datepickerStartDate').datepicker({
+    autoclose: true,
+    defaultViewDate: dates_available[dates_available.length - 2],
+    beforeShowDay: function (date) {
+        if (dates_available.indexOf(_utils.formatDateFoDatepicker(date)) < 0)
+            return {
+                enabled: false
+            };
+        else
+            return {
+                enabled: true
+            };
+    }
+});
+$('#datepickerStartDate').datepicker('update', dates_available[dates_available.length - 2]);
+
+
+
+$('#datepickerEndDate').datepicker({
+    autoclose: true,
+    defaultViewDate: dates_available[dates_available.length - 1],
+    beforeShowDay: function (date) {
+        if (dates_available.indexOf(_utils.formatDateFoDatepicker(date)) < 0)
+            return {
+                enabled: false
+            };
+        else
+            return {
+                enabled: true
+            };
+    }
+});
+$('#datepickerEndDate').datepicker('update', dates_available[dates_available.length - 1]);
+
+
+$( "#btnDownlaodTable" ).on( "click", function() {
+    _download.download_csv(API_URL, country_ISO3, admin_level, age_ranges_available, accessToken);
 });

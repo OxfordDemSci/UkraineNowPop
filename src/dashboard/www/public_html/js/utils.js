@@ -354,7 +354,7 @@ export function resetSlider_age_selections(d)
         let age_min = 0;    
         let age_max = d[0][d[0].length - 1];
         document.getElementById('label_Age_range').innerHTML = "Ages: "+ age_min +" - "+ age_max;
-        
+        document.getElementById('idAgesLabelDownloadWindow').innerHTML = age_min +" - "+ age_max;
         event.preventDefault();
 }
 
@@ -396,6 +396,7 @@ export function update_Age_Range_labele(vFirst, vLast , age_ranges_available)
           age_max = age_ranges_available[0][age_ranges_available[0].length - 1] + "+";
     }    
     document.getElementById('label_Age_range').innerHTML = "Ages: "+ age_min +" - "+ age_max;
+    document.getElementById('idAgesLabelDownloadWindow').innerHTML = age_min +" - "+ age_max;
 }
 
 
@@ -511,6 +512,19 @@ export function get_adminunits_names(geoJson)
     return adminunits_names;
 }
 
+export function formatDateFoDatepicker(d) {
+  var day = String(d.getDate());
+  //add leading zero if day is is single digit
+  if (day.length === 1)
+    day = '0' + day;
+  var month = String((d.getMonth()+1));
+  //add leading zero if month is is single digit
+  if (month.length === 1)
+    month = '0' + month;
+  //return day + "-" + month + "-" + 
+  return d.getFullYear() + "-" + month + "-" + day;
+}
+
 //function formatDate(date) {
 //    date.toISOString()
 //    .replace(/^(\d+)-(\d+)-(\d+).*$/, // Only extract Y-M-D
@@ -524,3 +538,4 @@ export function get_adminunits_names(geoJson)
 //            ].join('-'); // Stitch together
 //        });
 //}
+
