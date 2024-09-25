@@ -1,19 +1,12 @@
 import geopandas as gpd
 import pandas as pd
-import os
-from dotenv import load_dotenv
-from pathlib import Path
 
-# Load the .env file
-env_path = Path('.') / '.env'
-load_dotenv(env_path)
-in_dir = Path(os.getenv('in_dir'))
-out_dir = Path(os.getenv('out_dir'))
+exec(open('py_setup.py').read())
 
 boundaries_oblast = gpd.read_file(in_dir / 'COD-AB' / 'ukr_admbnda_sspe_20230201_SHP'/'ukr_admbnda_adm1_sspe_20230201.shp').rename(
 columns={'ADM1_PCODE': 'pcode'}
 )
-boundaries_oblast = gpd.read_file(in_dir / 'COD-AB' / 'ukr_admbnda_sspe_20230201_SHP'/'ukr_admbnda_adm2_sspe_20230201.shp').rename(
+boundaries_raion = gpd.read_file(in_dir / 'COD-AB' / 'ukr_admbnda_sspe_20230201_SHP'/'ukr_admbnda_adm2_sspe_20230201.shp').rename(
 columns={'ADM1_PCODE': 'pcode'}
 )
 
@@ -84,15 +77,27 @@ acled_oblast = pd.DataFrame(acled_oblast)
 acled_oblast.to_csv(out_dir / 'covariates' / 'interim' / 'acled_oblast.csv',
                   index=False)
 
+# 2. Process Ecology
 
-# Combine all summaries in one output
+ecology = gpd.read_file(out_dir / 'covariates' / 'raw' / 'conflictEcology_point.gpkg').rename(
+columns={'event_date': 'time'}
+)
+ecology_oblast = count_points_in_polygons(ecology, boundaries_oblast, 'conflictEcology')
+
+ecology_oblast.to_csv(out_dir / 'covariates' / 'interim' / 'conflictEcology_oblast.csv',
+                  index=False)
+# 9. Combine all summaries in one output
 
 covariates_file_paths = [
-    out_dir / 'covariates' / 'interim' / 'acled_oblast.csv'
+    out_dir / 'covariates' / 'interim' / 'acled_oblast.csv',
+    out_dir / 'covariates' / 'interim' / 'conflictEcology_oblast.csv'
 ]
-covariates = [pd.read_csv(file) for file in covariates_file_paths]
 
-covariates = pd.concat(covariates, axis=0, ignore_index=True)
+covariates_list = [pd.melt(pd.read_csv(file),
+            id_vars=['time', 'pcode'],
+            var_name='covariate',
+            value_name='value') for file in covariates_file_paths]
+covariates = pd.concat(covariates_list)
 
-covariates.to_csv(out_dir / 'covariates' / 'final' / 'covariates_location.csv',
+covariates.to_csv(out_dir / 'covariates' / 'final' / 'covariates_locations_oblast.csv',
                   index=False)

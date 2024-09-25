@@ -115,11 +115,6 @@ covariates_file_paths = [
 covariates_list = [pd.read_csv(file) for file in covariates_file_paths]
 covariates = pd.concat(covariates_list)
 
-
-    covariates_list)[0]
-for df in covariates_list[1:]:
-    covariates = pd.merge(covariates, df, how='outer')
-
 covariates['directional'] = False
 
 covariates = covariates.sort_values(by=['event_date', 'from_pcode', 'to_pcode'])

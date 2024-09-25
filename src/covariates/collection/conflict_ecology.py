@@ -30,7 +30,7 @@ def convert_raster_to_points(raster_path):
     # Create a GeoDataFrame
     gdf = gpd.GeoDataFrame({'value': values}, geometry=points, crs=crs)
 
-    gdf['event_date'] = pd.to_datetime(gdf['value'], unit= 'ms').dt.strftime('%Y-%m-%d')
+    gdf['time'] = pd.to_datetime(gdf['value'], unit= 'ms').dt.strftime('%Y-%m-%d')
 
     return gdf
 
