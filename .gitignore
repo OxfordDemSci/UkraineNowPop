@@ -1,4 +1,5 @@
 private*
+venv*
 .env
 /src/dashboard/www/public_html/js/env.js
 /wd/
