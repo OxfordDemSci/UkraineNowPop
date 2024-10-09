@@ -34,13 +34,6 @@ model {
          
          thetaG[j, t] ~ dnorm(thetaG[j, t-1], tau_G)
       }}
-      
-    
-    for (j in 1:27) {
-      for (t in 44:116) {
-        for (m in 1:7) {
-          Gmeas[j, t, m] ~ dnorm(nuG[j, t], tau_GM)T(0,1)
-        }}}
             
     for (j in 1:27) {
         thetaG0[j] ~ dnorm(0, 1) }
@@ -49,12 +42,10 @@ model {
          
     
     # Priors
-    tau_FM ~ dgamma(1.25, 1.25)
-    tau_F ~ dgamma(1, 1)  
-
-    tau_GM ~ dgamma(0.7, 0.9)
-    tau_G ~ dgamma(1, 1)  
+    tau_F ~ dgamma(1.25, 1.25)
     
+    tau_G ~ dgamma(0.7, 0.9)
+       
     
     #########################
     # Population model
