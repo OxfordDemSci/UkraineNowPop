@@ -1,18 +1,28 @@
 import pandas as pd
-import folium
-from folium.plugins import HeatMap, MarkerCluster
 import geopandas as gpd
 
 # Script parameters
-drive_path = "K:/DemSci/projects/2023_WHO_Ukraine_Population/"
-pickwell = pd.read_csv(drive_path + 'data/Pickwell/doug_offset.csv')  # pd.read_csv
-admin = gpd.read_file(drive_path + 'data/COD-AB/ukr_admbnda_sspe_20230201_SHP/ukr_admbnda_adm3_sspe_20230201.shp')
-output_path = drive_path + 'output/population_proxy/'
+drive_path = "K:/DemSci/projects/2023_WHO_Ukraine_Population/" # path to the drive folder
+pickwell = pd.read_csv(drive_path + 'data/Pickwell/doug_offset.csv')  # pickwell data
+admin = gpd.read_file(drive_path + 'data/COD-AB/ukr_admbnda_sspe_20230201_SHP/ukr_admbnda_adm3_sspe_20230201.shp') # admin boundaries
+output_path = drive_path + 'output/population_proxy/' # path to the output folder
 
 nightime_start = 20 # hour when nighttime starts
 nightime_end = 7 # hour when nighttime ends
 admin_name = 'ADM3_PCODE' # column name of the admin code
-period_aggregate = 'ymdh' # period over which to aggregate the location: ymw, ymd, ymdh [year-month-week-day-hour]
+period_aggregate = 'ym' # period over which to aggregate the location: ym ymw [year-month-week]
+
+# simulate timestamp
+# import numpy as np
+# start_date = pd.to_datetime('2023-01-01')
+# end_date = pd.to_datetime('2023-08-31')
+# random_timestamps = []
+# for _ in range(len(pickwell)):
+#     random_date = start_date + pd.Timedelta(days=np.random.randint(0, (end_date - start_date).days))
+#     random_timestamp = random_date + pd.Timedelta(hours=np.random.randint(0, 24), minutes=np.random.randint(0, 60), seconds=np.random.randint(0, 60))
+#     random_timestamps.append(random_timestamp)
+
+# pickwell['timestamp'] = random_timestamps
 
 # Define the classification dictionary
 classification = {
@@ -30,10 +40,10 @@ pickwell['latitude'] = pickwell['latitude'].apply(lambda x: round(x, 3))
 
 # Define different period aggregations
 pickwell['timestamp'] = pd.to_datetime(pickwell['timestamp'])
+pickwell['ym'] = pickwell['timestamp'].dt.to_period('M').dt.to_timestamp()
+pickwell['ym'] = pickwell['ym'].dt.strftime('%Y-%m-%d')
 pickwell['ymw'] = pickwell['timestamp'] - pd.offsets.Week(weekday=0)
 pickwell['ymw'] = pickwell['ymw'].dt.strftime('%Y-%m-%d')
-pickwell['ymd'] = pickwell['timestamp'].dt.strftime('%Y-%m-%d')
-pickwell['ymdh'] = pickwell['timestamp'].dt.strftime('%Y-%m-%d-%H')
 
 # Define the wealth classification
 pickwell['manufacturer'] = pickwell['manufacturer'].str.lower()
@@ -43,7 +53,7 @@ pickwell['hour'] = pickwell['timestamp'].dt.hour
 
 
 
-def compute_flows_and_stock(df, admin, period_aggregate, output_path=None):    
+def compute_flows_and_stock(df, admin, period_aggregate, output_path=None, period_lag=1):    
     """
     Compute stock and flow data for the given device data aggregated by the given period.
 
@@ -54,7 +64,11 @@ def compute_flows_and_stock(df, admin, period_aggregate, output_path=None):
     admin : geopandas.GeoDataFrame
         Admin boundaries data.
     period_aggregate : str
-        Period over which to aggregate the location: ymw, ymd, ymdh [year-month-week-day-hour].
+        Period over which to aggregate the location: ym, ymw.
+    output_path : str
+        Path to the output folder.
+    period_lag : int
+        Lag period. If period_aggregate is ym, then the lag period is 1 month.
 
     Returns
     -------
@@ -63,18 +77,9 @@ def compute_flows_and_stock(df, admin, period_aggregate, output_path=None):
 
     """
     ##############################################################################
-    period_deltasec_dict = { # Define the difference in seconds between two periods
-        'ymw': 604800 ,
-        'ymd': 86400,
-        'ymdh': 3600
-    }
-
-    period_format_dict = {
-    'ymw': '%Y-%m-%d',
-    'ymd': '%Y-%m-%d',
-    'ymdh': '%Y-%m-%d-%H'
-    }
-
+    period_freq = {
+        'ym': 'M', 
+        'ymw': 'W'}
 
     ##############################################################################
     # 2. Compute stock data by 100m 
@@ -105,22 +110,14 @@ def compute_flows_and_stock(df, admin, period_aggregate, output_path=None):
     # We need backward and forward to get the first and the last period
     df_gdf = df_gdf.sort_values(['device_aid',period_aggregate]).reset_index(drop=True)
 
-    df_gdf[period_aggregate] = pd.to_datetime(df_gdf[period_aggregate], format=period_format_dict[period_aggregate])
-    
-    consecutive_period_forward = df_gdf.groupby('device_aid')[period_aggregate].apply(lambda x: x[x.diff().dt.total_seconds() == period_deltasec_dict[period_aggregate]]).reset_index()
-    consecutive_period_backward = df_gdf.groupby('device_aid')[period_aggregate].apply(lambda x: x[x.diff(-1).dt.total_seconds() == -period_deltasec_dict[period_aggregate]]).reset_index()
+    df_gdf[period_aggregate] = pd.to_datetime(df_gdf[period_aggregate]).dt.to_period(period_freq[period_aggregate])
+    df_gdf['period_diff'] = df_gdf.groupby('device_aid')[period_aggregate].diff().apply(lambda x: x.n if pd.notna(x) else None)
+    df_gdf['previous_' + admin_name ] = df_gdf.groupby('device_aid')[admin_name].shift(1)
 
-    consecutive_period = pd.concat([consecutive_period_forward, consecutive_period_backward])
-    consecutive_period = consecutive_period[['device_aid',period_aggregate]].drop_duplicates()
-    consecutive_period = consecutive_period.merge(df_gdf[['device_aid', period_aggregate, admin_name]],  on=['device_aid', period_aggregate])
-
-    # Compute the previous admin for each consecutive date
-    consecutive_period = consecutive_period.sort_values(['device_aid',period_aggregate]).reset_index(drop=True)
-    consecutive_period['previous_' + admin_name ] = consecutive_period.groupby('device_aid')[admin_name].shift(1)
-    consecutive_period = consecutive_period[consecutive_period['previous_' + admin_name ].notna()]
+    consecutive_df_gdf = df_gdf[df_gdf['period_diff'] == 1]
 
     # Sum per admin combination and period to get flows data
-    consecutive_period_aggregate = consecutive_period.groupby([period_aggregate, admin_name,'previous_' + admin_name ])['device_aid'].count().reset_index()
+    consecutive_period_aggregate = consecutive_df_gdf.groupby([period_aggregate, admin_name,'previous_' + admin_name ])['device_aid'].count().reset_index()
     consecutive_period_aggregate = consecutive_period_aggregate.rename(columns={'device_aid': 'count'})
     
     # write output
@@ -131,18 +128,17 @@ def compute_flows_and_stock(df, admin, period_aggregate, output_path=None):
 
     return {'stock_100m': df_100m, 'stock_admin': df_admin, 'flow_admin': consecutive_period_aggregate}
 
-
 # Play with parameters: duration of night, period over which to aggregate, and wealth classification
 pickwell_filtered_207 = pickwell[(pickwell['hour'] >= 20) | (pickwell['hour'] < 7)]
-flows_stocks_total_207_ymw = compute_flows_and_stock(pickwell_filtered_207, admin, period_aggregate = 'ymw', output_path=output_path + 'night207_ymw_')
+flows_stocks_total_207_ymw = compute_flows_and_stock(pickwell_filtered_207, admin, period_aggregate = 'ym', output_path=output_path + 'night207_ymw_')
 
 pickwell_filtered_1810 = pickwell[(pickwell['hour'] >= 18) | (pickwell['hour'] < 10)]
-flows_stocks_total_1810_ymw = compute_flows_and_stock(pickwell_filtered_1810, admin, period_aggregate = 'ymdh', output_path=output_path + 'night1810_ymw_')
+flows_stocks_total_1810_ymw = compute_flows_and_stock(pickwell_filtered_1810, admin, period_aggregate = 'ym', output_path=output_path + 'night1810_ymw_')
 
 
 pickwell_207_rich = pickwell_filtered_207[pickwell_filtered_207['manufacturer'].isin(classification['High Wealth'])]  
 pickwell_207_poor = pickwell_filtered_207[pickwell_filtered_207['manufacturer'].isin(classification['Low Wealth'])]  
-flows_stocks_poor_207_ymw = compute_flows_and_stock(pickwell_207_poor, admin, period_aggregate = 'ymdh', output_path=output_path + 'night207_ymw_poor_')
+flows_stocks_poor_207_ymw = compute_flows_and_stock(pickwell_207_poor, admin, period_aggregate = 'ym', output_path=output_path + 'night207_ymw_poor_')
 
 
 
