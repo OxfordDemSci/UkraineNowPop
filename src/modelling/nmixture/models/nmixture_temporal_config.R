@@ -40,11 +40,16 @@ init_generator <- function(md=md, chain_id=1){
   }
 
   result[['N']] <- N
-  result[['r']] <- matrix(rnorm(md$T * md$I, 0, 1), nrow=md$T, ncol=md$I)
+  result[['r']] <- matrix(rnorm(md$T * md$I, 0, 0.5), nrow=md$T, ncol=md$I)
+  result[['mu']] <- rnorm(1, 0, 0.1)
+  result[['sigma']] <- runif(1, 0, 0.5)
+  
   result[['p']] <- matrix(runif(md$T * md$I, 0.05, 0.25), nrow=md$T, ncol=md$I)
-  result[['alpha']] <- rnorm(1, 0, 5)
-  result[['gamma']] <- rnorm(md$T, 0, 1)
-  result[['delta']] <- rnorm(md$I, 0, 1)
+  result[['alpha']] <- rnorm(1, 0, 3)
+  result[['gamma']] <- rnorm(md$T, 0, 0.5)
+  result[['delta']] <- rnorm(md$I, 0, 0.5)
+  result[['sd_gamma']] <- runif(1, 0, 0.5)
+  result[['sd_delta']] <- runif(1, 0, 0.5)
   
   return(result)
 }

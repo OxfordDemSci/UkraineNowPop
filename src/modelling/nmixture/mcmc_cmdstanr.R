@@ -34,8 +34,8 @@ source(file.path(srcdir, 'models', paste0(model_name, '_config.R')))
 
 # MCMC configuration
 chains <- 4
-warmup <- 2e3
-samples <- 3e3
+warmup <- 1e3
+samples <- 1e3
 inits <- lapply(1:chains, function(id) init_generator(md=md, chain_id=id))
 
 # compile the stan model
@@ -66,6 +66,16 @@ mcmc_trace(fit$draws(paste0('N[',t,',',i,']')))
 print(mean(fit$draws(paste0('N[',t,',',i,']'))))
 print(md$N_true[t,i])
 
+mcmc_trace(fit$draws(paste0('r[',t,',',i,']')))
+print(mean(fit$draws(paste0('r[',t,',',i,']'))))
+
+mcmc_trace(fit$draws('mu'))
+print(mean(fit$draws('mu')))
+
+mcmc_trace(fit$draws('sigma'))
+print(mean(fit$draws('sigma')))
+
+
 mcmc_trace(fit$draws(paste0('p[',t,',',i,']')))
 print(mean(fit$draws(paste0('p[',t,',',i,']'))))
 print(mean(md$p_true[t,i]))
@@ -81,6 +91,9 @@ print(mean(fit$draws('sd_gamma')))
 
 mcmc_trace(fit$draws('sd_delta'))
 print(mean(fit$draws('sd_delta')))
+
+mcmc_trace(fit$draws('alpha'))
+print(mean(fit$draws('alpha')))
 
 
 

@@ -1,39 +1,44 @@
 data {
+  
   int<lower=0> T;  // number of weeks
   int<lower=0> I;  // number of locations
   int<lower=0> M;  // number of repeat observations
-  array[T] int<lower=0> N_tot;  // total population size
-  array[I] int<lower=0> N0;  // baseline population for each location
+  vector<lower=0>[T] N_tot;  // total population among locations
+  vector<lower=0>[I] N0;  // baseline population at each location
   array[T,I,M] int<lower=0> F;  // Facebook daily active users
 }
 
+
 parameters {
-  array[T,I] real r;
-  array[T] real gamma;
-  array[I] real delta;
-  real alpha;
-  real<lower=0> sd_gamma;
-  real<lower=0> sd_delta;
+  
+  array[T] vector[I] r;  // population growth rates
+  real mu;  // expected growth rates
+  real<lower=0> sigma;  // process variation
+  
+  real alpha;  // intercept for detection
+  array[T] real gamma;  // time (week) effect on detection
+  array[I] real delta;  // location effect on detection
+  real<lower=0> sd_gamma;  // variation in detection among times (weeks)
+  real<lower=0> sd_delta;  // variation in detection among locations
 }
 
+
 transformed parameters {
-  array[T,I] real<lower=0> N;
-  array[T] real<lower=0> N_sum;
-  array[T,I] real<lower=0, upper=1> p;
   
-  // baseline population
-  N[1,] = N0;
+  vector<lower=0>[T] N_sum;  // sum of population estimates among locations
+  array[T] vector<lower=0>[I] N;  // population estimates
+  array[T] vector<lower=0, upper=1>[I] p; // detection probabilities
+  
   
   // population process model
+  N[1] = N0;
   for(t in 2:T){
-    for(i in 1:I){
-      N[t,i] = N[t-1,i] * exp(r[t,i]);
-    }
+    N[t] = N[t-1] .* exp(r[t]);
   }
   
   // estimated population sum among locations
   for(t in 1:T){
-    N_sum[t] = sum(N[t,]);
+    N_sum[t] = sum(N[t]);
   }
   
   // detection process model
@@ -43,6 +48,7 @@ transformed parameters {
     }
   }
 }
+
 
 model {
   
@@ -54,23 +60,21 @@ model {
   }
   
   // total population constraint
+  N_sum ~ lognormal(log(N_tot), 1e-3);
+
+  // population process
   for(t in 1:T){
-    N_sum[t] ~ lognormal(log(N_tot[t]), 1e-3);
+    r[t] ~ normal(mu, sigma);
   }
 
   // priors:  population
-  for(t in 1:T){
-    r[t,] ~ normal(0, 1);
-  }
-  
+  mu ~ normal(0, 1);
+  sigma ~ cauchy(0, 1);
+
   // priors:  detection
   alpha ~ normal(0, 5);
+  gamma ~ normal(0, sd_gamma);
+  delta ~ normal(0, sd_delta);
   sd_gamma ~ cauchy(0, 1);
   sd_delta ~ cauchy(0, 1);
-  for(t in 1:T){
-    gamma ~ normal(0, sd_gamma);
-  }
-  for(i in 1:I){
-    delta ~ normal(0, sd_delta);
-  }
 }
