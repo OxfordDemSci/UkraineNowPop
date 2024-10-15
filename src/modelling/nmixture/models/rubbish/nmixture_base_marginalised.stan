@@ -18,7 +18,11 @@ model {
   
   // likelihood
   for(i in 1:I){
-    F[i,] ~ poisson(lambda[i] * rho);
+
+    for(N in max(F[i,]):N_tot){
+      target += poisson_lpmf(N | lambda[i]) + binomial_lpmf(F[i,] | N, rho);
+    }
+      
   }
   
   // total population constraint
