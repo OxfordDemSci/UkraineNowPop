@@ -17,6 +17,8 @@ srcdir <- file.path('src', 'modelling', 'nmixture')
 outdir <- file.path(wd, 'out', 'modelling', 'nmixture')
 dir.create(outdir, showWarnings=F, recursive=T)
 
+
+
 #---- configure model ----#
 
 # define model name
@@ -24,6 +26,8 @@ model_name <- 'nmixture_jags'
 
 # soure model-specific config code
 source(file.path(srcdir, 'models', paste0(model_name, '_config.R')))
+
+
 
 #---- MCMC for Bayesian model ----#
 
@@ -36,7 +40,7 @@ inits <- lapply(1:chains, function(id) init_generator(md=md, chain_id=id))
 
 # run MCMC to sample from the posterior distribution of our model, given our data
 fit <- run.jags(model = file.path('src', 'modelling', 'nmixture', 'models', paste0(model_name, '.R')),
-                monitor = c('p', 'N'),
+                monitor = c('rho', 'N'),
                 data = md,
                 n.chains = chains,
                 inits = inits,
@@ -54,9 +58,9 @@ saveRDS(fit, file.path(outdir, paste0('fit_', model_name, '.rds')))
 draws <- as.mcmc(fit)
 
 
-# plot(draws[,'p'])
+# plot(draws[,'rho'])
 
-mean(draws[,'p'])
+mean(draws[,'rho'])
 mean(md$p_true)
 
 

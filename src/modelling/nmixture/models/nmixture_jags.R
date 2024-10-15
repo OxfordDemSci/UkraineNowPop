@@ -3,7 +3,7 @@ model {
   # likelihood
   for(i in 1:I){
     for(m in 1:M){
-      F[i,m] ~ dpois(N[i] * p)
+      F[i,m] ~ dpois(N[i] * rho)
     }
   }
   
@@ -17,5 +17,5 @@ model {
   }
 
   # priors
-  p ~ dbeta(1, 1)
+  rho ~ dbeta(1, 1)
 }
