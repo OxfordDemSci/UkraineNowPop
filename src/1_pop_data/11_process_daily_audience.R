@@ -1,4 +1,4 @@
-# Convert the Facebook and Instagram daily audience data from a long format to a 3D array [week_num, geo_name, day_of_week]
+# Convert the Facebook and Instagram daily audience data from a long format to a 3D array  [week, oblast, day_of_week]
 # suitable for use with the N-mixture model.
 
 # Libraries
@@ -8,7 +8,7 @@ library(tidyverse)
 env <- new.env()
 source(here::here('.env'), local=env)
 
-#' Convert the daily audience data from a long format to a 3D array [week_num, geo_name, day_of_week]
+#' Convert the daily audience data from a long format to a 3D array  [week, oblast, day_of_week]
 #'
 #' @param social_media a data frame containing the audience data.
 #' @param metric the name of the column containing the audience values ('dau', 'mau_lower', 'mau_upper')
