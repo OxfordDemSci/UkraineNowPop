@@ -5,6 +5,7 @@ data {
   int<lower=0> M;  // number of repeat observations
   vector<lower=0>[T] N_tot;  // total population among locations
   vector<lower=0>[I] N0;  // baseline population at each location
+  vector<lower=0, upper=1>[I] p0; // baseline detection
   array[T,I,M] int<lower=0> F;  // Facebook daily active users
 }
 
@@ -16,10 +17,9 @@ parameters {
   real<lower=0> sigma;  // process variation
   
   real alpha;  // intercept for detection
-  array[T] real gamma;  // time (week) effect on detection
-  array[I] real delta;  // location effect on detection
-  real<lower=0> sd_gamma;  // variation in detection among times (weeks)
-  real<lower=0> sd_delta;  // variation in detection among locations
+  vector[T] delta;  // random effect (by week) of baseline detection at each location
+  real mu_delta;  // average effect of baseline detection
+  real<lower=0> sd_delta;  // variation in effect of baseline detection among weeks
 }
 
 
@@ -44,7 +44,7 @@ transformed parameters {
   // detection process model
   for(t in 1:T){
     for(i in 1:I){
-      p[t,i] = inv_logit(alpha + gamma[t] + delta[i]);
+      p[t,i] = inv_logit(alpha + delta[t] * logit(p0[i]));
     }
   }
 }
@@ -72,9 +72,8 @@ model {
   sigma ~ cauchy(0, 1);
 
   // priors:  detection
-  alpha ~ normal(0, 5);
-  gamma ~ normal(0, sd_gamma);
-  delta ~ normal(0, sd_delta);
-  sd_gamma ~ cauchy(0, 1);
+  alpha ~ normal(0, 1);
+  delta ~ normal(mu_delta, sd_delta);
+  mu_delta ~ normal(1, 1);
   sd_delta ~ cauchy(0, 1);
 }

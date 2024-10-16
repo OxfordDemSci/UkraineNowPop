@@ -22,6 +22,10 @@ md$N_tot <- apply(md$N_true, 1, sum)
 # baseline population
 md$N0 <- md$N_true[1,]
 
+# baseline detection
+md$p0 <- apply(md$F[1,,], 1, max) / md$N0
+# md$p0 <- scale(md$p0)
+
 # save to disk
 saveRDS(md, file.path(outdir, paste0('md_', model_name, '.rds')))
 
@@ -46,9 +50,8 @@ init_generator <- function(md=md, chain_id=1){
   
   result[['p']] <- matrix(runif(md$T * md$I, 0.05, 0.25), nrow=md$T, ncol=md$I)
   result[['alpha']] <- rnorm(1, 0, 3)
-  result[['gamma']] <- rnorm(md$T, 0, 0.5)
-  result[['delta']] <- rnorm(md$I, 0, 0.5)
-  result[['sd_gamma']] <- runif(1, 0, 0.5)
+  result[['delta']] <- rnorm(md$T, 0, 0.5)
+  result[['mu_delta']] <- rnorm(1, 0, 1)
   result[['sd_delta']] <- runif(1, 0, 0.5)
   
   return(result)
