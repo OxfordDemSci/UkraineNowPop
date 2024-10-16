@@ -53,8 +53,8 @@ convert_audience_to_md <- function(social_media, metric) {
       n_obs = n_distinct(day_of_week),
       day_of_week_obs = paste(day_of_week, collapse = ",")) 
 
-  saveRDS(social_media_reshape_array, paste0(env$out_dir,'model/', 'model_data/', platform, '_md.rds'))
-  saveRDS(n_obs_per_week, paste0(env$out_dir,'model/', 'model_data/', platform, '_md_missing.rds'))
+  saveRDS(social_media_reshape_array, paste0(env$out_dir,'population_proxy/', 'model_data/', platform, '_md.rds'))
+  saveRDS(n_obs_per_week, paste0(env$out_dir,'population_proxy/', 'model_data/', platform, '_md_missing.rds'))
 
   return(list('md'=social_media_reshape_array, 'md_missing'=n_obs_per_week))
 }
