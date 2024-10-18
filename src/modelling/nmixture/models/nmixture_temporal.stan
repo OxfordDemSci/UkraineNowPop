@@ -14,7 +14,7 @@ parameters {
   
   array[T] vector[I] r;  // population growth rates
   real mu;  // expected growth rates
-  real<lower=0> sigma;  // process variation
+  real<lower=0> sigma;  // variation in growth rates
   
   real alpha;  // intercept for detection
   vector[T] delta;  // random effect (by week) of baseline detection at each location
@@ -25,7 +25,6 @@ parameters {
 
 transformed parameters {
   
-  vector<lower=0>[T] N_sum;  // sum of population estimates among locations
   array[T] vector<lower=0>[I] N;  // population estimates
   array[T] vector<lower=0, upper=1>[I] p; // detection probabilities
   
@@ -36,12 +35,7 @@ transformed parameters {
     N[t] = N[t-1] .* exp(r[t]);
   }
   
-  // estimated population sum among locations
-  for(t in 1:T){
-    N_sum[t] = sum(N[t]);
-  }
-  
-  // detection process model
+  // observation model
   for(t in 1:T){
     for(i in 1:I){
       p[t,i] = inv_logit(alpha + delta[t] * logit(p0[i]));
@@ -60,9 +54,11 @@ model {
   }
   
   // total population constraint
-  N_sum ~ lognormal(log(N_tot), 1e-3);
+  for(t in 1:T){
+    sum(N[t]) ~ lognormal(log(N_tot[t]), 1e-3);
+  }
 
-  // population process
+  // population growth rates
   for(t in 1:T){
     r[t] ~ normal(mu, sigma);
   }

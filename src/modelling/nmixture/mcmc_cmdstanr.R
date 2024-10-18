@@ -23,7 +23,7 @@ dir.create(outdir, showWarnings=F, recursive=T)
 #---- configure model ----#
 
 # define model name
-model_name <- 'nmixture_temporal'
+model_name <- 'nmixture_temporal_long'
 
 # soure model-specific config code
 source(file.path(srcdir, 'models', paste0(model_name, '_config.R')))
