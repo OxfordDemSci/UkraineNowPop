@@ -2,11 +2,12 @@ data {
   
   int<lower=0> T;  // number of weeks
   int<lower=0> I;  // number of locations
-  int<lower=0> M;  // number of repeat observations
+  int<lower=0> M_max;  // number of repeat observations
+  array[T,I] int<lower=0> M;  // number of repeat observations
   vector<lower=0>[T] N_tot;  // total population among locations
   vector<lower=0>[I] N0;  // baseline population at each location
   vector<lower=0, upper=1>[I] p0; // baseline detection
-  array[T,I,M] int<lower=0> F;  // Facebook daily active users
+  array[T,I,M_max] int<lower=0> y_F;  // Facebook daily active users
 }
 
 
@@ -49,7 +50,7 @@ model {
   // likelihood
   for(t in 1:T){
     for(i in 1:I){
-      F[t,i,] ~ poisson(N[t,i] * p[t,i]);
+      y_F[t,i,1:M[t,i]] ~ poisson(N[t,i] * p[t,i]);
     }
   }
   

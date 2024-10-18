@@ -77,16 +77,31 @@ for(t in 1:T){
 }
 
 
+#---- missing data ----#
+
+M_ti <- matrix(M, nrow=T, ncol=I)
+
+for(t in 1:T){
+  for(i in 1:I){
+    drop <- rbinom(1, M-1, 0.05)
+    if(drop>0){
+      audience[t,i,(M+1-drop):M] <- NA
+    }
+    M_ti[t,i] <- M - drop
+  }
+}
+
+
+
 #---- save to disk ----#
 
 # model data
 md <- list(I = I,
            T = T,
-           M = M,
-           F = audience,
+           M = M_ti,
+           y = audience,
            p_true = detection,
            N_true = population,
-           M_true = migration,
            seed=round(runif(1, 1, 1e6)))
 
 saveRDS(md, file.path(outdir, 'md.rds'))

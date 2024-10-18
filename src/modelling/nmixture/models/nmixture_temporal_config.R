@@ -23,8 +23,17 @@ md$N_tot <- apply(md$N_true, 1, sum)
 md$N0 <- md$N_true[1,]
 
 # baseline detection
-md$p0 <- apply(md$F[1,,], 1, max) / md$N0
+md$p0 <- apply(md$y[1,,], 1, max) / md$N0
 # md$p0 <- scale(md$p0)
+
+# maximum repeat observations
+md$M_max <- max(md$M)
+
+# fill missing data
+md$y[is.na(md$y)] <- 999999999
+
+# rename
+names(md)[names(md)=='y'] <- 'y_F'
 
 # save to disk
 saveRDS(md, file.path(outdir, paste0('md_', model_name, '.rds')))
@@ -37,7 +46,7 @@ init_generator <- function(md=md, chain_id=1){
   
   N <- matrix(NA, nrow=md$T, ncol=md$I)
   for(t in 1:md$T){
-    theta <- apply(md$F[t,,], 1, max) / md$N_tot[t]
+    theta <- apply(md$y_F[t,,], 1, max, na.rm=T) / md$N_tot[t]
     theta <- theta / sum(theta)
     
     N[t,] <- rbinom(md$I, md$N_tot[t], theta)
