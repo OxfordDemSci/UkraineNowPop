@@ -42,7 +42,7 @@ convert_audience_to_md <- function(social_media, metric) {
   social_media_reshape_array <- lapply(social_media_reshape, as.matrix)
   social_media_reshape_array <- array(unlist(social_media_reshape_array), 
                                       dim=c(n_distinct(social_media$week_num), n_distinct(social_media$geo_name), n_distinct(social_media$day_of_week)))
-  
+
   # Compute the number of days per week per geo_name that have no audience 
   # and concatenate the corresponding day of the week indices
 
@@ -51,9 +51,26 @@ convert_audience_to_md <- function(social_media, metric) {
     group_by(week_num, geo_name) |> 
     summarise(
       n_obs = n_distinct(day_of_week),
-      day_of_week_obs = paste(day_of_week, collapse = ",")) 
+      day_of_week_obs = paste(day_of_week, collapse = ",")) |> 
+    ungroup() |>
+    complete(week_num, geo_name, fill = list(n_obs = 0, day_of_week_obs = NA))
+  
+  n_obs_per_week_matrix <- n_obs_per_week |> 
+    ungroup() |>
+    select(week_num, geo_name, n_obs) |> 
+    pivot_wider(names_from = geo_name, values_from = n_obs) |> 
+    arrange(week_num) |> 
+    select(-week_num) |> 
+    as.matrix()
+    
+    md <- list(
+      y = social_media_reshape_array,
+      T = n_distinct(social_media$week_num),
+      I = n_distinct(social_media$geo_name),
+      M = n_obs_per_week_matrix
+    )
 
-  saveRDS(social_media_reshape_array, paste0(env$out_dir,'population_proxy/', 'model_data/', platform, '_md.rds'))
+  saveRDS(md, paste0(env$out_dir,'population_proxy/', 'model_data/', platform, '_md.rds'))
   saveRDS(n_obs_per_week, paste0(env$out_dir,'population_proxy/', 'model_data/', platform, '_md_missing.rds'))
 
   return(list('md'=social_media_reshape_array, 'md_missing'=n_obs_per_week))
