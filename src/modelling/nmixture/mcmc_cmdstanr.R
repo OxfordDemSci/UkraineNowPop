@@ -23,7 +23,7 @@ dir.create(outdir, showWarnings=F, recursive=T)
 #---- configure model ----#
 
 # define model name
-model_name <- 'nmixture_temporal_long'
+model_name <- 'nmixture_temporal'
 
 # soure model-specific config code
 source(file.path(srcdir, 'models', paste0(model_name, '_config.R')))
@@ -55,7 +55,94 @@ fit$save_object(file=file.path(outdir, paste0('fit_', model_name, '.rds')))
 
 
 
-#---- quick checks ----#
+#---- quick observed vs predicted plot (long format) ----#
+plot(NA, 
+     xlim = range(md$N_true), 
+     ylim = range(md$N_true), 
+     xlab = 'observed N', 
+     ylab = 'predicted N')
+N_hat <- apply(fit$draws(paste0('N[',1:(md$T*md$I),']'), format='df'), 2, mean)
+for(t in 2:md$T){
+  for(i in 1:md$I){
+    j <- which(md$tt==t & md$ii==i) 
+    points(x = md$N_true[t,i], 
+           y = N_hat[j])
+  }
+}
+abline(0, 1, col='red')
+
+
+#---- quick checks (long format) ----#
+
+print(fit, max_rows=1e3)
+summary(fit$summary()[['rhat']])
+
+i <- sample(1:md$I, 1)
+t <- sample(2:md$T, 1)
+
+j <- which(md$tt==t & md$ii==i)
+
+
+mcmc_trace(fit$draws(paste0('N[',j,']')))
+print(mean(fit$draws(paste0('N[',j,']'))))
+print(md$N_true[t,i])
+
+mcmc_trace(fit$draws(paste0('r[',j,']')))
+print(mean(fit$draws(paste0('r[',j,']'))))
+
+mcmc_trace(fit$draws('sigma_r'))
+print(mean(fit$draws('sigma_r')))
+
+mcmc_trace(fit$draws('alpha_r'))
+print(mean(fit$draws('alpha_r')))
+
+for(k in 1:md$K_r){
+  print(mcmc_trace(fit$draws(paste0('beta_r[',k,']'))))
+  print(mean(fit$draws(paste0('beta_r[',k,']'))))
+}
+
+
+
+mcmc_trace(fit$draws(paste0('p[',j,']')))
+print(mean(fit$draws(paste0('p[',j,']'))))
+print(mean(md$p_true[t,i]))
+
+mcmc_trace(fit$draws(paste0('delta_p[',t,']')))
+print(mean(fit$draws(paste0('delta_p[',t,']'))))
+
+mcmc_trace(fit$draws('mu_delta_p'))
+print(mean(fit$draws('mu_delta_p')))
+
+mcmc_trace(fit$draws('sd_delta_p'))
+print(mean(fit$draws('sd_delta_p')))
+
+mcmc_trace(fit$draws('alpha_p'))
+print(mean(fit$draws('alpha_p')))
+
+
+
+
+
+
+
+
+#---- quick observed vs predicted plot (array format) ----#
+plot(NA, 
+     xlim = range(md$N_true), 
+     ylim = range(md$N_true), 
+     xlab = 'observed N', 
+     ylab = 'predicted N')
+
+for(t in 2:md$T){
+  for(i in 1:md$I){
+    points(x = md$N_true[t,i], 
+           y = mean(fit$draws(paste0('N[',t,',',i,']'))))
+  }
+}
+abline(0, 1, col='red')
+
+
+#---- quick checks (array format)----#
 
 print(fit, max_rows=1e3)
 summary(fit$summary()[['rhat']])

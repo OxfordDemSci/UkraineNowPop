@@ -61,6 +61,27 @@ for(t in 2:T){
 }
 
 
+# growth rates
+cov_growth <- growth <- matrix(NA, nrow=T, ncol=I)
+growth[1,] <- 0
+for(i in 1:I){
+  growth[2:T,i] <- log(population[2:T, i] / population[1:(T-1), i])
+} 
+
+# covariates on growth rates
+K <- 2
+cov_growth <- array(NA, dim=c(T, I, K))
+for(k in 1:K){
+  sd_k <- runif(1, 0.01, 0.3)
+  sign <- sample(c(-1,1), 1)
+  for(i in 1:I){
+    cov_growth[,i,k] <- rnorm(T, sign * growth[,i], sd_k)
+  }
+  plot(growth~cov_growth[,,k])
+  abline(0,1*sign)
+}
+
+
 #---- simulated surveys ----#
 
 # detection probabilities
@@ -92,6 +113,12 @@ for(t in 1:T){
 }
 
 
+#---- estimate true regression parameters ----#
+
+fit <- lm(as.vector(growth) ~ as.vector(cov_growth[,,1]) + as.vector(cov_growth[,,2]))
+effects <- fit$coefficients
+names(effects) <- c('alpha', paste0('beta', 1:2))
+
 
 #---- save to disk ----#
 
@@ -99,9 +126,13 @@ for(t in 1:T){
 md <- list(I = I,
            T = T,
            M = M_ti,
+           K = K,
            y = audience,
+           X = cov_growth,
            p_true = detection,
            N_true = population,
+           r_true = growth,
+           beta_r_true = effects,
            seed=round(runif(1, 1, 1e6)))
 
 saveRDS(md, file.path(outdir, 'md.rds'))
