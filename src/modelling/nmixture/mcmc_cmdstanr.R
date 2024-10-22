@@ -23,7 +23,7 @@ dir.create(outdir, showWarnings=F, recursive=T)
 #---- configure model ----#
 
 # define model name
-model_name <- 'nmixture_temporal'
+model_name <- 'nmixture_temporal_long'
 
 # soure model-specific config code
 source(file.path(srcdir, 'models', paste0(model_name, '_config.R')))
@@ -61,7 +61,9 @@ plot(NA,
      ylim = range(md$N_true), 
      xlab = 'observed N', 
      ylab = 'predicted N')
+
 N_hat <- apply(fit$draws(paste0('N[',1:(md$T*md$I),']'), format='df'), 2, mean)
+
 for(t in 2:md$T){
   for(i in 1:md$I){
     j <- which(md$tt==t & md$ii==i) 
@@ -89,6 +91,7 @@ print(md$N_true[t,i])
 
 mcmc_trace(fit$draws(paste0('r[',j,']')))
 print(mean(fit$draws(paste0('r[',j,']'))))
+print(md$r_true[t,i])
 
 mcmc_trace(fit$draws('sigma_r'))
 print(mean(fit$draws('sigma_r')))
@@ -96,9 +99,10 @@ print(mean(fit$draws('sigma_r')))
 mcmc_trace(fit$draws('alpha_r'))
 print(mean(fit$draws('alpha_r')))
 
-for(k in 1:md$K_r){
+for(k in 1:md$K){
   print(mcmc_trace(fit$draws(paste0('beta_r[',k,']'))))
   print(mean(fit$draws(paste0('beta_r[',k,']'))))
+  print(md$beta_r_true[paste0('beta', k)])
 }
 
 

@@ -26,20 +26,22 @@ md$N_tot <- apply(md$N_true, 1, sum)
 md$N0 <- md$N_true[1,]
 
 # baseline detection
-md$p0 <- apply(md$y[1,,], 1, max) / md$N0
-# md$p0 <- scale(md$p0)
+md$p0 <- apply(md$y[1,,], 1, max, na.rm=T) / md$N0
 
-# prepare to convert to long format
-idx <- data.frame(T=rep(1:md$T, each=md$I), I=rep(1:md$I, md$T), ti=1:(md$T*md$I))
+# index to reference T x I combinations in vector format
+idx <- data.frame(T = rep(1:md$T, each=md$I), 
+                  I = rep(1:md$I, md$T), 
+                  ti = 1:(md$T*md$I))
 
+# prepare to convert y to long format
 y_long <- reshape2::melt(md$y, varnames=c('T', 'I', 'M'))
 y_long <- y_long[!is.na(y_long$value),]
 
 y_idx <- y_long[,c('T','I','M')]
 y_idx <- merge(y_idx, idx, by=c('T', 'I'))
-y_idx <- y_idx[order(y_idx$I, y_idx$T, y_idx$M),]
+y_idx <- y_idx[order(y_idx$M, y_idx$I, y_idx$T),]
 
-# long format for N
+# indexing: long format for N
 md$ti_N0 <- idx$ti[idx$T==1]
 md$ti_N <- idx$ti[idx$T>1]
 md$ti_N_lag <- idx$ti[idx$T>1]-md$I
@@ -50,9 +52,19 @@ md$ii <- idx$I
 # long format for y
 md$y_F <- y_long$value
 md$ti_F <- y_idx$ti
-
 md$n_F <- length(md$y_F)
 
+# long format for X_r
+melt_X <- reshape2::melt(md$X, varnames=c('T', 'I', 'K'))
+idx_X <- idx
+for(k in 1:md$K){
+  idx_X <- merge(idx_X, melt_X[melt_X$K==k,c('T','I','value')], by=c('T','I'))
+  names(idx_X)[names(idx_X)=='value'] <- paste0('x',k)
+}
+idx_X <- idx_X[order(idx_X$ti),]
+row.names(idx_X) <- idx_X$ti
+
+md$X <- idx_X[,paste0('x', 1:md$K)]
 
 # fill missing data
 md$y[is.na(md$y)] <- 999999999
@@ -81,14 +93,17 @@ init_generator <- function(md=md, chain_id=1){
 
   result[['N']] <- reshape2::melt(N, varnames=c('T', 'I'))$value
   result[['r']] <- rlnorm(md$T * md$I, 0, 0.1)
-  result[['mu']] <- rnorm(1, 0, 0.1)
-  result[['sigma']] <- runif(1, 0, 0.1)
-  
+  result[['sigma_r']] <- runif(1, 0, 0.1)
+  # result[['mu_r']] <- rnorm(md$T * md$I, 0, 0.1)
+  result[['mu_r']] <- rnorm(1, 0, 0.1)
+  result[['alpha_r']] <- rnorm(1, 0, 3)
+  result[['beta_r']] <- rnorm(md$K, 0, 1)
+
   result[['p']] <- runif(md$T * md$I, 0.05, 0.25)
-  result[['alpha']] <- rnorm(1, 0, 3)
-  result[['delta']] <- rnorm(md$T, 0, 0.5)
-  result[['mu_delta']] <- rnorm(1, 0, 1)
-  result[['sd_delta']] <- runif(1, 0, 0.5)
+  result[['alpha_p']] <- rnorm(1, 0, 3)
+  result[['delta_p']] <- rnorm(md$T, 0, 0.5)
+  result[['mu_delta_p']] <- rnorm(1, 0, 1)
+  result[['sd_delta_p']] <- runif(1, 0, 0.5)
   
   return(result)
 }
