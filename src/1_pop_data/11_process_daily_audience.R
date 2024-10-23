@@ -8,6 +8,10 @@ library(tidyverse)
 env <- new.env()
 source(here::here('.env'), local=env)
 
+# directories
+dir.create(file.path(env$out_dir,'population_proxy', 'social_media_audience'), showWarnings=F, recursive=T)
+dir.create(file.path(env$out_dir,'population_proxy', 'model_data'), showWarnings=F, recursive=T)
+
 #' Convert the daily audience data from a long format to a 3D array  [week, oblast, day_of_week]
 #'
 #' @param social_media a data frame containing the audience data.
@@ -70,8 +74,8 @@ convert_audience_to_md <- function(social_media, metric) {
       M = n_obs_per_week_matrix
     )
 
-  saveRDS(md, paste0(env$out_dir,'population_proxy/', 'model_data/', platform, '_md.rds'))
-  saveRDS(n_obs_per_week, paste0(env$out_dir,'population_proxy/', 'model_data/', platform, '_md_missing.rds'))
+  saveRDS(md, file.path(env$out_dir,'population_proxy', 'model_data', paste0(platform, '_md.rds')))
+  saveRDS(n_obs_per_week, file.path(env$out_dir,'population_proxy', 'model_data', paste0(platform, '_md_missing.rds')))
 
   return(list('md'=social_media_reshape_array, 'md_missing'=n_obs_per_week))
 }
@@ -79,7 +83,7 @@ convert_audience_to_md <- function(social_media, metric) {
 
 # Convert the audience data for each platform to a 3D array (md)
 for (platform in c('facebook', 'instagram')) {
-  platform_audience <- read_csv(paste0(env$out_dir,'population_proxy/', 'social_media_audience/', 'ua_', platform, '_audience.csv')) 
+  platform_audience <- read_csv(file.path(env$out_dir,'population_proxy', 'social_media_audience', paste0('ua_', platform, '_audience.csv'))) 
   out <- convert_audience_to_md(social_media=platform_audience, metric='dau')
 }
 
