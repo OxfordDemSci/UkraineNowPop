@@ -18,12 +18,15 @@ srcdir <- file.path('src', 'modelling', 'nmixture')
 outdir <- file.path(wd, 'out', 'modelling', 'nmixture')
 dir.create(outdir, showWarnings=F, recursive=T)
 
+# load data
+
+
 
 
 #---- configure model ----#
 
 # define model name
-model_name <- 'nmixture_temporal_long'
+model_name <- 'nmixture_temporal'
 
 # soure model-specific config code
 source(file.path(srcdir, 'models', paste0(model_name, '_config.R')))

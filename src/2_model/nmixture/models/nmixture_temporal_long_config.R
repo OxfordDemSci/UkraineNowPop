@@ -1,11 +1,16 @@
 #---- load data ----#
 
-# load simulated data
-indir <- file.path(wd, 'out', 'simulation')
-md <- readRDS(file.path(indir, 'md.rds'))
+sim_data <- FALSE
 
-# indir <- file.path(file.path('K://DemSci', 'projects', '2023_WHO_Ukraine_Population', 'output', 'population_proxy', 'model_data'))
-# md <- readRDS(file.path(indir, 'facebook_md.rds'))
+# load simulated data
+if(sim_data){
+  mddir <- file.path(wd, 'out', 'simulation')
+  md <- readRDS(file.path(indir, 'md.rds'))
+} else {
+  mddir <- file.path(file.path('K://DemSci', 'projects', '2023_WHO_Ukraine_Population', 'output', 'population_proxy', 'model_data'))
+  md <- readRDS(file.path(indir, 'facebook_md.rds'))
+}
+
 
 # set seed for random number generators
 if('seed' %in% names(md)){
