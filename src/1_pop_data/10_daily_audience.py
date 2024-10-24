@@ -36,22 +36,19 @@ date_end = '2023-02-25'
 
 country = 'UA'
 
+
+#---- meta key ----#
+sql="select distinct geo_name, geo_key from facebook_clean where geo_level ='regions' and location_types = '" + '["recent"]' + "' and country = 'UA' limit 100;"
+
+meta_key =pd.read_sql(sql=sql, con=pyidp.db_engine())
+
+meta_key = meta_key[-meta_key['geo_name'].isna()]
+
 #---- daily audience ----#
 for platform in ['facebook', 'instagram']:
     # platform = 'facebook'
-    date_start_obj = datetime.strptime(date_start, '%Y-%m-%d')
-    date_start_obj += timedelta(days=2)
-    date_start_obj = date_start_obj.strftime('%Y-%m-%d')
 
     outfile = os.path.join(out_dir, country.lower() + '_'+platform+'_audience.csv')
-    meta_key = pyidp.query_api(
-        endpoint='query_clean',            
-        args = {'date_start': date_start,
-                    'date_end': date_start_obj,
-                    'platform': 'facebook',
-                    'country': country,
-                    'geo_level': 'regions',
-                    'language_name': 'all'})
 
     # daily audience
     audience = pyidp.daily_audience(
