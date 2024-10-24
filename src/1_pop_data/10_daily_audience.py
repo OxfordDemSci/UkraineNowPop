@@ -1,7 +1,5 @@
 import pyidp
 import os
-import pandas as pd
-import geopandas as gpd
 from datetime import datetime
 from datetime import timedelta
 from dotenv import load_dotenv
@@ -23,7 +21,7 @@ os.makedirs(out_dir, exist_ok=True)
 #---- input data ----#
 
 # agesex demographic groups
-agesex = ['T_13Plus']
+agesex = ['T_20Plus']
 # \
 # ['F_13Plus', 'F_18Plus', 'F_20Plus', 'F_13_19', 'F_15_49', 'F_15_64', 'F_18_34', 'F_20_29', 'F_30_39', 'F_40_49', 'F_50_59', 'F_60Plus', 'F_65Plus',
 #     'M_13Plus', 'M_18Plus', 'M_20Plus', 'M_13_19', 'M_15_49', 'M_15_64', 'M_18_34', 'M_20_29', 'M_30_39', 'M_40_49', 'M_50_59', 'M_60Plus', 'M_65Plus',
