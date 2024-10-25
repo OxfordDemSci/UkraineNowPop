@@ -32,20 +32,19 @@ data {
 
   vector<lower=0>[T] N_tot;  // total population among locations
   vector<lower=0>[I] N0;  // baseline population at each location
-  vector<lower=0, upper=1>[I] p0; // baseline detection
 
   matrix[T*I,K] X;  // covariates on population growth rates
   
+  array[T*I] int<lower=0> tt; 
+  array[T*I] int<lower=0> ii;
   array[I] int<lower=0> ti_N0;
   array[T*I-I] int<lower=0> ti_N;
   array[T*I-I] int<lower=0> ti_N_lag;
   
-  array[T*I] int<lower=0> tt; 
-  array[T*I] int<lower=0> ii;
-
   int<lower=0> n_F;  // total sample size for F
   array[n_F] int<lower=0> y_F;  // Facebook daily active users
   array[n_F] int<lower=0> ti_F;  // ti (year, location) index for F
+  vector<lower=0, upper=1>[I] p0_F; // baseline detection
 }
 
 parameters {
@@ -55,10 +54,10 @@ parameters {
   real alpha_r;  // intercept for population growth rates
   vector[K] beta_r; // covariate effects on growth rates
 
-  real alpha_p;  // intercept for detection
-  vector[T] delta_p;  // random effect (by week) of baseline detection at each location
-  real mu_delta_p;  // average effect of baseline detection
-  real<lower=0> sd_delta_p;  // variation in effect of baseline detection among weeks
+  real alpha_p_F;  // intercept for detection
+  vector[T] delta_p_F;  // random effect (by week) of baseline detection at each location
+  real mu_delta_p_F;  // average effect of baseline detection
+  real<lower=0> sd_delta_p_F;  // variation in effect of baseline detection among weeks
 }
 
 
@@ -66,7 +65,7 @@ transformed parameters {
   
   vector<lower=0>[T*I] N;  // population estimates
   vector[T*I] mu_r;  // expected growth rates
-  vector<lower=0, upper=1>[T*I] p; // detection probabilities
+  vector<lower=0, upper=1>[T*I] p_F; // detection probabilities
   
   
   // population process model
@@ -79,14 +78,14 @@ transformed parameters {
   mu_r = alpha_r + X * beta_r;
   
   // regression on detection probability (penetration rate)
-  p = inv_logit(alpha_p + delta_p[tt] .* logit(p0[ii]));
+  p_F = inv_logit(alpha_p_F + delta_p_F[tt] .* logit(p0_F[ii]));
 }
 
 
 model {
   
   // likelihood (observation model)
-  y_F ~ poisson(N[ti_F] .* p[ti_F]);
+  y_F ~ poisson(N[ti_F] .* p_F[ti_F]);
 
   // total population constraint
   for(t in 1:T){
@@ -102,8 +101,8 @@ model {
   beta_r ~ normal(0, 10);
 
   // priors:  detection
-  alpha_p ~ normal(0, 10);
-  delta_p ~ normal(mu_delta_p, sd_delta_p);
-  mu_delta_p ~ normal(1, 2);
-  sd_delta_p ~ cauchy(0, 2);
+  alpha_p_F ~ normal(0, 10);
+  delta_p_F ~ normal(mu_delta_p_F, sd_delta_p_F);
+  mu_delta_p_F ~ normal(1, 2);
+  sd_delta_p_F ~ cauchy(0, 2);
 }

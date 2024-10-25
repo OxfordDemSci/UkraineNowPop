@@ -15,10 +15,10 @@ dir.create(outdir, showWarnings=F, recursive=T)
 I = 10
 
 # number of repeat observations
-M = 3
+M = 7
   
 # number of time steps
-T = 5
+T = 20
 
 
 # #---- simulate covariates ----#
@@ -71,13 +71,14 @@ for(i in 1:I){
 # covariates on growth rates
 K <- 2
 cov_growth <- array(NA, dim=c(T, I, K))
+sd_k <- runif(K, 0.02, 0.1)
 for(k in 1:K){
-  sd_k <- runif(1, 0.01, 0.3)
   sign <- sample(c(-1,1), 1)
   for(i in 1:I){
-    cov_growth[,i,k] <- rnorm(T, sign * growth[,i], sd_k)
+    cov_growth[,i,k] <- rnorm(T, sign * growth[,i], sd_k[k])
   }
   plot(growth~cov_growth[,,k])
+  legend('topleft', legend=c(paste0('SD = ', round(sd_k[k], 3))))
   abline(0,1*sign)
 }
 
@@ -85,14 +86,24 @@ for(k in 1:K){
 #---- simulated surveys ----#
 
 # detection probabilities
-detection <- array(runif(I*T, 0.1, 0.15), dim=c(T,I))
+detection1 <- array(runif(I*T, 0.05, 0.15), dim=c(T,I))
+detection2 <- array(runif(I*T, 0.15, 0.25), dim=c(T,I))
 
 # audience sizes
-audience <- array(NA, dim=c(T,I,M))
+audience1 <- array(NA, dim=c(T,I,M))
 for(t in 1:T){
   for(i in 1:I){
     for(m in 1:M){
-      audience[t,i,m] <- rbinom(1, population[t,i], detection[t,i])
+      audience1[t,i,m] <- rpois(1, population[t,i] * detection1[t,i])
+    }
+  }
+}
+
+audience2 <- array(NA, dim=c(T,I,M))
+for(t in 1:T){
+  for(i in 1:I){
+    for(m in 1:M){
+      audience2[t,i,m] <- rpois(1, population[t,i] * detection2[t,i])
     }
   }
 }
@@ -100,18 +111,27 @@ for(t in 1:T){
 
 #---- missing data ----#
 
-M_ti <- matrix(M, nrow=T, ncol=I)
+M2_ti <- M1_ti <- matrix(M, nrow=T, ncol=I)
 
 for(t in 1:T){
   for(i in 1:I){
     drop <- rbinom(1, M-1, 0.05)
     if(drop>0){
-      audience[t,i,(M+1-drop):M] <- NA
+      audience1[t,i,(M+1-drop):M] <- NA
     }
-    M_ti[t,i] <- M - drop
+    M1_ti[t,i] <- M - drop
   }
 }
 
+for(t in 1:T){
+  for(i in 1:I){
+    drop <- rbinom(1, M-1, 0.05)
+    if(drop>0){
+      audience2[t,i,(M+1-drop):M] <- NA
+    }
+    M2_ti[t,i] <- M - drop
+  }
+}
 
 #---- estimate true regression parameters ----#
 
@@ -125,11 +145,14 @@ names(effects) <- c('alpha', paste0('beta', 1:2))
 # model data
 md <- list(I = I,
            T = T,
-           M = M_ti,
            K = K,
-           y = audience,
+           M1 = M1_ti,
+           M2 = M2_ti,
+           y1 = audience1,
+           y2 = audience2,
            X = cov_growth,
-           p_true = detection,
+           p1_true = detection1,
+           p2_true = detection2,
            N_true = population,
            r_true = growth,
            beta_r_true = effects,

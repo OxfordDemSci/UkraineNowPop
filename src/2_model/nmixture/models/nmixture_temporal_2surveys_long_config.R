@@ -24,27 +24,19 @@ set.seed(seed)
 
 #---- prepare data ----#
 
+
+## population ##
+
 # total population at each time step
 md$N_tot <- apply(md$N_true, 1, sum)
 
 # baseline population
 md$N0 <- md$N_true[1,]
 
-# baseline detection
-md$p0_F <- apply(md$y[1,,], 1, max, na.rm=T) / md$N0
-
 # index to reference T x I combinations in vector format
 idx <- data.frame(T = rep(1:md$T, each=md$I), 
                   I = rep(1:md$I, md$T), 
                   ti = 1:(md$T*md$I))
-
-# prepare to convert y to long format
-y_long <- reshape2::melt(md$y, varnames=c('T', 'I', 'M'))
-y_long <- y_long[!is.na(y_long$value),]
-
-y_idx <- y_long[,c('T','I','M')]
-y_idx <- merge(y_idx, idx, by=c('T', 'I'))
-y_idx <- y_idx[order(y_idx$M, y_idx$I, y_idx$T),]
 
 # indexing: long format for N
 md$ti_N0 <- idx$ti[idx$T==1]
@@ -54,12 +46,7 @@ md$ti_N_lag <- idx$ti[idx$T>1]-md$I
 md$tt <- idx$T
 md$ii <- idx$I
 
-# long format for y
-md$y_F <- y_long$value
-md$ti_F <- y_idx$ti
-md$n_F <- length(md$y_F)
-
-# long format for X_r
+# long format for population covariates (X_r)
 melt_X <- reshape2::melt(md$X, varnames=c('T', 'I', 'K'))
 idx_X <- idx
 for(k in 1:md$K){
@@ -71,13 +58,69 @@ row.names(idx_X) <- idx_X$ti
 
 md$X <- idx_X[,paste0('x', 1:md$K)]
 
+
+
+## Facebook ##
+
+# baseline detection
+md$p0_F <- apply(md$y1[1,,], 1, max, na.rm=T) / md$N0
+
+# prepare to convert y to long format
+y_long <- reshape2::melt(md$y1, varnames=c('T', 'I', 'M'))
+y_long <- y_long[!is.na(y_long$value),]
+
+y_idx <- y_long[,c('T','I','M')]
+y_idx <- merge(y_idx, idx, by=c('T', 'I'))
+y_idx <- y_idx[order(y_idx$M, y_idx$I, y_idx$T),]
+
+# long format for y
+md$y_F <- y_long$value
+md$ti_F <- y_idx$ti
+md$n_F <- length(md$y_F)
+
 # fill missing data
-md$y[is.na(md$y)] <- 999999999
+md$y1[is.na(md$y1)] <- 999999999
 
 # rename
-names(md)[names(md)=='y'] <- 'y_F_orig'
+names(md)[names(md)=='p1_true'] <- 'p_F_true'
+names(md)[names(md)=='y1'] <- 'y_F_orig'
+md$M1 <- NULL
 
-# save to disk
+
+## Instagram ##
+
+# baseline detection
+md$p0_G <- apply(md$y2[1,,], 1, max, na.rm=T) / md$N0
+
+# prepare to convert y to long format
+y_long <- reshape2::melt(md$y2, varnames=c('T', 'I', 'M'))
+y_long <- y_long[!is.na(y_long$value),]
+
+y_idx <- y_long[,c('T','I','M')]
+y_idx <- merge(y_idx, idx, by=c('T', 'I'))
+y_idx <- y_idx[order(y_idx$M, y_idx$I, y_idx$T),]
+
+# long format for y
+md$y_G <- y_long$value
+md$ti_G <- y_idx$ti
+md$n_G <- length(md$y_G)
+
+# fill missing data
+md$y2[is.na(md$y2)] <- 999999999
+
+# rename
+names(md)[names(md)=='p2_true'] <- 'p_G_true'
+names(md)[names(md)=='y2'] <- 'y_G_orig'
+md$M2 <- NULL
+
+
+## Facebook:Instagram ratio ###
+
+
+
+
+
+## save to disk ##
 saveRDS(md, file.path(outdir, paste0('md_', model_name, '.rds')))
 
 
@@ -98,18 +141,25 @@ init_generator <- function(md=md, chain_id=1){
 
   result[['N']] <- reshape2::melt(N, varnames=c('T', 'I'))$value
   result[['r']] <- rlnorm(md$T * md$I, 0, 0.1)
-  result[['sigma_r']] <- runif(1, 0, 0.1)
-  # result[['mu_r']] <- rnorm(md$T * md$I, 0, 0.1)
-  result[['mu_r']] <- rnorm(1, 0, 0.1)
+  result[['sigma_r']] <- runif(1, 0, 0.5)
+  result[['mu_r']] <- rnorm(md$T * md$I, 0, 0.1)
   result[['alpha_r']] <- rnorm(1, 0, 3)
   result[['beta_r']] <- rnorm(md$K, 0, 1)
 
-  result[['p_F']] <- runif(md$T * md$I, 0.05, 0.25)
-  result[['alpha_p_F']] <- rnorm(1, 0, 3)
-  result[['delta_p_F']] <- rnorm(md$T, 0, 0.5)
-  result[['mu_delta_p_F']] <- rnorm(1, 0, 1)
+  result[['mu_p_F']] <- rnorm(md$T * md$I, log(md$p0_F), 1)
+  result[['p_F']] <- rlnorm(md$T * md$I, log(md$p0_F), 0.5)
+  result[['alpha_p_F']] <- rnorm(1, 1, 1)
+  result[['delta_p_F']] <- rnorm(md$T, 1, 0.5)
+  result[['mu_delta_p_F']] <- rnorm(1, 1, 0.5)
   result[['sd_delta_p_F']] <- runif(1, 0, 0.5)
-  
+
+  result[['mu_p_G']] <- rnorm(md$T * md$I, log(md$p0_G), 1)
+  result[['p_G']] <- rlnorm(md$T * md$I, log(md$p0_G), 0.5)
+  result[['alpha_p_G']] <- rnorm(1, 1, 1)
+  result[['delta_p_G']] <- rnorm(md$T, 1, 0.5)
+  result[['mu_delta_p_G']] <- rnorm(1, 1, 0.5)
+  result[['sd_delta_p_G']] <- runif(1, 0, 0.5)
+
   return(result)
 }
 
