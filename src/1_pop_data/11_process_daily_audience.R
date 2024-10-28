@@ -85,7 +85,7 @@ convert_audience_to_md <- function(social_media, metric) {
 out <- list()
 for (platform in c('facebook', 'instagram')) {
   # platform = 'facebook'
-  platform_audience <- read_csv(paste0(env$out_dir,'population_proxy/', 'social_media_audience/', 'ua_', platform, '_audience.csv')) 
+  platform_audience <- read_csv(file.path(env$out_dir,'population_proxy', 'social_media_audience', paste0('ua_', platform, '_audience.csv'))) 
   out[platform] <- convert_audience_to_md(social_media=platform_audience, metric='dau')
 }
 
@@ -101,4 +101,4 @@ for (platform in c('facebook', 'instagram')) {
   }
 }
 
-write_rds(md, paste0(env$out_dir, 'population_proxy/', 'model_data/', 'md.rds'))
+write_rds(md, file.path(env$out_dir, 'population_proxy', 'model_data', 'md.rds'))
