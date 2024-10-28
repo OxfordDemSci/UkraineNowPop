@@ -37,9 +37,7 @@ data {
   // baseline
   vector<lower=0>[T] N_tot;  // total population among locations
   vector<lower=0>[I] N0;  // baseline population at each location
-  vector<lower=0, upper=1>[I] p0_F; // baseline detection
-  vector<lower=0, upper=1>[I] p0_G; // baseline detection for G
-  
+
   // population covariates
   matrix[T*I,K] X;  // covariates on population growth rates
   
@@ -51,7 +49,7 @@ data {
   int<lower=0> n_G;  // total sample size for G
   array[n_G] int<lower=0> y_G;  // Instagram daily active users
   
-  // observatio ratio
+  // observation ratio
   int<lower=0> n_FG;  // total sample size with F and G
   vector<lower=0>[n_FG] y_FG_ratio;  // ratio of G to F
 
@@ -103,7 +101,7 @@ transformed parameters {
   // regression on population growth rates
   mu_r = alpha_r + X * beta_r;
   
-  // ratio of Instagram to Facebook penetration
+  // observation ratio of Instagram to Facebook
   FG_ratio = p_G[ti_FG] ./ p_F[ti_FG];
 }
 
@@ -118,11 +116,11 @@ model {
   p_F ~ lognormal(alpha_p_F, sigma_p_F);
   p_G ~ lognormal(alpha_p_G, sigma_p_G);
   
-  y_FG_ratio ~ lognormal(log(FG_ratio), 0.01);
+  y_FG_ratio ~ lognormal(log(FG_ratio), 0.02/2);
 
   // total population constraint
   for(t in 1:T){
-    N_tot[t] ~ lognormal(log(sum(N[t_slice(t,I)])), 1e-3);
+    N_tot[t] ~ lognormal(log(sum(N[t_slice(t,I)])), 0.01/2);
   }
 
   // population growth rates

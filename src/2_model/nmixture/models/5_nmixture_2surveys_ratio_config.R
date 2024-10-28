@@ -63,7 +63,7 @@ md$X <- idx_X[,paste0('x', 1:md$K)]
 ## Facebook ##
 
 # baseline detection
-md$p0_F <- apply(md$y1[1,,], 1, max, na.rm=T) / md$N0
+# md$p0_F <- apply(md$y1[1,,], 1, max, na.rm=T) / md$N0
 
 # prepare to convert y to long format
 y_long <- reshape2::melt(md$y1, varnames=c('T', 'I', 'M'))
@@ -90,7 +90,7 @@ md$M1 <- NULL
 ## Instagram ##
 
 # baseline detection
-md$p0_G <- apply(md$y2[1,,], 1, max, na.rm=T) / md$N0
+# md$p0_G <- apply(md$y2[1,,], 1, max, na.rm=T) / md$N0
 
 # prepare to convert y to long format
 y_long <- reshape2::melt(md$y2, varnames=c('T', 'I', 'M'))
@@ -155,16 +155,16 @@ init_generator <- function(md=md, chain_id=1){
   result[['alpha_r']] <- rnorm(1, 0, 3)
   result[['beta_r']] <- rnorm(md$K, 0, 1)
 
-  result[['mu_p_F']] <- rnorm(md$T * md$I, log(md$p0_F), 1)
-  result[['p_F']] <- rlnorm(md$T * md$I, log(md$p0_F), 0.5)
+  result[['mu_p_F']] <- rnorm(md$T * md$I, log(mean(md$p_F)), 1)
+  result[['p_F']] <- rlnorm(md$T * md$I, log(mean(md$p_F)), 0.5)
   result[['alpha_p_F']] <- rnorm(1, 1, 1)
   result[['sigma_p_F']] <- runif(1, 0, 0.05)
   result[['delta_p_F']] <- rnorm(md$T, 1, 0.5)
   result[['mu_delta_p_F']] <- rnorm(1, 1, 0.5)
   result[['sd_delta_p_F']] <- runif(1, 0, 0.5)
 
-  result[['mu_p_G']] <- rnorm(md$T * md$I, log(md$p0_G), 1)
-  result[['p_G']] <- rlnorm(md$T * md$I, log(md$p0_G), 0.5)
+  result[['mu_p_G']] <- rnorm(md$T * md$I, log(mean(md$p_G)), 1)
+  result[['p_G']] <- rlnorm(md$T * md$I, log(mean(md$p_G)), 0.5)
   result[['alpha_p_G']] <- rnorm(1, 1, 1)
   result[['sigma_p_G']] <- runif(1, 0, 0.05)
   result[['delta_p_G']] <- rnorm(md$T, 1, 0.5)

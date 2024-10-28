@@ -209,8 +209,6 @@ print(mean(fit$draws('alpha_r')))
 mcmc_trace(fit$draws('beta_r'))
 md$beta_r_true
 
-
-
 for(k in 1:md$K){
   print(mcmc_trace(fit$draws(paste0('beta_r[',k,']'))))
   print(mean(fit$draws(paste0('beta_r[',k,']'))))
@@ -241,6 +239,8 @@ print(mean(fit$draws('alpha_p_G')))
 
 mcmc_trace(fit$draws('sigma_p_G'))
 print(mean(fit$draws('sigma_p_G')))
+
+
 
 
 
