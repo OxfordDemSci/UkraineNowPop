@@ -27,7 +27,7 @@ codps <- read.csv(file.path(indir, 'COD-PS', 'ukr_admpop_adm1_2022.csv'))
 #---- configure model ----#
 
 # define model name
-model_name <- 'nmixture_temporal_2surveys_long'
+model_name <- '5_nmixture_2surveys_ratio'
 
 # soure model-specific config code
 source(file.path(srcdir, 'models', paste0(model_name, '_config.R')))
@@ -58,9 +58,17 @@ fit <- mod$sample(data = md,
 fit$save_object(file=file.path(outdir, paste0('fit_', model_name, '.rds')))
 
 
+# fit <- readRDS(file.path(outdir, paste0('fit_', model_name, '.rds')))
+# md  <- readRDS(file.path(outdir, paste0('md_', model_name, '.rds')))
+
+
+
 # quick diagnostics
-print(fit, max_rows=1e2)
-summary(fit$summary()[['rhat']])
+fit_summary <- fit$summary()
+print(fit_summary)
+
+not_converged <- which(fit_summary[['rhat']] > 1.1) # 1.01 is cutoff for publication quality
+fit_summary[not_converged,]
 
 
 
@@ -82,13 +90,23 @@ for(p in 1:length(plot_vars)){
          ylab = y_true_name,
          xlab = 'time')
     
+    lines(x = 1:md$T, 
+          y = md[[y_true_name]][,i], 
+          col = 'red'
+    )
+    
     for(t in 1:md$T){
       j <- which(md$tt==t & md$ii==i) 
-      points(x=t, y=mean(fit$draws(paste0(y_name,'[',j,']'))))
-      arrows(x0=t, x1=t,
-             y0=quantile(fit$draws(paste0(y_name,'[',j,']')), probs=c(0.025)),
-             y1=quantile(fit$draws(paste0(y_name,'[',j,']')), probs=c(0.975)),
-             length=0)
+      
+      points(x = t, 
+             y = mean(fit$draws(paste0(y_name,'[',j,']'))))
+      
+      arrows(x0 = t, 
+             x1 = t,
+             y0 = quantile(fit$draws(paste0(y_name,'[',j,']')), probs=c(0.025)),
+             y1 = quantile(fit$draws(paste0(y_name,'[',j,']')), probs=c(0.975)),
+             length = 0,
+             lty = 2)
     }
   }
 }
@@ -133,20 +151,37 @@ for(p in 1:length(plot_vars)){
 
 
 #---- check observation ratios ----#
-ratio_true <- c()
-ratio_est <- c()
 
-for(t in 1:md$T){
-  for(i in 1:md$I){
-    j <- which(md$tt==t & md$ii==i) 
-    
-    ratio_true <- c(ratio_true, mean(md$y_G_orig[t,i,], na.rm=T) / mean(md$y_F_orig[t,i,], na.rm=T))
-    ratio_est <- c(ratio_est, mean(fit$draws(paste0('p_G[',j,']'))) / mean(fit$draws(paste0('p_F[',j,']'))))
-  }
+if('y_FG_ratio' %in% names(md) & 'FG_ratio[1]' %in% fit_summary$variable){
+  names_FG_ratio <- paste0('FG_ratio[', 1:md$n_FG, ']')
+  FG_ratio <- apply(fit$draws(names_FG_ratio, format='df'), 2, mean)
+  
+  plot(x = md$y_FG_ratio,
+       y = FG_ratio[names_FG_ratio]
+  )
+  abline(0, 1, col='red')
+  
+  # hist(FG_ratio[names_FG_ratio] / md$y_FG_ratio)
+  
+} else {
+
+  # ratio_true <- c()
+  # ratio_est <- c()
+  # 
+  # for(t in 1:md$T){
+  #   for(i in 1:md$I){
+  #     j <- which(md$tt==t & md$ii==i) 
+  #     
+  #     ratio_true <- c(ratio_true, mean(md$y_G_orig[t,i,], na.rm=T) / mean(md$y_F_orig[t,i,], na.rm=T))
+  #     ratio_est <- c(ratio_est, mean(fit$draws(paste0('p_G[',j,']'))) / mean(fit$draws(paste0('p_F[',j,']'))))
+  #   }
+  # }
+  # 
+  # ratio_diff <- ratio_est / ratio_true
+  # summary(ratio_diff)
+  # hist(ratio_diff)
+  # which(ratio_diff > 1.05 | ratio_diff < 0.95)
 }
-
-summary(ratio_est / ratio_true)
-
 
 
 #---- trace plot checks (long format) ----#
@@ -163,13 +198,18 @@ print(md$N_true[t,i])
 
 mcmc_trace(fit$draws(paste0('r[',j,']')))
 print(mean(fit$draws(paste0('r[',j,']'))))
-print(md$r_true[t,i])
+print(exp(md$r_true[t,i]))
 
 mcmc_trace(fit$draws('sigma_r'))
 print(mean(fit$draws('sigma_r')))
 
 mcmc_trace(fit$draws('alpha_r'))
 print(mean(fit$draws('alpha_r')))
+
+mcmc_trace(fit$draws('beta_r'))
+md$beta_r_true
+
+
 
 for(k in 1:md$K){
   print(mcmc_trace(fit$draws(paste0('beta_r[',k,']'))))
@@ -183,17 +223,11 @@ mcmc_trace(fit$draws(paste0('p_F[',j,']')))
 print(mean(fit$draws(paste0('p_F[',j,']'))))
 print(mean(md$p_F_true[t,i]))
 
-mcmc_trace(fit$draws(paste0('delta_p_F[',t,']')))
-print(mean(fit$draws(paste0('delta_p_F[',t,']'))))
-
-mcmc_trace(fit$draws('mu_delta_p_F'))
-print(mean(fit$draws('mu_delta_p_F')))
-
-mcmc_trace(fit$draws('sd_delta_p_F'))
-print(mean(fit$draws('sd_delta_p_F')))
-
-mcmc_trace(fit$draws('sd_p_F'))
+mcmc_trace(fit$draws('alpha_p_F'))
 print(mean(fit$draws('alpha_p_F')))
+
+mcmc_trace(fit$draws('sigma_p_F'))
+print(mean(fit$draws('sigma_p_F')))
 
 
 
@@ -202,18 +236,11 @@ mcmc_trace(fit$draws(paste0('p_G[',j,']')))
 print(mean(fit$draws(paste0('p_G[',j,']'))))
 print(mean(md$p_G_true[t,i]))
 
-mcmc_trace(fit$draws(paste0('delta_p_G[',t,']')))
-print(mean(fit$draws(paste0('delta_p_G[',t,']'))))
-
-mcmc_trace(fit$draws('mu_delta_p_G'))
-print(mean(fit$draws('mu_delta_p_G')))
-
-mcmc_trace(fit$draws('sd_delta_p_G'))
-print(mean(fit$draws('sd_delta_p_G')))
-
 mcmc_trace(fit$draws('alpha_p_G'))
 print(mean(fit$draws('alpha_p_G')))
 
+mcmc_trace(fit$draws('sigma_p_G'))
+print(mean(fit$draws('sigma_p_G')))
 
 
 
