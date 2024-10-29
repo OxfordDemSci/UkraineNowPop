@@ -1,3 +1,7 @@
+env <- new.env()
+source(here::here('.env'), local=env)
+dir.create(file.path(env$out_dir,...))
+
 #dir = c("~/ndph/DemSci/projects/2023_WHO_Ukraine_Population/tmp/")
 #dir.create(dir, showWarnings = F, recursive = T)
 
