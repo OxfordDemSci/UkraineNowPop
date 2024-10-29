@@ -1,7 +1,10 @@
 private*
 .env
+/src/dashboard/www/public_html/js/env.js
 /wd/
-/.idea/
+/data
+*.exe
+venv*
 
 # History files
 .Rhistory

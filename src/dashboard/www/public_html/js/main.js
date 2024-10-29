@@ -1,22 +1,25 @@
-var API_URL = "http://127.0.0.1:8000/api";
+import * as _env from './env.js?version=0.3'
 
-import * as _api from './api.js?version=0.96'
-import * as _init from './init.js?version=0.9'
-import * as _utils from './utils.js?version=0.61'
+var API_URL = _env.get_api_url()
+
+import * as _api from './api.js?version=0.98'
+import * as _init from './init.js?version=0.24'
+import * as _utils from './utils.js?version=0.72'
 import * as _quartile from './quartile.js?version=1'
-import * as _popMap from './population_map.js?version=0.93'
-import * as _popPyramid from './population_pyramid.js?version=0.2'
-import * as _migrationProb from './migration_probabilities.js?version=2.047'
-import * as _popPprobabilities from './pop_probabilities.js?version=0.19'
+import * as _popMap from './population_map.js?version=0.98'
+import * as _popPyramid from './population_pyramid.js?version=0.34'
+import * as _migrationProb from './migration_probabilities.js?version=2.06'
+import * as _popPprobabilities from './pop_probabilities.js?version=0.22'
+
 
 //_utils.progressMenuOn();
 
 let txt_Geo_DropDown = "Geo";
 let txt_Sex_DropDown = "Sex";
-let txt_Country_Total_Title = "Ukraine totals";
-let txt_Title_Top_RightPanel  = "Statistics";
-let txt_Title_Bottom_RightPanel  = "Migration";
-let txt_Date_Bottom_Panel  = "Date";
+let txt_Country_Total_Title = "National totals";
+let txt_Title_Top_RightPanel  = "Demographics";
+let txt_Title_Bottom_RightPanel  = "Mobility";
+let txt_Date_Bottom_Panel  = "&nbsp;";
 let txt_Title_Legend_Population  = "Population";
 
 
@@ -42,8 +45,10 @@ let series_PopulationPyramid = null;
 
 am5.ready(function () {
     root_PopulationPyramid = am5.Root.new("plotPopulationPyramid");
-    series_PopulationPyramid = _init.initialise_PopulationPyramid_chart(root_PopulationPyramid);
+    //series_PopulationPyramid = _init.initialise_PopulationPyramid_chart(root_PopulationPyramid);
+    
 });
+
 
 let palette_population = ["#f7fbff", "#e9f2f9", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6", "#4292c6", "#2171b5", "#08519c", "#08306b"];
 var country_ISO3 = "";
@@ -51,6 +56,9 @@ var accessToken = "null";
 var admin_level = 1;
 var admin_pcode = null;
 var admin_name_en = null;
+
+var initialPcodsTotalsData = null;
+var initialCountry_Total = 0;
 
 localStorage.setItem('access', "false");
 localStorage.setItem('token', "null");
@@ -67,6 +75,9 @@ var initBounding_centroid = initialCountries[0].centroid;
 let initialData = _init.getInitData(API_URL, country_ISO3);
 
 let admin_units_geo = _utils.get_admin_units_geo(API_URL, country_ISO3, admin_level);
+let adminunits_names_eng = _utils.get_adminunits_names(admin_units_geo);
+
+//let test  = adminunits_names.filter(entry => (entry.pcode === "UA07")).map(entry => entry.name);
 
 var admin_names = _utils.get_admin_names(initialData);
 var admin_names_total_count = Object.keys(admin_names).length;
@@ -75,17 +86,18 @@ _utils.setGeoMenu(admin_names);
 
 var age_ranges_available = _utils.getAgeRanges(initialData);
 
+console.log(age_ranges_available);
 
 var age_min_selected = initialData.age_ranges[0]["age_min"];
 var age_max_selected = initialData.age_ranges[initialData.age_ranges.length - 1]["age_max"];
 
 
-
 var dates_available = _utils.getDates(initialData.dates_pop);
-var date_selected = dates_available[dates_available.length - 1];
+var dates_available_string = _utils.getDates(initialData.dates_pop);
 
-// what number to use to devide the lenght of dates to get 6
-var dates_devided_label = (dates_available.length)/6;
+dates_available_string.forEach((e,i)=> dates_available_string[i] = _utils.parsing_string_date_new_format(dates_available_string[i]));
+
+var date_selected = dates_available[dates_available.length - 1];
 
 var migrationProb = null;
 var migrationProbRank_by = "count";
@@ -108,7 +120,8 @@ var mapOptions = {
     attributionControl: false,
     center: [48.383022, 31.1828699],
     zoom: 1,
-    maxZoom: 11,
+    maxZoom: 8,
+    minZoom: 5,
     layers: [basemaps.OpenStreetMaps]
 };
 
@@ -153,8 +166,6 @@ controlPanel_Migration_Flow.onAdd = function (map) {
     return this._div;
 };
 controlPanel_Migration_Flow.addTo(map);
-
-
 
 
 // create the control Panel
@@ -242,7 +253,7 @@ var layerCountry = L.geoJson(null, {
                 
                 document.getElementById('controlPanel_BottomleftID').style.height = '400px';
                 document.getElementById('controlPanel_InfoBoxCode').style.visibility = 'visible';
-                document.getElementById('adminTotalLabel').innerHTML = e.target.feature.properties.population_totals;
+//                document.getElementById('adminTotalLabel').innerHTML = Number(e.target.feature.properties.population_totals).toLocaleString();;
                 document.getElementById('adminNameLabel').innerHTML =  admin_name_en; 
                 document.getElementById('adminPCodeLabel').innerHTML =  admin_pcode; 
                 document.getElementById('controlPanel_BottomRightID_label').innerHTML =  txt_Title_Bottom_RightPanel + " to/from [ " + admin_pcode +" ]";
@@ -283,7 +294,7 @@ $(".slider_age_selections")
             values: [0, age_ranges_available[0].length - 1]
         })
         .slider("pips", {
-            labels: {first: "0", last: age_ranges_available[1][age_ranges_available[1].length - 1] + "+"}
+            labels: {first: "0", last: age_ranges_available[0][age_ranges_available[0].length - 1] + "+"}
         }).on("slide", function (e, ui) {
                
             if (ui.values[1] < ui.values[0]) {
@@ -312,19 +323,19 @@ $(".Date-slider")
             value: dates_available.length - 1
         })
         .slider("float", {
-            labels: dates_available
+            labels: dates_available_string
         })
         .slider("pips", {
             rest: "label",
-            labels: dates_available,
-            step: Math.ceil(dates_available.length/dates_devided_label)
+            labels: dates_available_string,
+            step: Math.ceil(dates_available.length/7)
         })
         .on("slidechange", function (e, ui) {
             if (e.originalEvent) {
                 main_get_pop_migration(API_URL, country_ISO3, admin_level, admin_pcode, dates_available, age_ranges_available,  accessToken);
-                document.getElementById('lb_Country_Total_Title').innerHTML = txt_Country_Total_Title + " [ " + dates_available[$(".Date-slider").slider("value")] + " ] "; 
+                document.getElementById('lb_Country_Total_Title').innerHTML = txt_Country_Total_Title + " [ " + dates_available_string[$(".Date-slider").slider("value")] + " ] "; 
             }
-        });
+});
 
 
 
@@ -369,12 +380,12 @@ $('#plotChordDiagramDisplaySelect input').on("click", function () {
     if (this.id === "btnradioPlotChordDiagramCount") {
         
         migrationProbRank_by = "count";
-        document.getElementById('idMdPlotChordDiagram_lable').innerHTML = "Count";
+        //document.getElementById('idMdPlotChordDiagram_lable').innerHTML = "Population Mobility (Counts)";
 
     } else if (this.id === "btnradioPlotChordDiagramProbability") {
 
         migrationProbRank_by = "probability";
-        document.getElementById('idMdPlotChordDiagram_lable').innerHTML = "Probability";
+        //document.getElementById('idMdPlotChordDiagram_lable').innerHTML = "Population Mobility (Probabilities)";
     }
     
 });
@@ -435,22 +446,40 @@ function main_get_pop_migration(api_url, country, admin_level = 1, admin_id = nu
             dates_available,
             age_ranges_available,
             accessToken).then(result => {
-               
+                
+         if (initialPcodsTotalsData === null){
+             initialPcodsTotalsData = result.population_totals;
+             for (const key in initialPcodsTotalsData) {
+                initialCountry_Total +=  initialPcodsTotalsData[key];
+             }
+         }  
+
+        
+         let denominator_PopulationPyramid=0;
          if (typeof admin_id !== "undefined" && admin_id !== null) {
              result_pyramid = result["pyramid_"+admin_id];
-             document.getElementById('adminFemaleTotalLabel').innerHTML = _utils.sumMaleFemaleInAdmin(result_pyramid.female_population);
-             document.getElementById('adminMaleTotalLabel').innerHTML = _utils.sumMaleFemaleInAdmin(result_pyramid.male_population);
+//             document.getElementById('adminFemaleTotalLabel').innerHTML = _utils.sumMaleFemaleInAdmin(result_pyramid.female_population).toLocaleString();
+//             document.getElementById('adminMaleTotalLabel').innerHTML = _utils.sumMaleFemaleInAdmin(result_pyramid.male_population).toLocaleString();
+             _utils.update_mainPanels_AdminTotalslabels(result_pyramid);
+             denominator_PopulationPyramid=initialPcodsTotalsData[admin_id]; 
          }else{
              result_pyramid = result["pyramid_"];
+             denominator_PopulationPyramid=initialCountry_Total;
          }
 
-        _popPyramid.updatePopulationPyramid(result_pyramid, series_PopulationPyramid, initialData.age_ranges);
-        _popPprobabilities.update_pop_probabilities(result.density_plots);
-        _popMap.updatePopulationMap(map, layerCountry, admin_units_geo, result.population_totals, palette_population, txt_Title_Legend_Population, admin_pcode);
+         
+         let preproces_results = _utils.preproces_results_for_updatePopulationMap(result);
+         
+//        _popPyramid.updatePopulationPyramid(result_pyramid, series_PopulationPyramid, initialData.age_ranges);
+        _popPyramid.updatePopulationPyramid(root_PopulationPyramid, result_pyramid, initialData.age_ranges, denominator_PopulationPyramid);
         
-        document.getElementById('cntrlTotalLabel').innerHTML = _utils.sumNumbersInJSON(result.population_totals);
-        document.getElementById('cntrlTotalFemalesLabel').innerHTML = _utils.sumFemaleInJSON(result.population_totals_by_sex);
-        document.getElementById('cntrlTotalMalesLabel').innerHTML = _utils.sumMaleInJSON(result.population_totals_by_sex);
+        _popPprobabilities.update_pop_probabilities(result.density_plots);
+        _popMap.updatePopulationMap(map, layerCountry, admin_units_geo, preproces_results , palette_population, txt_Title_Legend_Population, admin_pcode);
+        
+//        document.getElementById('cntrlTotalLabel').innerHTML = _utils.sumNumbersInJSON(result.population_totals).toLocaleString();
+//        document.getElementById('cntrlTotalFemalesLabel').innerHTML = _utils.sumFemaleInJSON(result.population_totals_by_sex).toLocaleString();
+//        document.getElementById('cntrlTotalMalesLabel').innerHTML = _utils.sumMaleInJSON(result.population_totals_by_sex).toLocaleString();
+        _utils.update_mainPanels_Totalslabels(result);
 
 
         _api.get_migration_probabilities(api_url,
@@ -465,20 +494,20 @@ function main_get_pop_migration(api_url, country, admin_level = 1, admin_id = nu
             if (_utils.isObjectEmpty(result)){
              
                 document.getElementById('controlPanel_BottomRightID').style.visibility = 'hidden';
-                document.getElementById('adminMigrationInLabel').innerHTML = "None";
-                document.getElementById('adminMigrationOutLabel').innerHTML = "None";
-                document.getElementById('adminMigrationTotalLabel').innerHTML = "None";
+                document.getElementById('adminMigrationInLabel').innerHTML = "-";
+                document.getElementById('adminMigrationOutLabel').innerHTML = "-";
+                document.getElementById('adminMigrationTotalLabel').innerHTML = "-";
                 
             }else{
 
              document.getElementById('controlPanel_BottomRightID').style.visibility = 'visible';   
             _migrationProb.update_total_in_out_for_admin(admin_id, result);
-            _migrationProb.update_migration_probabilities(result, series_plotChordDiagramt);
+            _migrationProb.update_migration_probabilities(result, series_plotChordDiagramt, adminunits_names_eng);
             //_migrationProb.update_migration_probabilities_LG(result, series_plotChordDiagramt_LG);
             
              series_plotChordDiagramt_LG.bulletsContainer.children.clear();
              series_plotChordDiagramt_LG.bullets.clear();
-            _migrationProb.update_migration_probabilities_LG(result, series_plotChordDiagramt_LG, root_plotChordDiagramt_LG);
+            _migrationProb.update_migration_probabilities_LG(result, series_plotChordDiagramt_LG, root_plotChordDiagramt_LG, adminunits_names_eng);
             
             }
 
@@ -556,6 +585,7 @@ $( "#btnResetAllSettingsSelected" ).on( "click", function() {
     document.getElementById("idSelectGeoLevel").selectedIndex = 0;
     admin_level=1;
     admin_units_geo = _utils.get_admin_units_geo(API_URL, country_ISO3, admin_level, accessToken);
+    adminunits_names_eng = _utils.get_adminunits_names(admin_units_geo);
     main_get_pop_migration(API_URL, country_ISO3, admin_level, admin_pcode, dates_available, age_ranges_available,  accessToken);
     document.getElementById('controlPanel_BottomRightID_label').innerHTML =  txt_Title_Bottom_RightPanel;
     document.getElementById('controlPanel_TopRightID_label').innerHTML =  txt_Title_Top_RightPanel; 
@@ -566,6 +596,7 @@ $( "#btnResetAllSettingsSelected" ).on( "click", function() {
 
 $('#idSelectGeoLevel').change(function() {
     
+    initialPcodsTotalsData=null;
     document.getElementById('adminTotalLabel').innerHTML = "";
     document.getElementById('adminNameLabel').innerHTML =  ""; 
     document.getElementById('controlPanel_InfoBoxCode').style.visibility = 'hidden';
@@ -576,7 +607,7 @@ $('#idSelectGeoLevel').change(function() {
     admin_pcode = null;
     admin_level = $(this).val();
     admin_units_geo = _utils.get_admin_units_geo(API_URL, country_ISO3, $(this).val(), accessToken);
-     
+    adminunits_names_eng = _utils.get_adminunits_names(admin_units_geo); 
     main_get_pop_migration(API_URL, country_ISO3, admin_level, null, dates_available, age_ranges_available,  accessToken);
     document.getElementById('controlPanel_BottomRightID_label').innerHTML =  txt_Title_Bottom_RightPanel;
     document.getElementById('controlPanel_TopRightID_label').innerHTML =  txt_Title_Top_RightPanel; 
@@ -622,7 +653,7 @@ _utils.update_Panels_labels(txt_Geo_DropDown,
                             txt_Sex_DropDown, 
                             txt_Country_Total_Title, 
                             txt_Date_Bottom_Panel,
-                            dates_available);
+                            dates_available_string);
 
 
 $('#idMdSettings').on('hidden.bs.modal', function (e) {
@@ -636,3 +667,8 @@ $('#idMdSettings').on('hidden.bs.modal', function (e) {
     }
     
 });   
+
+
+$('#customRangeOpacity').change(function () {
+    _popMap.RestyleLayerPopMapOpacity(layerCountry);
+});
