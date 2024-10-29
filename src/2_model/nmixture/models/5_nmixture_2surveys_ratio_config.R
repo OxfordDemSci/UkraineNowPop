@@ -2,13 +2,14 @@
 
 sim_data <- TRUE
 
-# load simulated data
+# load data
 if(sim_data){
   mddir <- file.path(wd, 'out', 'simulation')
   md <- readRDS(file.path(mddir, 'md.rds'))
 } else {
-  mddir <- file.path(file.path('K://DemSci', 'projects', '2023_WHO_Ukraine_Population', 'output', 'population_proxy', 'model_data'))
-  md <- readRDS(file.path(mddir, 'facebook_md.rds'))
+  # mddir <- file.path(file.path('K://DemSci', 'projects', '2023_WHO_Ukraine_Population', 'output', 'population_proxy', 'model_data'))
+  mddir <- file.path(file.path(wd, 'out', 'population_proxy', 'model_data'))
+  md <- readRDS(file.path(mddir, 'md.rds'))
 }
 
 
@@ -28,7 +29,7 @@ set.seed(seed)
 ## population ##
 
 # total population at each time step
-md$N_tot <- apply(md$N_true, 1, sum)
+md$y_N_tot <- apply(md$N_true, 1, sum)
 
 # baseline population
 md$N0 <- md$N_true[1,]
@@ -57,7 +58,6 @@ idx_X <- idx_X[order(idx_X$ti),]
 row.names(idx_X) <- idx_X$ti
 
 md$X <- idx_X[,paste0('x', 1:md$K)]
-
 
 
 ## Facebook ##
@@ -142,12 +142,18 @@ init_generator <- function(md=md, chain_id=1){
   
   N <- matrix(NA, nrow=md$T, ncol=md$I)
   for(t in 1:md$T){
-    theta <- apply(md$y_F_orig[t,,], 1, max, na.rm=T) / md$N_tot[t]
+    if(dim(md$y_F_orig)[3]==1){
+      theta <- md$y_F_orig[t,,1] / md$y_N_tot
+    } else {
+      theta <- apply(md$y_F_orig[t,,], 1, max, na.rm=T) / md$y_N_tot[t]
+    }
+    
     theta <- theta / sum(theta)
     
-    N[t,] <- rbinom(md$I, md$N_tot[t], theta)
+    N[t,] <- rbinom(md$I, md$y_N_tot[t], theta)
   }
 
+  result[['N_tot']] <- md$y_N_tot
   result[['N']] <- reshape2::melt(N, varnames=c('T', 'I'))$value
   result[['r']] <- rlnorm(md$T * md$I, 0, 0.1)
   result[['sigma_r']] <- runif(1, 0, 0.5)
@@ -155,21 +161,13 @@ init_generator <- function(md=md, chain_id=1){
   result[['alpha_r']] <- rnorm(1, 0, 3)
   result[['beta_r']] <- rnorm(md$K, 0, 1)
 
-  result[['mu_p_F']] <- rnorm(md$T * md$I, log(mean(md$p_F)), 1)
   result[['p_F']] <- rlnorm(md$T * md$I, log(mean(md$p_F)), 0.5)
-  result[['alpha_p_F']] <- rnorm(1, 1, 1)
+  result[['mu_p_F']] <- rnorm(1, 1, 1)
   result[['sigma_p_F']] <- runif(1, 0, 0.05)
-  result[['delta_p_F']] <- rnorm(md$T, 1, 0.5)
-  result[['mu_delta_p_F']] <- rnorm(1, 1, 0.5)
-  result[['sd_delta_p_F']] <- runif(1, 0, 0.5)
 
-  result[['mu_p_G']] <- rnorm(md$T * md$I, log(mean(md$p_G)), 1)
   result[['p_G']] <- rlnorm(md$T * md$I, log(mean(md$p_G)), 0.5)
-  result[['alpha_p_G']] <- rnorm(1, 1, 1)
+  result[['mu_p_G']] <- rnorm(1, 1, 1)
   result[['sigma_p_G']] <- runif(1, 0, 0.05)
-  result[['delta_p_G']] <- rnorm(md$T, 1, 0.5)
-  result[['mu_delta_p_G']] <- rnorm(1, 1, 0.5)
-  result[['sd_delta_p_G']] <- runif(1, 0, 0.5)
 
   return(result)
 }

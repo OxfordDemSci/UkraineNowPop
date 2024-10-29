@@ -149,40 +149,26 @@ for(p in 1:length(plot_vars)){
   abline(0, 1, col='red')
 }
 
+#---- check total population ----#
+names_N_tot <- paste0('N_tot[', 1:md$T, ']')
+N_tot <- apply(fit$draws(names_N_tot, format='df'), 2, mean)
+
+plot(x = md$y_N_tot,
+     y = N_tot[names_N_tot]
+)
+abline(0, 1, col='red')
+
+
 
 #---- check observation ratios ----#
+names_FG_ratio <- paste0('FG_ratio[', 1:md$n_FG, ']')
+FG_ratio <- apply(fit$draws(names_FG_ratio, format='df'), 2, mean)
 
-if('y_FG_ratio' %in% names(md) & 'FG_ratio[1]' %in% fit_summary$variable){
-  names_FG_ratio <- paste0('FG_ratio[', 1:md$n_FG, ']')
-  FG_ratio <- apply(fit$draws(names_FG_ratio, format='df'), 2, mean)
+plot(x = md$y_FG_ratio,
+     y = FG_ratio[names_FG_ratio]
+)
+abline(0, 1, col='red')
   
-  plot(x = md$y_FG_ratio,
-       y = FG_ratio[names_FG_ratio]
-  )
-  abline(0, 1, col='red')
-  
-  # hist(FG_ratio[names_FG_ratio] / md$y_FG_ratio)
-  
-} else {
-
-  # ratio_true <- c()
-  # ratio_est <- c()
-  # 
-  # for(t in 1:md$T){
-  #   for(i in 1:md$I){
-  #     j <- which(md$tt==t & md$ii==i) 
-  #     
-  #     ratio_true <- c(ratio_true, mean(md$y_G_orig[t,i,], na.rm=T) / mean(md$y_F_orig[t,i,], na.rm=T))
-  #     ratio_est <- c(ratio_est, mean(fit$draws(paste0('p_G[',j,']'))) / mean(fit$draws(paste0('p_F[',j,']'))))
-  #   }
-  # }
-  # 
-  # ratio_diff <- ratio_est / ratio_true
-  # summary(ratio_diff)
-  # hist(ratio_diff)
-  # which(ratio_diff > 1.05 | ratio_diff < 0.95)
-}
-
 
 #---- trace plot checks (long format) ----#
 

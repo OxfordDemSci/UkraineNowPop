@@ -35,7 +35,7 @@ data {
   int<lower=0> K;  // number of covariates on population growth rates
 
   // baseline
-  vector<lower=0>[T] N_tot;  // total population among locations
+  vector<lower=0>[T] y_N_tot;  // total population among locations
   vector<lower=0>[I] N0;  // baseline population at each location
 
   // population covariates
@@ -76,18 +76,19 @@ parameters {
 
   // Facebook
   vector<lower=0>[T*I] p_F; // Facebook user ratios
-  real alpha_p_F; // intercept
+  real mu_p_F; // expected value
   real<lower=0> sigma_p_F; // residual variation
 
   // Instagram
   vector<lower=0>[T*I] p_G; // Instagram user ratios
-  real alpha_p_G; // intercept
+  real mu_p_G; // expected value
   real<lower=0> sigma_p_G; // residual variation
 }
 
 transformed parameters {
   
   vector<lower=0>[T*I] N;  // population estimates
+  vector<lower=0>[T] N_tot;  // total population at each time step
   vector[T*I] mu_r;  // expected growth rates
   vector<lower=0>[n_FG] FG_ratio; // ratio of Instagram to Facebook user ratios
   
@@ -96,6 +97,11 @@ transformed parameters {
   N[ti_N0] = N0;
   for(t in 2:T){
     N[t_slice(t,I)] = N[t_slice_lag(t,I)] .* r[t_slice(t,I)];
+  }
+  
+  // total population
+  for(t in 1:T){
+    N_tot[t] = sum(N[t_slice(t,I)]);
   }
   
   // regression on population growth rates
@@ -112,17 +118,14 @@ model {
   y_F ~ poisson(N[ti_F] .* p_F[ti_F]);
   y_G ~ poisson(N[ti_G] .* p_G[ti_G]);
   
-  // observation models
-  p_F ~ lognormal(alpha_p_F, sigma_p_F);
-  p_G ~ lognormal(alpha_p_G, sigma_p_G);
-  
   y_FG_ratio ~ lognormal(log(FG_ratio), 0.02/2);
-
-  // total population constraint
-  for(t in 1:T){
-    N_tot[t] ~ lognormal(log(sum(N[t_slice(t,I)])), 0.01/2);
-  }
-
+  
+  y_N_tot ~ lognormal(log(N_tot), 0.01/2);
+  
+  // observation models
+  p_F ~ lognormal(mu_p_F, sigma_p_F);
+  p_G ~ lognormal(mu_p_G, sigma_p_G);
+  
   // population growth rates
   r ~ lognormal(mu_r, sigma_r);
   
@@ -132,10 +135,10 @@ model {
   sigma_r ~ cauchy(0, 1);
 
   // priors:  Facebook user ratio
-  alpha_p_F ~ normal(0, 5); 
+  mu_p_F ~ normal(0, 5); 
   sigma_p_F ~ cauchy(0, 1); 
   
   // priors:  Instagram user ratio
-  alpha_p_G ~ normal(0, 5); 
+  mu_p_G ~ normal(0, 5); 
   sigma_p_G ~ cauchy(0, 1); 
 }
