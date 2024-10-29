@@ -70,10 +70,20 @@ export function initialise_migration_probabilities_chart(root) {
             sourceIdField: "from",
             targetIdField: "to",
             valueField: "value",
+            sourceNameField: "fromName",
+            targetNameField: "toName",            
             radius: am5.percent(80)
         }));
 
         series.nodes.get("colors").set("step", 2);
+        
+//        series.links.template.setAll({
+//            tooltipText: "{sourceId} -> {targetId} : {value}"
+//        });   
+        
+        series.links.template.setAll({
+            tooltipText: "{fromName} -> {toName} : {value}"
+        });             
 
         series.nodes.labels.template.setAll({
             textType: "radial",
@@ -88,6 +98,7 @@ export function initialise_migration_probabilities_chart(root) {
 
     return(series);
 }
+// https://www.amcharts.com/docs/v5/charts/flow-charts/chord-diagram/
 
 export function initialise_migration_probabilities_chart_LG(root) {
 
@@ -106,11 +117,20 @@ export function initialise_migration_probabilities_chart_LG(root) {
             sourceIdField: "from",
             targetIdField: "to",
             valueField: "value",
+            sourceNameField: "fromName",
+            targetNameField: "toName",  
             radius: am5.percent(80)
         }));
 
         series.nodes.get("colors").set("step", 2);
+        
+//series.links.template.setAll({
+//  tooltipText: "From: {sourceId}\nTo: {targetId}\nValue: {value}"
+//});            
 
+        series.links.template.setAll({
+            tooltipText: "From: {fromName}\nTo: {toName}\nValue: {value}"
+        });     
 
 //        series.bullets.push(function (_root, _series, dataItem) {
 //            var bullet = am5.Bullet.new(root, {
@@ -212,14 +232,25 @@ export function initialise_PopulationPyramid_chart(root) {
 
 
 
-        var xAxis = chart.xAxes.push(am5xy.ValueAxis.new(root, {
-            min: -10,
-            max: 10,
-            numberFormat: "#.s'%'",
-            renderer: am5xy.AxisRendererX.new(root, {
-                minGridDistance: 40
-            })
-        }));
+//        var xAxis = chart.xAxes.push(am5xy.ValueAxis.new(root, {
+//            min: -10,
+//            max: 10,
+//            extraMax: 5,
+//            numberFormat: "#.s'%'",
+//            renderer: am5xy.AxisRendererX.new(root, {
+//                minGridDistance: 20
+//            })
+//        }));
+
+var xAxis = chart.xAxes.push(
+  am5xy.ValueAxis.new(root, {
+
+    renderer: am5xy.AxisRendererX.new(root, {
+      minGridDistance: 20
+    })
+  })
+);
+
 
         xAxis.get("renderer").labels.template.set("fontSize", 11);
 
@@ -251,7 +282,7 @@ export function initialise_PopulationPyramid_chart(root) {
         }));
 
         femaleSeries.columns.template.setAll({
-            tooltipText: "[fontSize: 12px;]Femail, age {categoryY}: {female} ({femalePercent.formatNumber('#.0s')}%)",
+            tooltipText: "[fontSize: 12px;]Female, age {categoryY}: {female} ({femalePercent.formatNumber('#.0s')}%)",
             tooltipX: am5.p50
         });
 
@@ -289,6 +320,8 @@ export function initialise_PopulationPyramid_chart(root) {
 
     }); // end am5.ready()    
 
-
+    
     return([maleSeries, femaleSeries, yAxis1]);
 }
+
+

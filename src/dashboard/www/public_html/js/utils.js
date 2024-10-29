@@ -272,6 +272,22 @@ export function nFormatter(num, digits) {
   return  item ? (num / item.value).toFixed(digits).concat(item.symbol) : "0";
 }
 
+export function nFormatter_Space(num, digits) {
+  const lookup = [
+    { value: 1, symbol: "" },
+    { value: 1e3, symbol: " k" },
+    { value: 1e6, symbol: " M" },
+    { value: 1e9, symbol: " G" },
+    { value: 1e12, symbol: " T" },
+    { value: 1e15, symbol: " P" },
+    { value: 1e18, symbol: " E" }
+  ];
+  const regexp = /\.0+$|(?<=\.[0-9]*[1-9])0+$/;
+  const item = lookup.findLast(item => num >= item.value);
+  //return item ? (num / item.value).toFixed(digits).replace(regexp, "").concat(item.symbol) : "0";
+  return  item ? (num / item.value).toFixed(digits).concat(item.symbol) : "0";
+}
+
 export function sumNumbersInJSON(obj) { 
   let total = 0; 
  
@@ -332,12 +348,12 @@ export function resetSlider_age_selections(d)
 //            labels: d
 //        })
         .slider("pips", {
-            labels: {first: "0", last: d[1][d[1].length - 1] + "+"}
+            labels: {first: "0", last: d[0][d[0].length - 1] + "+"}
         });
         
         let age_min = 0;    
-        let age_max = d[1][d[1].length - 1];
-        document.getElementById('label_Age_range').innerHTML = "Age [ min: "+ age_min +" max: "+ age_max +" ]";
+        let age_max = d[0][d[0].length - 1];
+        document.getElementById('label_Age_range').innerHTML = "Ages: "+ age_min +" - "+ age_max;
         
         event.preventDefault();
 }
@@ -348,15 +364,15 @@ export function resetDate_slider(d)
             min: 0,
             max: d.length - 1,
             value: d.length - 1
-        })
-        .slider("float", {
-            labels: d
-        })
-        .slider("pips", {
-            rest: "label",
-            labels: d,
-            step: 10
-        });
+        })  .slider("pips", "refresh");
+//        .slider("float", {
+//            labels: d
+//        })
+//        .slider("pips", {
+//            rest: "label",
+//            labels: d,
+//            step: Math.ceil(d.length/dates_devided_label)
+//        });
         event.preventDefault();
 }
 
@@ -377,9 +393,9 @@ export function update_Age_Range_labele(vFirst, vLast , age_ranges_available)
     let age_min = age_ranges_available[0][vFirst];    
     let age_max = age_ranges_available[1][vLast];
     if (vLast === age_ranges_available[1].length-1){
-          age_max = age_max + "+";
+          age_max = age_ranges_available[0][age_ranges_available[0].length - 1] + "+";
     }    
-    document.getElementById('label_Age_range').innerHTML = "Age [ min: "+ age_min +" max: "+ age_max +" ]";   
+    document.getElementById('label_Age_range').innerHTML = "Ages: "+ age_min +" - "+ age_max;
 }
 
 
@@ -396,3 +412,115 @@ export function update_Panels_labels(a, b, c, d, _dates_available)
     document.getElementById('lb_Country_Total_Title').innerHTML = c + " [ " + _dates_available[_dates_available.length-1] + " ] ";   
     document.getElementById('lb_Date_DateTimePanel').innerHTML = d;   
 }
+
+
+export function update_mainPanels_Totalslabels(result)
+{
+    let SelectedSex = $('#idSelectSex option').filter(":selected").val();
+
+    if (SelectedSex === "Female") {
+        document.getElementById('cntrlTotalLabel').innerHTML = "-";
+        document.getElementById('cntrlTotalFemalesLabel').innerHTML = sumFemaleInJSON(result.population_totals_by_sex).toLocaleString().replace(/,/g," ",);
+        document.getElementById('cntrlTotalMalesLabel').innerHTML = "-";
+    }
+    if (SelectedSex === "Male") {
+        document.getElementById('cntrlTotalLabel').innerHTML = "-";
+        document.getElementById('cntrlTotalFemalesLabel').innerHTML = "-";
+        document.getElementById('cntrlTotalMalesLabel').innerHTML = sumMaleInJSON(result.population_totals_by_sex).toLocaleString().replace(/,/g," ",);
+    }
+    if (SelectedSex === "Both") {
+        document.getElementById('cntrlTotalLabel').innerHTML = sumNumbersInJSON(result.population_totals).toLocaleString().replace(/,/g," ",);
+        document.getElementById('cntrlTotalFemalesLabel').innerHTML = sumFemaleInJSON(result.population_totals_by_sex).toLocaleString().replace(/,/g," ",);
+        document.getElementById('cntrlTotalMalesLabel').innerHTML = sumMaleInJSON(result.population_totals_by_sex).toLocaleString().replace(/,/g," ",);
+    }    
+
+}
+
+export function update_mainPanels_AdminTotalslabels(result_pyramid)
+{
+    let SelectedSex = $('#idSelectSex option').filter(":selected").val();
+
+    if (SelectedSex === "Female") {
+        document.getElementById('adminFemaleTotalLabel').innerHTML = sumMaleFemaleInAdmin(result_pyramid.female_population).toLocaleString().replace(/,/g," ",);
+        document.getElementById('adminMaleTotalLabel').innerHTML = "-";
+        document.getElementById('adminTotalLabel').innerHTML = "-";
+    }
+    if (SelectedSex === "Male") {
+        document.getElementById('adminFemaleTotalLabel').innerHTML = "-";
+        document.getElementById('adminTotalLabel').innerHTML = "-";
+        document.getElementById('adminMaleTotalLabel').innerHTML = sumMaleFemaleInAdmin(result_pyramid.male_population).toLocaleString().replace(/,/g," ",);
+    }
+    if (SelectedSex === "Both") {
+        let tM = sumMaleFemaleInAdmin(result_pyramid.male_population);
+        let tF = sumMaleFemaleInAdmin(result_pyramid.female_population);
+        let tMF= tM + tF;
+        document.getElementById('adminMaleTotalLabel').innerHTML = tM.toLocaleString().replace(/,/g," ",);
+        document.getElementById('adminFemaleTotalLabel').innerHTML = tF.toLocaleString().replace(/,/g," ",);
+        document.getElementById('adminTotalLabel').innerHTML = tMF.toLocaleString().replace(/,/g," ",);
+    }    
+
+}
+
+
+export function preproces_results_for_updatePopulationMap(result)
+{
+    var result_out = [];
+    
+    let SelectedSex = $('#idSelectSex option').filter(":selected").val();
+
+    if (SelectedSex === "Female") {
+            for (let key in result.population_totals_by_sex) { 
+                result_out[key]=  result.population_totals_by_sex[key].female_population;                     
+            }
+    }
+    if (SelectedSex === "Male") {
+            for (let key in result.population_totals_by_sex) { 
+                result_out[key]=  result.population_totals_by_sex[key].male_population;                     
+            }
+    }
+    if (SelectedSex === "Both") {
+            for (let key in result.population_totals_by_sex) { 
+                result_out[key]=  result.population_totals_by_sex[key].male_population + result.population_totals_by_sex[key].female_population;                     
+            }
+    }
+    
+    return result_out;
+
+}
+
+export function parsing_string_date_new_format(d)
+{
+    var odate = new Date(d);
+    let ndate= odate.toISOString().replace(/^(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+).(\d+)Z$/, function (a,y,m,d) {return [d,['Jan','Feb','Mar','Apr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][m-1],y].join('-');});
+    return ndate;
+}
+
+export function get_adminunits_names(geoJson)
+{
+    var adminunits_names = [];
+
+    for (var i = 0; i < geoJson.features.length; i++) {
+            var pcode = geoJson.features[i].properties.pcode;
+            var name_en = geoJson.features[i].properties.name_en;
+               adminunits_names.push(
+                {pcode: pcode, name: name_en}
+               );
+            
+    } 
+    
+    return adminunits_names;
+}
+
+//function formatDate(date) {
+//    date.toISOString()
+//    .replace(/^(\d+)-(\d+)-(\d+).*$/, // Only extract Y-M-D
+//        function (a,y,m,d) {
+//            return [
+//                d, // Day
+//                ['Jan','Feb','Mar','Apr','May','Jun',  // Month Names
+//                'Jul','Ago','Sep','Oct','Nov','Dec']
+//                [m-1], // Month
+//                y  // Year
+//            ].join('-'); // Stitch together
+//        });
+//}

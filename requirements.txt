@@ -1,0 +1,10 @@
+datetime
+geopandas
+logging
+numpy
+pandas
+plotly
+psycopg2-binary
+python-dotenv
+requests
+sqlalchemy
