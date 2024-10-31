@@ -158,6 +158,6 @@ md <- list(I = I,
            beta_r_true = effects,
            seed=round(runif(1, 1, 1e6)))
 
-saveRDS(md, file.path(outdir, 'md.rds'))
+saveRDS(md, file.path(outdir, 'simulated_data.rds'))
 
 

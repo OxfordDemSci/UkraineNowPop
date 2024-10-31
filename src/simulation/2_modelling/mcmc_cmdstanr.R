@@ -14,20 +14,15 @@ wd <- file.path(getwd(), 'wd')
 dir.create(wd, recursive=T, showWarnings=F)
 
 # directories
-srcdir <- file.path('src', '2_model', 'nmixture')
-indir <- file.path(wd, 'in')
-outdir <- file.path(wd, 'out', 'modelling', 'nmixture')
+srcdir <- file.path('src', 'simulation', '2_modelling')
+outdir <- file.path(wd, 'out', 'simulation', 'nmixture')
 dir.create(outdir, showWarnings=F, recursive=T)
-
-# load data
-codps <- read.csv(file.path(indir, 'COD-PS', 'ukr_admpop_adm1_2022.csv'))
-
 
 
 #---- configure model ----#
 
 # define model name
-model_name <- '1_base_model'
+model_name <- '5_nmixture_2surveys_ratio'
 
 # soure model-specific config code
 source(file.path(srcdir, 'models', paste0(model_name, '_config.R')))

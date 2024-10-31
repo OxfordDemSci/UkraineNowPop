@@ -1,16 +1,6 @@
-#---- load data ----#
-
-sim_data <- TRUE
-
 # load data
-if(sim_data){
-  mddir <- file.path(wd, 'out', 'simulation')
-  md <- readRDS(file.path(mddir, 'md.rds'))
-} else {
-  # mddir <- file.path(file.path('K://DemSci', 'projects', '2023_WHO_Ukraine_Population', 'output', 'population_proxy', 'model_data'))
-  mddir <- file.path(file.path(wd, 'out', 'population_proxy', 'model_data'))
-  md <- readRDS(file.path(mddir, 'md.rds'))
-}
+mddir <- file.path(file.path(wd, 'out', 'population_proxy', 'model_data'))
+md <- readRDS(file.path(mddir, 'md.rds'))
 
 
 # set seed for random number generators
