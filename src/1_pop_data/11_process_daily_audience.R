@@ -22,7 +22,7 @@ convert_audience_to_md <- function(social_media, metric) {
 
   social_media <- social_media |>
     rename(audience=metric) |> 
-    select(collection_date, audience, agesex, platform, geo_name)
+    select(collection_date, audience, agesex, platform, meta_key)
 
   # compute the indices: day of week and week_num
   social_media$collection_date <- as.Date(social_media$collection_date)
@@ -32,37 +32,39 @@ convert_audience_to_md <- function(social_media, metric) {
 
   # fill with NAs the missing combinations of geo_name, day_of_week and week_num
   social_media <- social_media |>
-    complete(geo_name, day_of_week, week_num)
+    complete(meta_key, day_of_week, week_num)
 
   # reshape the audience data to a 3D array [week_num, geo_name, day_of_week]
   social_media_reshape <- social_media |> 
-    select(geo_name, audience, day_of_week, week_num) |> 
-    complete(geo_name, day_of_week, week_num)|> 
-    pivot_wider(names_from = geo_name, values_from = audience) |> 
+    select(meta_key, audience, day_of_week, week_num) |> 
+    complete(meta_key, day_of_week, week_num)|> 
+    pivot_wider(names_from = meta_key, values_from = audience) |> 
     arrange(week_num, day_of_week) |>
-    select(-week_num) |> 
+    select(-week_num) 
+  
+  social_media_reshape_array <- social_media_reshape |> 
     group_split(day_of_week, .keep=F)
 
-  social_media_reshape_array <- lapply(social_media_reshape, as.matrix)
+  social_media_reshape_array <- lapply(social_media_reshape_array, as.matrix)
   social_media_reshape_array <- array(unlist(social_media_reshape_array), 
-                                      dim=c(n_distinct(social_media$week_num), n_distinct(social_media$geo_name), n_distinct(social_media$day_of_week)))
+                                      dim=c(n_distinct(social_media$week_num), n_distinct(social_media$meta_key), n_distinct(social_media$day_of_week)))
 
   # Compute the number of days per week per geo_name that have no audience 
   # and concatenate the corresponding day of the week indices
 
   n_obs_per_week <- social_media |> 
     filter(!is.na(audience)) |>
-    group_by(week_num, geo_name) |> 
+    group_by(week_num, meta_key) |> 
     summarise(
       n_obs = n_distinct(day_of_week),
       day_of_week_obs = paste(day_of_week, collapse = ",")) |> 
     ungroup() |>
-    complete(week_num, geo_name, fill = list(n_obs = 0, day_of_week_obs = NA))
+    complete(week_num, meta_key, fill = list(n_obs = 0, day_of_week_obs = NA))
   
   n_obs_per_week_matrix <- n_obs_per_week |> 
     ungroup() |>
-    select(week_num, geo_name, n_obs) |> 
-    pivot_wider(names_from = geo_name, values_from = n_obs) |> 
+    select(week_num, meta_key, n_obs) |> 
+    pivot_wider(names_from = meta_key, values_from = n_obs) |> 
     arrange(week_num) |> 
     select(-week_num) |> 
     as.matrix()
@@ -70,22 +72,33 @@ convert_audience_to_md <- function(social_media, metric) {
     md <- list(
       y = social_media_reshape_array,
       T = n_distinct(social_media$week_num),
-      I = n_distinct(social_media$geo_name),
-      M = n_obs_per_week_matrix
+      I = n_distinct(social_media$meta_key),
+      M = n_obs_per_week_matrix,
+      locations = as.integer(colnames(social_media_reshape)[-1])
     )
 
-  saveRDS(md, file.path(env$out_dir,'population_proxy', 'model_data', paste0(platform, '_md.rds')))
-  saveRDS(n_obs_per_week, file.path(env$out_dir,'population_proxy', 'model_data', paste0(platform, '_md_missing.rds')))
-
-  return(list('md'=social_media_reshape_array, 'md_missing'=n_obs_per_week))
+  return(list('md'=md))
 }
 
 
 # Convert the audience data for each platform to a 3D array (md)
+out <- list()
 for (platform in c('facebook', 'instagram')) {
+  # platform = 'facebook'
   platform_audience <- read_csv(file.path(env$out_dir,'population_proxy', 'social_media_audience', paste0('ua_', platform, '_audience.csv'))) 
-  out <- convert_audience_to_md(social_media=platform_audience, metric='dau')
+  out[platform] <- convert_audience_to_md(social_media=platform_audience, metric='dau')
 }
 
 
+elements <- names(out$facebook)
+md <- list()
+for (platform in c('facebook', 'instagram')) {
+  # platform = 'facebook'
+  platform_abb <- ifelse(platform == 'facebook', 'F', 'G')
+  for (element in elements) {
+    # element = 'y'
+    md[[paste0(element, '_', platform_abb)]] <- out[[platform]][[element]]
+  }
+}
 
+write_rds(md, file.path(env$out_dir, 'population_proxy', 'model_data', 'md.rds'))
