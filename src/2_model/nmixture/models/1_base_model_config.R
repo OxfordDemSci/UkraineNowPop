@@ -12,112 +12,171 @@ if('seed' %in% names(md)){
 set.seed(seed)
 
 
+#---- idx ----#
+
+
+# meta_id of every location
+locations <- sort(unique(c(md$locations_F, md$locations_G)))
+md$I <- length(locations)
+
+md$I_F <- NULL
+md$I_G <- NULL
+
+
+# dates
+md$T <- max(md$T_F, md$T_G)
+
+md$T_F <- NULL
+md$T_G <- NULL
+
+start_date <- as.Date("2022-02-21")
+end_date <- start_date + (md$T - 1) * 7
+
+first_monday <- start_date + (8 - as.integer(format(start_date, "%u"))) %% 7
+weeks <- seq(from = first_monday, to = end_date, by = "week")
+
+
+## master idx
+idx <- data.frame(t = rep(1:md$T, each=md$I), 
+                  i = rep(1:md$I, times=md$T),
+                  ti = seq(1, md$I * md$T),
+                  i_key = rep(locations, md$T),
+                  t_key = rep(gsub('-', '', weeks), each=md$I))
+
+md$idx <- idx
+
+rm(locations, start_date, end_date, first_monday, weeks)
+
+
+## idx_F
+n_F <- prod(dim(md$y_F))
+
+idx_F <- data.frame(t = rep(NA, n_F),
+                    i = rep(NA, n_F),
+                    m = rep(NA, n_F),
+                    ti_F = rep(NA, n_F),
+                    value = rep(NA, n_F))
+
+cnt <- 0
+for(t in 1:dim(md$y_F)[1]) {
+  t_key <- unique(idx[idx$t == t, 't_key'])
+  for(i in 1:dim(md$y_F)[2]) {
+    i_key <- md$locations_F[i]
+    for(m in 1:dim(md$y_F)[3]) {
+      cnt <- cnt + 1
+      idx_F[cnt,'t'] <- unique(idx$t[idx$t_key == t_key])
+      idx_F[cnt,'i'] <- unique(idx$i[idx$i_key == i_key])
+      idx_F[cnt,'m'] <- m
+      idx_F[cnt,'ti_F'] <- idx$ti[idx$t_key==t_key & idx$i_key==i_key]
+      idx_F[cnt,'value'] <- md$y_F[t,i,m]
+    }
+  }
+}
+idx_F <- idx_F[!is.na(idx_F$value) & idx_F$value > 0,]
+
+# drop
+md$locations_F <- NULL
+md$M_F <- NULL
+rm(n_F, cnt,t, t_key, i, i_key, m)
+
+
+## idx_G
+n_G <- prod(dim(md$y_G))
+
+idx_G <- data.frame(t = rep(NA, n_G),
+                    i = rep(NA, n_G),
+                    m = rep(NA, n_G),
+                    ti_G = rep(NA, n_G),
+                    value = rep(NA, n_G))
+
+cnt <- 0
+for(t in 1:dim(md$y_G)[1]) {
+  t_key <- unique(idx[idx$t == t + md$T - dim(md$y_G)[1], 't_key'])
+  for(i in 1:dim(md$y_G)[2]) {
+    i_key <- md$locations_G[i]
+    for(m in 1:dim(md$y_G)[3]) {
+      cnt <- cnt + 1
+      idx_G[cnt,'t'] <- unique(idx$t[idx$t_key == t_key])
+      idx_G[cnt,'i'] <- unique(idx$i[idx$i_key == i_key])
+      idx_G[cnt,'m'] <- m
+      idx_G[cnt,'ti_G'] <- idx$ti[idx$t_key==t_key & idx$i_key==i_key]
+      idx_G[cnt,'value'] <- md$y_G[t,i,m]
+    }
+  }
+}
+idx_G <- idx_G[!is.na(idx_G$value) & idx_G$value > 0,]
+
+# drop
+md$locations_G <- NULL
+md$M_G <- NULL
+rm(n_G, cnt,t, t_key, i, i_key, m)
+
+
 
 #---- prepare data ----#
 
-
-## population ##
-
-# total population at each time step
-md$y_N_tot <- apply(md$N_true, 1, sum)
-
-# baseline population
-md$N0 <- md$N_true[1,]
-
-# index to reference T x I combinations in vector format
-idx <- data.frame(T = rep(1:md$T, each=md$I), 
-                  I = rep(1:md$I, md$T), 
-                  ti = 1:(md$T*md$I))
-
-# indexing: long format for N
-md$ti_N0 <- idx$ti[idx$T==1]
-md$ti_N <- idx$ti[idx$T>1]
-md$ti_N_lag <- idx$ti[idx$T>1]-md$I
-
-md$tt <- idx$T
-md$ii <- idx$I
-
-# long format for population covariates (X_r)
-melt_X <- reshape2::melt(md$X, varnames=c('T', 'I', 'K'))
-idx_X <- idx
-for(k in 1:md$K){
-  idx_X <- merge(idx_X, melt_X[melt_X$K==k,c('T','I','value')], by=c('T','I'))
-  names(idx_X)[names(idx_X)=='value'] <- paste0('x',k)
-}
-idx_X <- idx_X[order(idx_X$ti),]
-row.names(idx_X) <- idx_X$ti
-
-md$X <- idx_X[,paste0('x', 1:md$K)]
-
-
-## Facebook ##
-
-# baseline detection
-# md$p0_F <- apply(md$y1[1,,], 1, max, na.rm=T) / md$N0
-
-# prepare to convert y to long format
-y_long <- reshape2::melt(md$y1, varnames=c('T', 'I', 'M'))
-y_long <- y_long[!is.na(y_long$value),]
-
-y_idx <- y_long[,c('T','I','M')]
-y_idx <- merge(y_idx, idx, by=c('T', 'I'))
-y_idx <- y_idx[order(y_idx$M, y_idx$I, y_idx$T),]
-
-# long format for y
-md$y_F <- y_long$value
-md$ti_F <- y_idx$ti
+# Facebook 
+md$idx_F <- idx_F
+md$y_F <- idx_F$value
 md$n_F <- length(md$y_F)
+md$ti_F <- idx_F$ti_F
 
-# fill missing data
-md$y1[is.na(md$y1)] <- 999999999
-
-# rename
-names(md)[names(md)=='p1_true'] <- 'p_F_true'
-names(md)[names(md)=='y1'] <- 'y_F_orig'
-md$M1 <- NULL
-
-
-## Instagram ##
-
-# baseline detection
-# md$p0_G <- apply(md$y2[1,,], 1, max, na.rm=T) / md$N0
-
-# prepare to convert y to long format
-y_long <- reshape2::melt(md$y2, varnames=c('T', 'I', 'M'))
-y_long <- y_long[!is.na(y_long$value),]
-
-y_idx <- y_long[,c('T','I','M')]
-y_idx <- merge(y_idx, idx, by=c('T', 'I'))
-y_idx <- y_idx[order(y_idx$M, y_idx$I, y_idx$T),]
-
-# long format for y
-md$y_G <- y_long$value
-md$ti_G <- y_idx$ti
+# Instagram
+md$idx_G <- idx_G
+md$y_G <- idx_G$value
 md$n_G <- length(md$y_G)
+md$ti_G <- idx_G$ti_G
 
-# fill missing data
-md$y2[is.na(md$y2)] <- 999999999
+rm(idx_F, idx_G)
 
-# rename
-names(md)[names(md)=='p2_true'] <- 'p_G_true'
-names(md)[names(md)=='y2'] <- 'y_G_orig'
-md$M2 <- NULL
-
-
-## Facebook:Instagram ratio ###
+# Facebook:Instagram ratio
 md$ti_FG <- unique(md$ti_F[which(md$ti_F %in% md$ti_G)])
 md$n_FG <- length(md$ti_FG)
 
 md$y_FG_ratio <- c()
 for(i in 1:length(md$ti_FG)){
   ti <- md$ti_FG[i]
-  G_ti <- mean(md$y_G[which(md$ti_G == ti)], na.rm=T)
-  F_ti <- mean(md$y_F[which(md$ti_F == ti)], na.rm=T)
+  G_ti <- mean(md$y_G[which(md$ti_G == ti)])
+  F_ti <- mean(md$y_F[which(md$ti_F == ti)])
   md$y_FG_ratio[i] <- G_ti / F_ti
 }
 
+drop <- which(!is.finite(md$y_FG_ratio))
+if(length(drop) > 0){
+  md$y_FG_ratio <- md$y_FG_ratio[-drop]
+  md$ti_FG <- md$ti_FG[-drop]
+  md$n_FG <- md$n_FG - length(drop)
+}
+
+rm(drop, F_ti, G_ti, i)
 
 
+## population ##
+
+# baseline population
+md$N0 <- codps[as.character(unique(idx$i_key[order(idx$i)])),'T_TL']
+
+# total population at each time step
+md$y_N_tot <- rep(sum(md$N0), md$T)  # TODO: Derive this from border crossing data
+
+# indexing: long format for N
+md$ti_N0 <- idx$ti[idx$t==1]
+md$ti_N <- idx$ti[idx$t>1]
+md$ti_N_lag <- idx$ti[idx$t>1]-md$I
+
+md$tt <- idx$t
+md$ii <- idx$i
+
+
+## covariates
+md$K <- 2
+md$X <- matrix(0, nrow=nrow(idx), ncol=md$K)
+colnames(md$X) <- paste0('x', 1:md$K)
+rownames(md$X) <- idx$ti
+
+
+
+rm(idx, ti)
 
 ## save to disk ##
 saveRDS(md, file.path(outdir, paste0('md_', model_name, '.rds')))
@@ -131,12 +190,15 @@ init_generator <- function(md=md, chain_id=1){
   result <- list()
   
   N <- matrix(NA, nrow=md$T, ncol=md$I)
+  theta <- rep(NA, md$I)
   for(t in 1:md$T){
-    if(dim(md$y_F_orig)[3]==1){
-      theta <- md$y_F_orig[t,,1] / md$y_N_tot
-    } else {
-      theta <- apply(md$y_F_orig[t,,], 1, max, na.rm=T) / md$y_N_tot[t]
+    for(i in 1:md$I){
+      ti <- unique(md$idx$ti[md$idx$t==t & md$idx$i==i])
+      if(any(md$ti_F %in% ti)){
+        theta[i] <- max(md$y_F[which(md$ti_F %in% ti)], na.rm=T) / md$y_N_tot[t]
+      }
     }
+    theta[!is.finite(theta)] <- mean(theta[is.finite(theta)])
     
     theta <- theta / sum(theta)
     
@@ -151,11 +213,11 @@ init_generator <- function(md=md, chain_id=1){
   result[['alpha_r']] <- rnorm(1, 0, 3)
   result[['beta_r']] <- rnorm(md$K, 0, 1)
 
-  result[['p_F']] <- rlnorm(md$T * md$I, log(mean(md$p_F)), 0.5)
+  result[['p_F']] <- rlnorm(md$T * md$I, log(mean(md$y_F, na.rm=T)/mean(md$N0)), 0.5)
   result[['mu_p_F']] <- rnorm(1, 1, 1)
   result[['sigma_p_F']] <- runif(1, 0, 0.05)
 
-  result[['p_G']] <- rlnorm(md$T * md$I, log(mean(md$p_G)), 0.5)
+  result[['p_G']] <- rlnorm(md$T * md$I, log(mean(md$y_G, na.rm=T)/mean(md$N0)), 0.5)
   result[['mu_p_G']] <- rnorm(1, 1, 1)
   result[['sigma_p_G']] <- runif(1, 0, 0.05)
 

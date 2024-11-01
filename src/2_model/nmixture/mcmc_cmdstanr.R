@@ -20,7 +20,8 @@ outdir <- file.path(wd, 'out', 'modelling', 'nmixture')
 dir.create(outdir, showWarnings=F, recursive=T)
 
 # load data
-codps <- read.csv(file.path(indir, 'COD-PS', 'ukr_admpop_adm1_2022.csv'))
+codps <- read.csv(file.path(indir, 'COD-PS', 'population_baseline.csv'))
+row.names(codps) <- codps$fb_key
 
 
 
@@ -71,30 +72,28 @@ not_converged <- which(fit_summary[['rhat']] > 1.1) # 1.01 is cutoff for publica
 fit_summary[not_converged,]
 
 
+#---- time series plots ----#
 
-#---- population time series plots ----#
+plot_vars <- c('N', 'p_F', 'p_G')
 
-plot_vars <- list(N='N_true', p_F='p_F_true', p_G='p_G_true')
-
-for(p in 1:length(plot_vars)){
+for(y_name in plot_vars){
   
-  y_name <- names(plot_vars)[p]
-  y_true_name <- plot_vars[[y_name]]
+  dat <- fit$draws(y_name, format='df')
   
   for(i in 1:md$I){
     
-    plot(x = 1:md$T, 
-         y = md[[y_true_name]][,i], 
-         type = 'l',
-         main = paste0('Population ', i),
-         ylab = y_true_name,
-         xlab = 'time')
+    i_dat <- dat[paste0(y_name,'[',which(md$ii == i),']')]
+    i_name <- paste0(codps$ADM1_EN[codps$fb_key==md$idx$i_key[i]],
+                     ' (', i, ')')
     
-    lines(x = 1:md$T, 
-          y = md[[y_true_name]][,i], 
-          col = 'red'
-    )
-    
+    plot(NA,
+         main = i_name,
+         ylab = y_name,
+         xlab = 'time',
+         xlim = c(1, md$T), 
+         ylim = c(min(apply(i_dat, 2, quantile, probs=c(0.025))),
+                  max(apply(i_dat, 2, quantile, probs=c(0.975)))))
+
     for(t in 1:md$T){
       j <- which(md$tt==t & md$ii==i) 
       
@@ -112,42 +111,6 @@ for(p in 1:length(plot_vars)){
 }
 
 
-#---- observed vs predicted plots (long format) ----#
-
-plot_vars <- list(N='N_true', p_F='p_F_true', p_G='p_G_true')
-
-for(p in 1:length(plot_vars)){
-  y_name <- names(plot_vars)[p]
-  y_true_name <- plot_vars[[y_name]]
-
-  plot(NA, 
-       main = y_name,
-       xlim = range(md[[y_true_name]]), 
-       ylim = range(md[[y_true_name]]), 
-       xlab = 'observed', 
-       ylab = 'predicted')
-  
-  y_hat <- apply(fit$draws(paste0(y_name, '[',1:(md$T*md$I),']'), format='df'), 2, mean)
-  y_hat_lower <- apply(fit$draws(paste0(y_name, '[',1:(md$T*md$I),']'), format='df'), 2, quantile, probs=c(0.025))
-  y_hat_upper <- apply(fit$draws(paste0(y_name, '[',1:(md$T*md$I),']'), format='df'), 2, quantile, probs=c(0.975))
-  
-  for(t in 2:md$T){
-    for(i in 1:md$I){
-      
-      j <- which(md$tt==t & md$ii==i) 
-      
-      points(x = md[[y_true_name]][t,i], 
-             y = y_hat[j])
-      
-      arrows(x0 = md[[y_true_name]][t,i], 
-             x1 = md[[y_true_name]][t,i],
-             y0 = y_hat_lower[j],
-             y1 = y_hat_upper[j],
-             length = 0)
-    }
-  }
-  abline(0, 1, col='red')
-}
 
 #---- check total population ----#
 names_N_tot <- paste0('N_tot[', 1:md$T, ']')
@@ -207,8 +170,8 @@ mcmc_trace(fit$draws(paste0('p_F[',j,']')))
 print(mean(fit$draws(paste0('p_F[',j,']'))))
 print(mean(md$p_F_true[t,i]))
 
-mcmc_trace(fit$draws('alpha_p_F'))
-print(mean(fit$draws('alpha_p_F')))
+mcmc_trace(fit$draws('mu_p_F'))
+print(mean(fit$draws('mu_p_F')))
 
 mcmc_trace(fit$draws('sigma_p_F'))
 print(mean(fit$draws('sigma_p_F')))
@@ -220,8 +183,8 @@ mcmc_trace(fit$draws(paste0('p_G[',j,']')))
 print(mean(fit$draws(paste0('p_G[',j,']'))))
 print(mean(md$p_G_true[t,i]))
 
-mcmc_trace(fit$draws('alpha_p_G'))
-print(mean(fit$draws('alpha_p_G')))
+mcmc_trace(fit$draws('mu_p_G'))
+print(mean(fit$draws('mu_p_G')))
 
 mcmc_trace(fit$draws('sigma_p_G'))
 print(mean(fit$draws('sigma_p_G')))
@@ -231,80 +194,5 @@ print(mean(fit$draws('sigma_p_G')))
 
 
 
-
-
-#---- quick observed vs predicted plot (array format) ----#
-plot(NA, 
-     xlim = range(md$N_true), 
-     ylim = range(md$N_true), 
-     xlab = 'observed N', 
-     ylab = 'predicted N')
-
-for(t in 2:md$T){
-  for(i in 1:md$I){
-    points(x = md$N_true[t,i], 
-           y = mean(fit$draws(paste0('N[',t,',',i,']'))))
-  }
-}
-abline(0, 1, col='red')
-
-
-#---- quick checks (array format)----#
-
-print(fit, max_rows=1e3)
-summary(fit$summary()[['rhat']])
-
-i <- sample(1:md$I, 1)
-t <- sample(2:md$T, 1)
-
-mcmc_trace(fit$draws(paste0('N[',t,',',i,']')))
-print(mean(fit$draws(paste0('N[',t,',',i,']'))))
-print(md$N_true[t,i])
-
-mcmc_trace(fit$draws(paste0('r[',t,',',i,']')))
-print(mean(fit$draws(paste0('r[',t,',',i,']'))))
-
-mcmc_trace(fit$draws('mu'))
-print(mean(fit$draws('mu')))
-
-mcmc_trace(fit$draws('sigma'))
-print(mean(fit$draws('sigma')))
-
-
-mcmc_trace(fit$draws(paste0('p[',t,',',i,']')))
-print(mean(fit$draws(paste0('p[',t,',',i,']'))))
-print(mean(md$p_true[t,i]))
-
-mcmc_trace(fit$draws(paste0('delta[',t,']')))
-print(mean(fit$draws(paste0('delta[',t,']'))))
-
-mcmc_trace(fit$draws('mu_delta'))
-print(mean(fit$draws('mu_delta')))
-
-mcmc_trace(fit$draws('sd_delta'))
-print(mean(fit$draws('sd_delta')))
-
-mcmc_trace(fit$draws('alpha'))
-print(mean(fit$draws('alpha')))
-
-
-
-
-#---- old code -----#
-
-mcmc_trace(fit$draws('N_sum'))
-mean(fit$draws('N_sum'))
-md$N_tot
-
-
-mcmc_trace(fit$draws('p'))
-mean(fit$draws('p'))
-mean(md$p_true)
-
-for(i in 1:md$I){
-  print(mean(fit$draws(paste0('N[',i,']'))))
-  print(md$N_true[i])
-  print('')
-}
 
 
