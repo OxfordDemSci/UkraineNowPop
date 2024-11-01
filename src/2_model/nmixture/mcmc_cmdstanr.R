@@ -23,6 +23,8 @@ dir.create(outdir, showWarnings=F, recursive=T)
 codps <- read.csv(file.path(indir, 'COD-PS', 'population_baseline.csv'))
 row.names(codps) <- codps$fb_key
 
+outside_border <- read.csv(file.path(wd, 'out', 'population_proxy', 'crossing_borders', 'dat_refugees.csv'))
+
 
 
 #---- configure model ----#

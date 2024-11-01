@@ -157,7 +157,17 @@ rm(drop, F_ti, G_ti, i)
 md$N0 <- codps[as.character(unique(idx$i_key[order(idx$i)])),'T_TL']
 
 # total population at each time step
-md$y_N_tot <- rep(sum(md$N0), md$T)  # TODO: Derive this from border crossing data
+weekly_avg <- outside_border |>
+  mutate(week = floor_date(as.Date(date), 'week', week_start=1)) |>
+  group_by(week) |>
+  summarise(avg_value = mean(individuals, na.rm=TRUE)) |>
+  filter(week >= min(as.Date(md$idx$t_key, format='%Y%m%d')) & 
+           week <= max(as.Date(md$idx$t_key, format='%Y%m%d')))
+
+md$y_N_tot <- sum(md$N0) - weekly_avg$avg_value
+
+rm(weekly_avg)
+
 
 # indexing: long format for N
 md$ti_N0 <- idx$ti[idx$t==1]
