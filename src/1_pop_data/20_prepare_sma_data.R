@@ -1,0 +1,67 @@
+# Load required helpers
+source("R_helpers/generic.R")
+source("R_helpers/data_querying.R")
+
+# Set up output directory
+out_dir <- file.path(out_dir, "population_proxy", "social_media_audience")
+dir.create(out_dir, recursive = TRUE)
+
+output_label <- ""
+
+# Load master index
+master_index <- read_csv(file.path(out_dir, paste0("ua_master_index", output_label, ".csv")))
+
+# Retrieve parameters
+country <- 'UA'
+date_start <- min(master_index$collection_date)
+date_end <- max(master_index$collection_date)
+agesex <- unique(master_index$sa_label)
+meta_keys <- unique(master_index$meta_key)
+
+# Get Facebook and Instagram social media audience data
+retrieve_sma_data <- function(platform) {
+  lapply(meta_keys, function(meta_key_) retrieve_data(
+    country = country,
+    date_start = date_start,
+    date_end = date_end,
+    geo_level = 'regions',
+    agesex = agesex,
+    geo_key = meta_key_,
+    platform = platform
+  )) |> 
+    bind_rows()
+}
+
+sma_facebook <- retrieve_sma_data('facebook')
+sma_instagram <- retrieve_sma_data('instagram')
+
+# Process social media audience data
+time_index_expanded <- sma_facebook |> 
+  distinct(collection_date) |>
+    left_join(
+      master_index |>
+        distinct(collection_date, t)) |> 
+    arrange(collection_date) |>
+    fill(t, .direction = "down") 
+
+master_index_without_t <- master_index |> 
+  select(-t, -collection_date) |> 
+  distinct()
+
+process_sma_data <- function(sma_data) {
+
+  sma_data_ <- sma_data |>
+    left_join(time_index_expanded ) |> 
+    left_join(
+      master_index_without_t ) |>
+    arrange(collection_date) |>
+    mutate(m = format(collection_date, "%u"))|> 
+    select(collection_date, t, m, i, a, s, dau)
+}
+
+sma_facebook_processed <- process_sma_data(sma_facebook)
+sma_instagram_processed <- process_sma_data(sma_instagram)
+
+# Write processed data to CSV files
+write_csv(sma_facebook_processed, file.path(out_dir, paste0("ua_facebook_audience", output_label, ".csv")))
+write_csv(sma_instagram_processed, file.path(out_dir, paste0("ua_instagram_audience", output_label, ".csv")))
