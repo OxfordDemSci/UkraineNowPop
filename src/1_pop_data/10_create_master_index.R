@@ -5,7 +5,7 @@ source("R_helpers/data_querying.R")
 # Access the environment variables
 
 out_dir <- file.path(out_dir, "population_proxy","social_media_audience")
-dir.create(out_dir, recursive = TRUE)
+dir.create(out_dir, recursive=TRUE, showWarnings=FALSE)
 
 
 # Input parameters -------------------------------------------------------
@@ -33,7 +33,7 @@ date_end <- '2024-11-01'
 
 country <- "UA"
 
-meta_keys <- read_csv(file.path(out_dir, "ua_meta_keys.csv"))
+meta_keys <- read_csv(file.path(out_dir, paste0(tolower(country), "_meta_keys.csv")))
 
 output_label <- ''
 
@@ -82,4 +82,4 @@ master_index <- expand_grid(
 # Write output -----------------------------------------------------------
 
 
-write_csv(master_index, file.path(out_dir, paste0("ua_master_index",output_label,".csv")))
+write_csv(master_index, file.path(out_dir, paste0(tolower(country), "_master_index",output_label,".csv")))

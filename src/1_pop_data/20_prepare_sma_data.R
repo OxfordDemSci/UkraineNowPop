@@ -4,15 +4,15 @@ source("R_helpers/data_querying.R")
 
 # Set up output directory
 out_dir <- file.path(out_dir, "population_proxy", "social_media_audience")
-dir.create(out_dir, recursive = TRUE)
+dir.create(out_dir, recursive=TRUE, showWarnings=FALSE)
 
 output_label <- ""
 
 # Load master index
-master_index <- read_csv(file.path(out_dir, paste0("ua_master_index", output_label, ".csv")))
+country <- 'UA'
+master_index <- read_csv(file.path(out_dir, paste0(tolower(country), "_master_index", output_label, ".csv")))
 
 # Retrieve parameters
-country <- 'UA'
 date_start <- min(master_index$collection_date)
 date_end <- max(master_index$collection_date)
 agesex <- unique(master_index$sa_label)
@@ -63,5 +63,5 @@ sma_facebook_processed <- process_sma_data(sma_facebook)
 sma_instagram_processed <- process_sma_data(sma_instagram)
 
 # Write processed data to CSV files
-write_csv(sma_facebook_processed, file.path(out_dir, paste0("ua_facebook_audience", output_label, ".csv")))
-write_csv(sma_instagram_processed, file.path(out_dir, paste0("ua_instagram_audience", output_label, ".csv")))
+write_csv(sma_facebook_processed, file.path(out_dir, paste0(tolower(country), "_facebook_audience", output_label, ".csv")))
+write_csv(sma_instagram_processed, file.path(out_dir, paste0(tolower(country), "_instagram_audience", output_label, ".csv")))
