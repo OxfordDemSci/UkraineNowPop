@@ -1,13 +1,8 @@
 # Load required libraries
-library(jsonlite)
-library(httr)
-library(DBI)
-library(RPostgres)
 library(sf)
-library(plotly)
 library(here)
 library(tidyverse)
-library(shiny)
+
 # Load the .env file
 env <- new.env()
 source(here::here('.env'), local=env)

@@ -1,4 +1,7 @@
-
+library(jsonlite)
+library(httr)
+library(DBI)
+library(RPostgres)
 
 # Querying the social media audience database through SQL ----------------
 
