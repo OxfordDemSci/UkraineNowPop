@@ -8,6 +8,8 @@ dir.create(out_dir, recursive=TRUE, showWarnings=FALSE)
 
 output_label <- ""
 
+audience_metric <- 'dau'
+
 # Load master index
 country <- 'UA'
 master_index <- read_csv(file.path(out_dir, paste0(tolower(country), "_master_index", output_label, ".csv")))
@@ -49,7 +51,7 @@ master_index_without_t <- master_index |>
   select(-t, -t_name) |> 
   distinct()
 
-process_sma_data <- function(sma_data) {
+process_sma_data <- function(sma_data, metric=audience_metric) {
 
   sma_data_ <- sma_data |>
     rename(t_name = collection_date) |>
@@ -58,7 +60,7 @@ process_sma_data <- function(sma_data) {
       master_index_without_t ) |>
     arrange(t_name) |>
     mutate(m = format(t_name, "%u"))|> 
-    select(t_name, t, m, i, a, s, dau)
+    select(t_name, t, m, i, a, s, {{metric}}) 
 }
 
 sma_facebook_processed <- process_sma_data(sma_facebook)
