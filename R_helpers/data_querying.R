@@ -86,7 +86,6 @@ agesex_col_to_query_args <- function(col) {
   
   result <- list(
     gender = which(agesex_key == parms[1])-1,
-    s_label = parms[1],
     age_min = as.numeric(parms[2]),
     age_max = as.numeric(parms[3])
   )

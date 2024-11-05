@@ -40,17 +40,18 @@ output_label <- ''
 # create master_index ----------------------------------------------------
 
 geo_index <- meta_keys |> 
-  rename(meta_name = geo_name, meta_key = geo_key) |>
-  distinct(meta_key, meta_name) |> 
-  arrange(meta_key) |> 
+  rename(i_name = geo_name, i_key = geo_key) |>
+  distinct(i_name, i_key) |> 
+  arrange(i_key) |> 
   mutate(i = 1:n())
 
 time_index <- tibble(
-  collection_date = seq(as.Date(date_start), as.Date(date_end), by = 1)
+  t_name = seq(as.Date(date_start), as.Date(date_end), by = 1),
+  t_key = str_replace_all(as.character(t_name), "-", "") |> as.numeric()
 ) |> 
-  arrange(collection_date) |> 
+  arrange(t_name) |> 
   mutate(
-    t = paste0(as.numeric(format(collection_date, "%y")) ,as.numeric(format(collection_date, "%W"))) |> 
+    t = paste0(as.numeric(format(t_name, "%y")) ,as.numeric(format(t_name, "%W"))) |> 
       as_factor() |> 
       as.numeric()
   ) 
@@ -59,10 +60,14 @@ agesex_index <- lapply(agesex, function(agesex_) agesex_col_to_query_args(agesex
   bind_rows() |> 
   arrange(age_min) |> 
   mutate(
-    sa_label = agesex,
+    a_name = str_sub(agesex, 3),
+    a = as.numeric(factor(paste0(age_min, age_max))),
+    a_key = paste0(age_min,str_pad(age_max, 3, pad = "0")) |> as.numeric(),
+    s_name = str_sub(agesex, 1, 1),
     s=gender,
-    a = as.numeric(factor(paste0(age_min, age_max)))
-  )
+    s_key = gender
+  ) |> 
+  select(-age_min, -age_max, -gender)
 
 master_index <- expand_grid(
   t = unique(time_index$t),
@@ -71,7 +76,7 @@ master_index <- expand_grid(
   s = unique(agesex_index$s)
 ) |> 
   left_join(time_index |> 
-    arrange(collection_date) |>
+    arrange(t_name) |>
     group_by(t) |>
     filter(row_number()==1), by = "t") |> 
   left_join(geo_index, by = "i") |> 

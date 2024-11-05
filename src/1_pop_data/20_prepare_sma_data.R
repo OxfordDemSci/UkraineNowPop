@@ -13,9 +13,9 @@ country <- 'UA'
 master_index <- read_csv(file.path(out_dir, paste0(tolower(country), "_master_index", output_label, ".csv")))
 
 # Retrieve parameters
-date_start <- min(master_index$collection_date)
-date_end <- max(master_index$collection_date)
-agesex <- unique(master_index$sa_label)
+date_start <- min(master_index$t_name)
+date_end <- max(master_index$t_name)
+agesex <- unique(paste(master_index$s_name, master_index$a_name, sep = "_"))
 meta_keys <- unique(master_index$meta_key)
 
 # Get Facebook and Instagram social media audience data
@@ -37,26 +37,28 @@ sma_instagram <- retrieve_sma_data('instagram')
 
 # Process social media audience data
 time_index_expanded <- sma_facebook |> 
-  distinct(collection_date) |>
+  rename(t_name = collection_date) |>
+  distinct(t_name) |>
     left_join(
       master_index |>
-        distinct(collection_date, t)) |> 
-    arrange(collection_date) |>
+        distinct(t_name, t)) |> 
+    arrange(t_name) |>
     fill(t, .direction = "down") 
 
 master_index_without_t <- master_index |> 
-  select(-t, -collection_date) |> 
+  select(-t, -t_name) |> 
   distinct()
 
 process_sma_data <- function(sma_data) {
 
   sma_data_ <- sma_data |>
+    rename(t_name = collection_date) |>
     left_join(time_index_expanded ) |> 
     left_join(
       master_index_without_t ) |>
-    arrange(collection_date) |>
-    mutate(m = format(collection_date, "%u"))|> 
-    select(collection_date, t, m, i, a, s, dau)
+    arrange(t_name) |>
+    mutate(m = format(t_name, "%u"))|> 
+    select(t_name, t, m, i, a, s, dau)
 }
 
 sma_facebook_processed <- process_sma_data(sma_facebook)
