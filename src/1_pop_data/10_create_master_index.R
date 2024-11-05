@@ -2,12 +2,6 @@
 source("R_helpers/generic.R")
 source("R_helpers/data_querying.R")
 
-# Access the environment variables
-
-out_dir <- file.path(out_dir, "population_proxy","social_media_audience")
-dir.create(out_dir, recursive=TRUE, showWarnings=FALSE)
-
-
 # Input parameters -------------------------------------------------------
 
 
