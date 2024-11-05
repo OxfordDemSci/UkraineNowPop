@@ -16,7 +16,7 @@ key = os.getenv('ACLED_KEY')
 email = os.getenv('ACLED_EMAIL')
 country = "Ukraine"
 start_date = "2022-02-26"
-end_date = "2024-05-15"
+end_date = "2024-11-01"
 crs = 6383
 accept_acled_terms = True
 
