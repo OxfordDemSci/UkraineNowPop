@@ -21,6 +21,8 @@ from urllib.error import HTTPError, URLError
 import geopandas as gpd
 import pandas as pd
 from shapely.geometry import shape
+from pathlib import Path
+from dotenv import load_dotenv
 
 USER_AGENT = 'deepstate-scraper/0.0.1'
 TIMEOUT = 60
@@ -30,11 +32,15 @@ PARALLEL_DOWNLOADS = 10
 PARALLEL_PROCESSES = 16
 
 HISTORY_URL = 'https://deepstatemap.live/api/history/'
-ITEMS_FOLDER = 'data/control/'
+
+env_path = Path('.') / '.env'
+load_dotenv(env_path)
+out_dir = Path(os.getenv('out_dir'))
+ITEMS_FOLDER = out_dir / 'covariates' / 'raw' / 'deepstate'
 
 # Create directories
 os.makedirs(ITEMS_FOLDER, exist_ok=True)
-os.makedirs(ITEMS_FOLDER+'raw', exist_ok=True)
+os.makedirs(ITEMS_FOLDER /'raw', exist_ok=True)
 
 def scrape_json(url: str):
     headers = {
@@ -93,7 +99,7 @@ def scrape_items(items):
         # https://stackoverflow.com/a/5291396/2193463
         print(f"(Downloading {idx}/{len(ids)}", end='\r')
         entry = scrape_json(url)
-        save_to_file(entry, ITEMS_FOLDER + '/' + id + '.json')
+        save_to_file(entry, ITEMS_FOLDER.joinpath(str(id) + '.json'))
         entry['id'] = id
         # Artificial throttling, otherwise we'll get an HTTP 429
         time.sleep(COOLDOWN)
@@ -112,7 +118,7 @@ def scrape_items(items):
 # XXX Beware, this will take some time as it has to download 530+ files
 scrape_items(history)
 
-files = os.listdir(ITEMS_FOLDER+'/raw')
+files = os.listdir(ITEMS_FOLDER)
 
 # check manually the labels to define the regular expression
 def read_property(filename):
