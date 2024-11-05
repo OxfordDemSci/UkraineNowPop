@@ -18,7 +18,7 @@ master_index <- read_csv(file.path(out_dir, paste0(tolower(country), "_master_in
 date_start <- min(master_index$t_name)
 date_end <- max(master_index$t_name)
 agesex <- unique(paste(master_index$s_name, master_index$a_name, sep = "_"))
-meta_keys <- unique(master_index$meta_key)
+meta_keys <- unique(master_index$i_key)
 
 # Get Facebook and Instagram social media audience data
 retrieve_sma_data <- function(platform) {
