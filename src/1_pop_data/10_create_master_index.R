@@ -88,3 +88,4 @@ master_index <- expand_grid(
 
 
 write_csv(master_index, file.path(out_dir, paste0(tolower(country), "_master_index",output_label,".csv")))
+write_csv(time_index, file.path(out_dir, paste0(tolower(country), "_time_index",output_label,".csv")))
