@@ -50,13 +50,13 @@ master_index_without_t <- master_index |>
 process_sma_data <- function(sma_data, metric=audience_metric) {
 
   sma_data_ <- sma_data |>
-    rename(audience_metric = metric, i_key = meta_key) |> 
+    rename(value = metric, i_key = meta_key) |> 
     left_join(time_index )   |> 
     left_join(
       master_index_without_t )  |>
     arrange(t_name) |>
     mutate(m = format(t_name, "%u"))|> 
-    select(t_name, t, m, i, a, s, audience_metric) 
+    select(t_name, t, m, i, a, s, value) 
 
   return(sma_data_)
 }
