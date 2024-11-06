@@ -28,6 +28,7 @@ date_end <- '2024-11-01'
 country <- "UA"
 
 meta_keys <- read_csv(file.path(in_dir, paste0(tolower(country), "_meta_keys.csv")))
+pcodes <- read_csv(file = file.path(in_dir,"COD-PS", "population_baseline.csv"))
 
 output_label <- ''
 
@@ -36,16 +37,20 @@ output_label <- ''
 geo_index <- meta_keys |> 
   rename(i_name = geo_name, i_key = geo_key) |>
   distinct(i_name, i_key) |> 
+  left_join(
+    pcodes |>
+      select(fb_key, ADM1_PCODE, ADM1_EN) |>
+      rename(i_key = fb_key)
+  ) |> 
   arrange(i_key) |> 
   mutate(i = 1:n())
 
 time_index <- tibble(
-  t_name = seq(as.Date(date_start), as.Date(date_end), by = 1),
-  t_key = str_replace_all(as.character(t_name), "-", "") |> as.numeric()
+  collection_date = seq(as.Date(date_start), as.Date(date_end), by = 1),
 ) |> 
-  arrange(t_name) |> 
+  arrange(collection_date) |> 
   mutate(
-    t = paste0(as.numeric(format(t_name, "%y")) ,as.numeric(format(t_name, "%W"))) |> 
+    t = paste0(as.numeric(format(collection_date, "%y")) ,as.numeric(format(collection_date, "%W"))) |> 
       as_factor() |> 
       as.numeric()
   ) 
@@ -70,16 +75,19 @@ master_index <- expand_grid(
   s = unique(agesex_index$s)
 ) |> 
   left_join(time_index |> 
-    arrange(t_name) |>
+    arrange(collection_date) |>
     group_by(t) |>
-    filter(row_number()==1), by = "t") |> 
+    filter(row_number()==1) |> 
+    rename(t_name= collection_date) |>
+    mutate(
+      t_key = str_replace_all(as.character(t_name), "-", "") |> as.numeric()
+    ), by = "t") |> 
   left_join(geo_index, by = "i") |> 
   left_join(agesex_index, by = c("a", "s")) |> 
   arrange(t, i, a, s)
 
 
 # Write output -----------------------------------------------------------
-
 
 write_csv(master_index, file.path(out_dir, paste0(tolower(country), "_master_index",output_label,".csv")))
 write_csv(time_index, file.path(out_dir, paste0(tolower(country), "_time_index",output_label,".csv")))
