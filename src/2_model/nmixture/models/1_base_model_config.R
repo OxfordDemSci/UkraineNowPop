@@ -1,7 +1,6 @@
-# load data
-mddir <- file.path(file.path(wd, 'out', 'population_proxy', 'model_data'))
-md <- readRDS(file.path(mddir, 'md.rds'))
+# model data
 
+md <- list()
 
 # set seed for random number generators
 if('seed' %in% names(md)){
@@ -12,122 +11,50 @@ if('seed' %in% names(md)){
 set.seed(seed)
 
 
-#---- idx ----#
+#---- indexes ----#
 
+last_date <- '2023-02-25'
 
-# meta_id of every location
-locations <- sort(unique(c(md$locations_F, md$locations_G)))
-md$I <- length(locations)
+# master index
+md$idx <- idx |>
+  filter(a_name=='13Plus' & s_key==0) |>
+  select(t, i, t_key, i_key) |>
+  arrange(t, i) |>
+  mutate(ti = row_number(),
+        t_name = floor_date(as.Date(as.character(t_key), format='%Y%m%d'), 'week', week_start=1)) |>
+  filter(t_name <= last_date)
 
-md$I_F <- NULL
-md$I_G <- NULL
+# Facebook
+md$idx_F <- idx_F |>
+  filter(a==idx$a[idx$a_name=='13Plus'][1] & s==idx$s[idx$s_key==0][1]) |>
+  select(t, i, m, value) |>
+  right_join(md$idx |> select(t, i, ti)) |>
+  filter(value > 0 & is.finite(value))
 
+# Instagram
+md$idx_G <- idx_G |>
+  filter(a==idx$a[idx$a_name=='13Plus'][1] & s==idx$s[idx$s_key==0][1]) |>
+  select(t, i, m, value) |>
+  right_join(md$idx |> select(t, i, ti)) |>
+    filter(value > 0 & is.finite(value))
 
-# dates
-md$T <- max(md$T_F, md$T_G)
-
-md$T_F <- NULL
-md$T_G <- NULL
-
-start_date <- as.Date("2022-02-21")
-end_date <- start_date + (md$T - 1) * 7
-
-first_monday <- start_date + (8 - as.integer(format(start_date, "%u"))) %% 7
-weeks <- seq(from = first_monday, to = end_date, by = "week")
-
-
-## master idx
-idx <- data.frame(t = rep(1:md$T, each=md$I), 
-                  i = rep(1:md$I, times=md$T),
-                  ti = seq(1, md$I * md$T),
-                  i_key = rep(locations, md$T),
-                  t_key = rep(gsub('-', '', weeks), each=md$I))
-
-md$idx <- idx
-
-rm(locations, start_date, end_date, first_monday, weeks)
-
-
-## idx_F
-n_F <- prod(dim(md$y_F))
-
-idx_F <- data.frame(t = rep(NA, n_F),
-                    i = rep(NA, n_F),
-                    m = rep(NA, n_F),
-                    ti_F = rep(NA, n_F),
-                    value = rep(NA, n_F))
-
-cnt <- 0
-for(t in 1:dim(md$y_F)[1]) {
-  t_key <- unique(idx[idx$t == t, 't_key'])
-  for(i in 1:dim(md$y_F)[2]) {
-    i_key <- md$locations_F[i]
-    for(m in 1:dim(md$y_F)[3]) {
-      cnt <- cnt + 1
-      idx_F[cnt,'t'] <- unique(idx$t[idx$t_key == t_key])
-      idx_F[cnt,'i'] <- unique(idx$i[idx$i_key == i_key])
-      idx_F[cnt,'m'] <- m
-      idx_F[cnt,'ti_F'] <- idx$ti[idx$t_key==t_key & idx$i_key==i_key]
-      idx_F[cnt,'value'] <- md$y_F[t,i,m]
-    }
-  }
-}
-idx_F <- idx_F[!is.na(idx_F$value) & idx_F$value > 0,]
-
-# drop
-md$locations_F <- NULL
-md$M_F <- NULL
-rm(n_F, cnt,t, t_key, i, i_key, m)
-
-
-## idx_G
-n_G <- prod(dim(md$y_G))
-
-idx_G <- data.frame(t = rep(NA, n_G),
-                    i = rep(NA, n_G),
-                    m = rep(NA, n_G),
-                    ti_G = rep(NA, n_G),
-                    value = rep(NA, n_G))
-
-cnt <- 0
-for(t in 1:dim(md$y_G)[1]) {
-  t_key <- unique(idx[idx$t == t + md$T - dim(md$y_G)[1], 't_key'])
-  for(i in 1:dim(md$y_G)[2]) {
-    i_key <- md$locations_G[i]
-    for(m in 1:dim(md$y_G)[3]) {
-      cnt <- cnt + 1
-      idx_G[cnt,'t'] <- unique(idx$t[idx$t_key == t_key])
-      idx_G[cnt,'i'] <- unique(idx$i[idx$i_key == i_key])
-      idx_G[cnt,'m'] <- m
-      idx_G[cnt,'ti_G'] <- idx$ti[idx$t_key==t_key & idx$i_key==i_key]
-      idx_G[cnt,'value'] <- md$y_G[t,i,m]
-    }
-  }
-}
-idx_G <- idx_G[!is.na(idx_G$value) & idx_G$value > 0,]
-
-# drop
-md$locations_G <- NULL
-md$M_G <- NULL
-rm(n_G, cnt,t, t_key, i, i_key, m)
-
-
+rm(last_date)
 
 #---- prepare data ----#
 
+md$I <- length(unique(md$idx$i))
+md$T <- length(unique(md$idx$t))
+
 # Facebook 
-md$idx_F <- idx_F
-md$y_F <- idx_F$value
+md$y_F <- md$idx_F$value
 md$n_F <- length(md$y_F)
-md$ti_F <- idx_F$ti_F
+md$ti_F <- md$idx_F$ti
 
 # Instagram
-md$idx_G <- idx_G
-md$y_G <- idx_G$value
+md$y_G <- md$idx_G$value
 md$n_G <- length(md$y_G)
-md$ti_G <- idx_G$ti_G
+md$ti_G <- md$idx_G$ti
 
-rm(idx_F, idx_G)
 
 # Facebook:Instagram ratio
 md$ti_FG <- unique(md$ti_F[which(md$ti_F %in% md$ti_G)])
@@ -161,32 +88,29 @@ weekly_avg <- outside_border |>
   mutate(week = floor_date(as.Date(date), 'week', week_start=1)) |>
   group_by(week) |>
   summarise(avg_value = mean(individuals, na.rm=TRUE)) |>
-  filter(week >= min(as.Date(md$idx$t_key, format='%Y%m%d')) & 
-           week <= max(as.Date(md$idx$t_key, format='%Y%m%d')))
+  filter(week >= min(md$idx$t_name) & 
+           week <= max(md$idx$t_name))
 
-md$y_N_tot <- sum(md$N0) - weekly_avg$avg_value
+md$y_N_tot <- c(sum(md$N0), as.integer(sum(md$N0) - weekly_avg$avg_value))
 
 rm(weekly_avg)
 
 
 # indexing: long format for N
-md$ti_N0 <- idx$ti[idx$t==1]
-md$ti_N <- idx$ti[idx$t>1]
-md$ti_N_lag <- idx$ti[idx$t>1]-md$I
+md$ti_N0 <- md$idx$ti[md$idx$t==1]
+md$ti_N <- md$idx$ti[md$idx$t>1]
+md$ti_N_lag <- md$idx$ti[md$idx$t>1]-md$I
 
-md$tt <- idx$t
-md$ii <- idx$i
+md$tt <- md$idx$t
+md$ii <- md$idx$i
 
 
 ## covariates
 md$K <- 2
-md$X <- matrix(0, nrow=nrow(idx), ncol=md$K)
+md$X <- matrix(0, nrow=nrow(md$idx), ncol=md$K)
 colnames(md$X) <- paste0('x', 1:md$K)
-rownames(md$X) <- idx$ti
+rownames(md$X) <- md$idx$ti
 
-
-
-rm(idx, ti)
 
 ## save to disk ##
 saveRDS(md, file.path(outdir, paste0('md_', model_name, '.rds')))
@@ -200,19 +124,21 @@ init_generator <- function(md=md, chain_id=1){
   result <- list()
   
   N <- matrix(NA, nrow=md$T, ncol=md$I)
-  theta <- rep(NA, md$I)
   for(t in 1:md$T){
+    theta <- rep(1, md$I)
+    
     for(i in 1:md$I){
       ti <- unique(md$idx$ti[md$idx$t==t & md$idx$i==i])
       if(any(md$ti_F %in% ti)){
         theta[i] <- max(md$y_F[which(md$ti_F %in% ti)], na.rm=T) / md$y_N_tot[t]
-      }
+        if(!is.finite(theta[i])){stop()}
+      } 
     }
     theta[!is.finite(theta)] <- mean(theta[is.finite(theta)])
     
     theta <- theta / sum(theta)
     
-    N[t,] <- rbinom(md$I, md$y_N_tot[t], theta)
+    N[t,] <- rbinom(md$I, md[['y_N_tot']][t], theta)
   }
 
   result[['N_tot']] <- md$y_N_tot

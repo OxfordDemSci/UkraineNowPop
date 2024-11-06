@@ -1,5 +1,6 @@
 # cleanup
-rm(list=ls()); gc(); cat("\014"); try(dev.off(), silent=T)
+rm(list=ls())
+gc()
 
 # load libraries
 library(cmdstanr)
@@ -19,13 +20,21 @@ indir <- file.path(wd, 'in')
 outdir <- file.path(wd, 'out', 'modelling', 'nmixture')
 dir.create(outdir, showWarnings=F, recursive=T)
 
-# load data
+#---- load data ----#
+
+# baseline population
 codps <- read.csv(file.path(indir, 'COD-PS', 'population_baseline.csv'))
 row.names(codps) <- codps$fb_key
 
+# border crossings
 outside_border <- read.csv(file.path(wd, 'out', 'population_proxy', 'crossing_borders', 'dat_refugees.csv'))
 
+# master index
+idx <- read.csv(file.path(wd, 'out', 'population_proxy', 'social_media_audience', 'ua_master_index.csv'))
 
+# social media audiences
+idx_F <- read.csv(file.path(wd, 'out', 'population_proxy', 'social_media_audience', 'ua_facebook_audience.csv'))
+idx_G <- read.csv(file.path(wd, 'out', 'population_proxy', 'social_media_audience', 'ua_instagram_audience.csv'))
 
 #---- configure model ----#
 
