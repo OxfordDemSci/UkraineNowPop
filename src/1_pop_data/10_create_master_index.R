@@ -27,7 +27,7 @@ date_end <- '2024-11-01'
 
 country <- "UA"
 
-meta_keys <- read_csv(file.path(out_dir, paste0(tolower(country), "_meta_keys.csv")))
+meta_keys <- read_csv(file.path(in_dir, paste0(tolower(country), "_meta_keys.csv")))
 
 output_label <- ''
 
