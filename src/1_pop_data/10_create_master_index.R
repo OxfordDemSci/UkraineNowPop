@@ -1,3 +1,7 @@
+# cleanup
+rm(list = ls())
+gc()
+
 # Load required helpers
 source("R_helpers/generic.R")
 source("R_helpers/data_querying.R")
@@ -15,57 +19,57 @@ agesex <- c("T_13Plus")
 
 # Function to create regular age groupings
 # create_regular_group <- function(age_gap, gender = c("F", "M"), age_max=60) {
-#     age_group <- c(paste(seq(from = 20, to = age_max-age_gap, by = age_gap), 
+#     age_group <- c(paste(seq(from = 20, to = age_max-age_gap, by = age_gap),
 #     seq(from = 20+age_gap-1, to = age_max, by = age_gap), sep = "_"), paste0(age_max, 'Plus'))
 #   lapply(gender, function(g) paste(g, age_group, sep = "_")) |> unlist()
 # }
 # agesex <- create_regular_group(10)
 
 # date
-date_start <- '2022-02-25'
-date_end <- '2024-11-01'
+date_start <- "2022-02-25"
+date_end <- "2023-02-24"
 
 country <- "UA"
 
 meta_keys <- read_csv(file.path(in_dir, paste0(tolower(country), "_meta_keys.csv")))
-pcodes <- read_csv(file = file.path(in_dir,"COD-PS", "population_baseline.csv"))
+pcodes <- read_csv(file = file.path(in_dir, "COD-PS", "population_baseline.csv"))
 
-output_label <- ''
+output_label <- ""
 
 # create master_index ----------------------------------------------------
 
-geo_index <- meta_keys |> 
+geo_index <- meta_keys |>
   rename(i_name = geo_name, i_key = geo_key) |>
-  distinct(i_name, i_key) |> 
+  distinct(i_name, i_key) |>
   left_join(
     pcodes |>
       select(fb_key, ADM1_PCODE, ADM1_EN) |>
       rename(i_key = fb_key)
-  ) |> 
-  arrange(i_key) |> 
+  ) |>
+  arrange(i_key) |>
   mutate(i = 1:n())
 
 time_index <- tibble(
   collection_date = seq(as.Date(date_start), as.Date(date_end), by = 1),
-) |> 
-  arrange(collection_date) |> 
+) |>
+  arrange(collection_date) |>
   mutate(
-    t = paste0(as.numeric(format(collection_date, "%y")) ,as.numeric(format(collection_date, "%W"))) |> 
-      as_factor() |> 
+    t = paste0(as.numeric(format(collection_date, "%y")), as.numeric(format(collection_date, "%W"))) |>
+      as_factor() |>
       as.numeric()
-  ) 
+  )
 
-agesex_index <- lapply(agesex, function(agesex_) agesex_col_to_query_args(agesex_) |> as_tibble())|> 
-  bind_rows() |> 
-  arrange(age_min) |> 
+agesex_index <- lapply(agesex, function(agesex_) agesex_col_to_query_args(agesex_) |> as_tibble()) |>
+  bind_rows() |>
+  arrange(age_min) |>
   mutate(
     a_name = str_sub(agesex, 3),
     a = as.numeric(factor(paste0(age_min, age_max))),
-    a_key = paste0(age_min,str_pad(age_max, 3, pad = "0")) |> as.numeric(),
+    a_key = paste0(age_min, str_pad(age_max, 3, pad = "0")) |> as.numeric(),
     s_name = str_sub(agesex, 1, 1),
-    s=gender,
+    s = gender,
     s_key = gender
-  ) |> 
+  ) |>
   select(-age_min, -age_max, -gender)
 
 master_index <- expand_grid(
@@ -73,21 +77,21 @@ master_index <- expand_grid(
   i = geo_index$i,
   a = unique(agesex_index$a),
   s = unique(agesex_index$s)
-) |> 
-  left_join(time_index |> 
+) |>
+  left_join(time_index |>
     arrange(collection_date) |>
     group_by(t) |>
-    filter(row_number()==1) |> 
-    rename(t_name= collection_date) |>
+    filter(row_number() == 1) |>
+    rename(t_name = collection_date) |>
     mutate(
       t_key = str_replace_all(as.character(t_name), "-", "") |> as.numeric()
-    ), by = "t") |> 
-  left_join(geo_index, by = "i") |> 
-  left_join(agesex_index, by = c("a", "s")) |> 
+    ), by = "t") |>
+  left_join(geo_index, by = "i") |>
+  left_join(agesex_index, by = c("a", "s")) |>
   arrange(t, i, a, s)
 
 
 # Write output -----------------------------------------------------------
 
-write_csv(master_index, file.path(out_dir, paste0(tolower(country), "_master_index",output_label,".csv")))
-write_csv(time_index, file.path(out_dir, paste0(tolower(country), "_time_index",output_label,".csv")))
+write_csv(master_index, file.path(out_dir, paste0(tolower(country), "_master_index", output_label, ".csv")))
+write_csv(time_index, file.path(out_dir, paste0(tolower(country), "_time_index", output_label, ".csv")))

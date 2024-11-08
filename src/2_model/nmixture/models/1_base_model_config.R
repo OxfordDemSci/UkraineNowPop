@@ -3,7 +3,7 @@
 md <- list()
 
 # set seed for random number generators
-if('seed' %in% names(md)){
+if ("seed" %in% names(md)) {
   seed <- md$seed
 } else {
   seed <- round(runif(1, 1, 1e6))
@@ -13,30 +13,26 @@ set.seed(seed)
 
 #---- indexes ----#
 
-last_date <- '2023-02-25'
+last_date <- "2023-02-25" # max(idx$t_name)
 
 # master index
 md$idx <- idx |>
-  filter(a_name=='13Plus' & s_key==0) |>
-  select(t, i, t_key, i_key) |>
+  select(t, i, t_key, t_name, i_key, i_name) |>
   arrange(t, i) |>
-  mutate(ti = row_number(),
-        t_name = floor_date(as.Date(as.character(t_key), format='%Y%m%d'), 'week', week_start=1)) |>
+  mutate(ti = row_number()) |>
   filter(t_name <= last_date)
 
 # Facebook
 md$idx_F <- idx_F |>
-  filter(a==idx$a[idx$a_name=='13Plus'][1] & s==idx$s[idx$s_key==0][1]) |>
   select(t, i, m, value) |>
   right_join(md$idx |> select(t, i, ti)) |>
   filter(value > 0 & is.finite(value))
 
 # Instagram
 md$idx_G <- idx_G |>
-  filter(a==idx$a[idx$a_name=='13Plus'][1] & s==idx$s[idx$s_key==0][1]) |>
   select(t, i, m, value) |>
   right_join(md$idx |> select(t, i, ti)) |>
-    filter(value > 0 & is.finite(value))
+  filter(value > 0 & is.finite(value))
 
 rm(last_date)
 
@@ -45,7 +41,7 @@ rm(last_date)
 md$I <- length(unique(md$idx$i))
 md$T <- length(unique(md$idx$t))
 
-# Facebook 
+# Facebook
 md$y_F <- md$idx_F$value
 md$n_F <- length(md$y_F)
 md$ti_F <- md$idx_F$ti
@@ -61,7 +57,7 @@ md$ti_FG <- unique(md$ti_F[which(md$ti_F %in% md$ti_G)])
 md$n_FG <- length(md$ti_FG)
 
 md$y_FG_ratio <- c()
-for(i in 1:length(md$ti_FG)){
+for (i in 1:length(md$ti_FG)) {
   ti <- md$ti_FG[i]
   G_ti <- mean(md$y_G[which(md$ti_G == ti)])
   F_ti <- mean(md$y_F[which(md$ti_F == ti)])
@@ -69,7 +65,7 @@ for(i in 1:length(md$ti_FG)){
 }
 
 drop <- which(!is.finite(md$y_FG_ratio))
-if(length(drop) > 0){
+if (length(drop) > 0) {
   md$y_FG_ratio <- md$y_FG_ratio[-drop]
   md$ti_FG <- md$ti_FG[-drop]
   md$n_FG <- md$n_FG - length(drop)
@@ -81,15 +77,15 @@ rm(drop, F_ti, G_ti, i)
 ## population ##
 
 # baseline population
-md$N0 <- codps[as.character(unique(idx$i_key[order(idx$i)])),'T_TL']
+md$N0 <- codps[as.character(unique(idx$i_key[order(idx$i)])), "T_TL"]
 
 # total population at each time step
 weekly_avg <- outside_border |>
-  mutate(week = floor_date(as.Date(date), 'week', week_start=1)) |>
+  mutate(week = floor_date(as.Date(date), "week", week_start = 1)) |>
   group_by(week) |>
-  summarise(avg_value = mean(individuals, na.rm=TRUE)) |>
-  filter(week >= min(md$idx$t_name) & 
-           week <= max(md$idx$t_name))
+  summarise(avg_value = mean(individuals, na.rm = TRUE)) |>
+  filter(week >= min(md$idx$t_name) &
+    week <= max(md$idx$t_name))
 
 md$y_N_tot <- c(sum(md$N0), as.integer(sum(md$N0) - weekly_avg$avg_value))
 
@@ -97,9 +93,9 @@ rm(weekly_avg)
 
 
 # indexing: long format for N
-md$ti_N0 <- md$idx$ti[md$idx$t==1]
-md$ti_N <- md$idx$ti[md$idx$t>1]
-md$ti_N_lag <- md$idx$ti[md$idx$t>1]-md$I
+md$ti_N0 <- md$idx$ti[md$idx$t == 1]
+md$ti_N <- md$idx$ti[md$idx$t > 1]
+md$ti_N_lag <- md$idx$ti[md$idx$t > 1] - md$I
 
 md$tt <- md$idx$t
 md$ii <- md$idx$i
@@ -107,56 +103,57 @@ md$ii <- md$idx$i
 
 ## covariates
 md$K <- 2
-md$X <- matrix(0, nrow=nrow(md$idx), ncol=md$K)
-colnames(md$X) <- paste0('x', 1:md$K)
+md$X <- matrix(0, nrow = nrow(md$idx), ncol = md$K)
+colnames(md$X) <- paste0("x", 1:md$K)
 rownames(md$X) <- md$idx$ti
 
 
 ## save to disk ##
-saveRDS(md, file.path(outdir, paste0('md_', model_name, '.rds')))
+saveRDS(md, file.path(outdir, paste0("md_", model_name, ".rds")))
 
 
 
 
 
 #---- initial values ----#
-init_generator <- function(md=md, chain_id=1){
+init_generator <- function(md = md, chain_id = 1) {
   result <- list()
-  
-  N <- matrix(NA, nrow=md$T, ncol=md$I)
-  for(t in 1:md$T){
+
+  N <- matrix(NA, nrow = md$T, ncol = md$I)
+  for (t in 1:md$T) {
     theta <- rep(1, md$I)
-    
-    for(i in 1:md$I){
-      ti <- unique(md$idx$ti[md$idx$t==t & md$idx$i==i])
-      if(any(md$ti_F %in% ti)){
-        theta[i] <- max(md$y_F[which(md$ti_F %in% ti)], na.rm=T) / md$y_N_tot[t]
-        if(!is.finite(theta[i])){stop()}
-      } 
+
+    for (i in 1:md$I) {
+      ti <- unique(md$idx$ti[md$idx$t == t & md$idx$i == i])
+      if (any(md$ti_F %in% ti)) {
+        theta[i] <- max(md$y_F[which(md$ti_F %in% ti)], na.rm = T) / md$y_N_tot[t]
+        if (!is.finite(theta[i])) {
+          stop()
+        }
+      }
     }
     theta[!is.finite(theta)] <- mean(theta[is.finite(theta)])
-    
+
     theta <- theta / sum(theta)
-    
-    N[t,] <- rbinom(md$I, md[['y_N_tot']][t], theta)
+
+    N[t, ] <- rbinom(md$I, md[["y_N_tot"]][t], theta)
   }
 
-  result[['N_tot']] <- md$y_N_tot
-  result[['N']] <- reshape2::melt(N, varnames=c('T', 'I'))$value
-  result[['r']] <- rlnorm(md$T * md$I, 0, 0.1)
-  result[['sigma_r']] <- runif(1, 0, 0.5)
-  result[['mu_r']] <- rnorm(md$T * md$I, 0, 0.1)
-  result[['alpha_r']] <- rnorm(1, 0, 3)
-  result[['beta_r']] <- rnorm(md$K, 0, 1)
+  result[["N_tot"]] <- md$y_N_tot
+  result[["N"]] <- reshape2::melt(N, varnames = c("T", "I"))$value
+  result[["r"]] <- rlnorm(md$T * md$I, 0, 0.1)
+  result[["sigma_r"]] <- runif(1, 0, 0.5)
+  result[["mu_r"]] <- rnorm(md$T * md$I, 0, 0.1)
+  result[["alpha_r"]] <- rnorm(1, 0, 3)
+  result[["beta_r"]] <- rnorm(md$K, 0, 1)
 
-  result[['p_F']] <- rlnorm(md$T * md$I, log(mean(md$y_F, na.rm=T)/mean(md$N0)), 0.5)
-  result[['mu_p_F']] <- rnorm(1, 1, 1)
-  result[['sigma_p_F']] <- runif(1, 0, 0.05)
+  result[["p_F"]] <- rlnorm(md$T * md$I, log(mean(md$y_F, na.rm = T) / mean(md$N0)), 0.5)
+  result[["mu_p_F"]] <- rnorm(1, 1, 1)
+  result[["sigma_p_F"]] <- runif(1, 0, 0.05)
 
-  result[['p_G']] <- rlnorm(md$T * md$I, log(mean(md$y_G, na.rm=T)/mean(md$N0)), 0.5)
-  result[['mu_p_G']] <- rnorm(1, 1, 1)
-  result[['sigma_p_G']] <- runif(1, 0, 0.05)
+  result[["p_G"]] <- rlnorm(md$T * md$I, log(mean(md$y_G, na.rm = T) / mean(md$N0)), 0.5)
+  result[["mu_p_G"]] <- rnorm(1, 1, 1)
+  result[["sigma_p_G"]] <- runif(1, 0, 0.05)
 
   return(result)
 }
-
