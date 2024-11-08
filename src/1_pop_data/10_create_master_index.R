@@ -47,28 +47,33 @@ geo_index <- meta_keys |>
       rename(i_key = fb_key)
   ) |>
   arrange(i_key) |>
-  mutate(i = 1:n())
+  mutate(
+    i = 1:n(),
+    i_key = as.integer(i_key)
+  )
 
 time_index <- tibble(
-  collection_date = seq(as.Date(date_start), as.Date(date_end), by = 1),
+  collection_date = seq(as.Date(date_start), as.Date(date_end), by = 1)
 ) |>
-  arrange(collection_date) |>
   mutate(
-    t = paste0(as.numeric(format(collection_date, "%y")), as.numeric(format(collection_date, "%W"))) |>
-      as_factor() |>
-      as.numeric()
-  )
+    t_name = floor_date(as.Date(collection_date), "week", week_start = 1),
+    t_key = str_replace_all(as.character(t_name), "-", "") |> as.integer()
+  ) |>
+  select(t_name, t_key) |>
+  distinct() |>
+  arrange(t_name) |>
+  mutate(t = 1:n())
 
 agesex_index <- lapply(agesex, function(agesex_) agesex_col_to_query_args(agesex_) |> as_tibble()) |>
   bind_rows() |>
   arrange(age_min) |>
   mutate(
     a_name = str_sub(agesex, 3),
-    a = as.numeric(factor(paste0(age_min, age_max))),
-    a_key = paste0(age_min, str_pad(age_max, 3, pad = "0")) |> as.numeric(),
+    a = as.integer(factor(paste0(age_min, age_max))),
+    a_key = paste0(age_min, str_pad(age_max, 3, pad = "0")) |> as.integer(),
     s_name = str_sub(agesex, 1, 1),
-    s = gender,
-    s_key = gender
+    s = as.integer(gender + 1),
+    s_key = as.integer(gender)
   ) |>
   select(-age_min, -age_max, -gender)
 
@@ -78,14 +83,7 @@ master_index <- expand_grid(
   a = unique(agesex_index$a),
   s = unique(agesex_index$s)
 ) |>
-  left_join(time_index |>
-    arrange(collection_date) |>
-    group_by(t) |>
-    filter(row_number() == 1) |>
-    rename(t_name = collection_date) |>
-    mutate(
-      t_key = str_replace_all(as.character(t_name), "-", "") |> as.numeric()
-    ), by = "t") |>
+  left_join(time_index, by = "t") |>
   left_join(geo_index, by = "i") |>
   left_join(agesex_index, by = c("a", "s")) |>
   arrange(t, i, a, s)

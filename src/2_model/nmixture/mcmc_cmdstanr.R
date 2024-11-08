@@ -6,6 +6,7 @@ gc()
 library(cmdstanr)
 library(posterior)
 library(bayesplot)
+library(tidyverse)
 
 # check working directory
 getwd()
@@ -30,7 +31,7 @@ row.names(codps) <- codps$fb_key
 outside_border <- read.csv(file.path(wd, 'out', 'population_proxy', 'crossing_borders', 'dat_refugees.csv'))
 
 # master index
-idx <- read.csv(file.path(wd, 'out', 'population_proxy', 'social_media_audience', 'ua_master_index.csv'))
+idx <- read.csv(file.path(wd, 'out', 'ua_master_index.csv'))
 
 # social media audiences
 idx_F <- read.csv(file.path(wd, 'out', 'population_proxy', 'social_media_audience', 'ua_facebook_audience.csv'))
@@ -51,7 +52,7 @@ source(file.path(srcdir, 'models', paste0(model_name, '_config.R')))
 # MCMC configuration
 chains <- 4
 warmup <- 2e3
-samples <- 2e3
+samples <- 4e3
 inits <- lapply(1:chains, function(id) init_generator(md=md, chain_id=id))
 
 # compile the stan model

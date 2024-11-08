@@ -1,5 +1,4 @@
 # model data
-
 md <- list()
 
 # set seed for random number generators
@@ -20,7 +19,7 @@ md$idx <- idx |>
   select(t, i, t_key, t_name, i_key, i_name) |>
   arrange(t, i) |>
   mutate(ti = row_number()) |>
-  filter(t_name <= last_date)
+  filter(t_name <= floor_date(as.Date(last_date), "week", week_start = 1))
 
 # Facebook
 md$idx_F <- idx_F |>
@@ -87,7 +86,7 @@ weekly_avg <- outside_border |>
   filter(week >= min(md$idx$t_name) &
     week <= max(md$idx$t_name))
 
-md$y_N_tot <- c(sum(md$N0), as.integer(sum(md$N0) - weekly_avg$avg_value))
+md$y_N_tot <- as.integer(sum(md$N0) - weekly_avg$avg_value)
 
 rm(weekly_avg)
 
@@ -113,30 +112,21 @@ saveRDS(md, file.path(outdir, paste0("md_", model_name, ".rds")))
 
 
 
-
-
 #---- initial values ----#
 init_generator <- function(md = md, chain_id = 1) {
   result <- list()
 
   N <- matrix(NA, nrow = md$T, ncol = md$I)
-  for (t in 1:md$T) {
-    theta <- rep(1, md$I)
+  theta <- md$N0 / sum(md$N0)
 
+  N <- t(rmultinom(n = md$T, size = md$y_N_tot, prob = md$N0 / sum(md$N0)))
+  for (t in 1:md$T) {
     for (i in 1:md$I) {
-      ti <- unique(md$idx$ti[md$idx$t == t & md$idx$i == i])
-      if (any(md$ti_F %in% ti)) {
-        theta[i] <- max(md$y_F[which(md$ti_F %in% ti)], na.rm = T) / md$y_N_tot[t]
-        if (!is.finite(theta[i])) {
-          stop()
-        }
+      ti <- which(md$tt == t & md$ii == i)
+      if (any(md$y_F[md$ti_F == ti] > N[t, i])) {
+        N[t, i] <- max(md$y_F[md$ti_F == ti])
       }
     }
-    theta[!is.finite(theta)] <- mean(theta[is.finite(theta)])
-
-    theta <- theta / sum(theta)
-
-    N[t, ] <- rbinom(md$I, md[["y_N_tot"]][t], theta)
   }
 
   result[["N_tot"]] <- md$y_N_tot
