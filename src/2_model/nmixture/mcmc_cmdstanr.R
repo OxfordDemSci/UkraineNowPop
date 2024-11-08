@@ -1,10 +1,12 @@
 # cleanup
-rm(list=ls()); gc(); cat("\014"); try(dev.off(), silent=T)
+rm(list=ls())
+gc()
 
 # load libraries
 library(cmdstanr)
 library(posterior)
 library(bayesplot)
+library(tidyverse)
 
 # check working directory
 getwd()
@@ -19,13 +21,21 @@ indir <- file.path(wd, 'in')
 outdir <- file.path(wd, 'out', 'modelling', 'nmixture')
 dir.create(outdir, showWarnings=F, recursive=T)
 
-# load data
+#---- load data ----#
+
+# baseline population
 codps <- read.csv(file.path(indir, 'COD-PS', 'population_baseline.csv'))
 row.names(codps) <- codps$fb_key
 
+# border crossings
 outside_border <- read.csv(file.path(wd, 'out', 'population_proxy', 'crossing_borders', 'dat_refugees.csv'))
 
+# master index
+idx <- read.csv(file.path(wd, 'out', 'ua_master_index.csv'))
 
+# social media audiences
+idx_F <- read.csv(file.path(wd, 'out', 'population_proxy', 'social_media_audience', 'ua_facebook_audience.csv'))
+idx_G <- read.csv(file.path(wd, 'out', 'population_proxy', 'social_media_audience', 'ua_instagram_audience.csv'))
 
 #---- configure model ----#
 
@@ -42,7 +52,7 @@ source(file.path(srcdir, 'models', paste0(model_name, '_config.R')))
 # MCMC configuration
 chains <- 4
 warmup <- 2e3
-samples <- 2e3
+samples <- 4e3
 inits <- lapply(1:chains, function(id) init_generator(md=md, chain_id=id))
 
 # compile the stan model
