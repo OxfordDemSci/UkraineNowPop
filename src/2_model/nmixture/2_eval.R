@@ -139,33 +139,21 @@ dir.create(file.path(outdir, model_name, "eval", "trace_plots"), showWarnings = 
 
 
 ## global parameters
-jpeg(
-  filename = file.path(outdir, model_name, "eval", "trace_plots", "global_parameters.jpg"),
-  height = 720, width = 720
-)
-
 pars <- c("alpha_r", "beta_r", "sigma_r", "mu_p_F", "sigma_p_F", "mu_p_G", "sigma_p_G")
-mcmc_trace(fit$draws(pars))
+trace_plot <- mcmc_trace(fit$draws(pars))
 
-dev.off()
+ggplot2::ggsave(trace_plot, filename = file.path(outdir, model_name, "eval", "trace_plots", "global_parameters.jpg"))
 
 
 ## location-time-specific parameters
 for (i in 1:md$I) {
   for (t in 1:md$T) {
     i_name <- gsub(" ", "_", paste(i, t, unique(md$idx$i_name[md$idx$i == i])))
-
-    jpeg(
-      filename = file.path(outdir, model_name, "eval", "trace_plots", paste0(i_name, ".jpg")),
-      height = 720, width = 720
-    )
-
     j <- which(md$tt == t & md$ii == i)
 
     pars <- c(paste0(c("N", "r", "p_F", "p_G"), "[", j, "]"))
+    trace_plot <- mcmc_trace(fit$draws(pars))
 
-    mcmc_trace(fit$draws(pars))
-
-    dev.off()
+    ggplot2::ggsave(trace_plot, filename = file.path(outdir, model_name, "eval", "trace_plots", paste0(i_name, ".jpg")))
   }
 }
