@@ -7,45 +7,52 @@ library(cmdstanr)
 library(posterior)
 library(bayesplot)
 library(tidyverse)
+library(here)
 
-# check working directory
-getwd()
-
-# working directory
-wd <- file.path(getwd(), "wd")
-dir.create(wd, recursive = T, showWarnings = F)
+# load environment
+env <- new.env()
+source(here::here(".env"), local = env)
 
 # directories
-srcdir <- file.path("src", "2_model", "nmixture")
-indir <- file.path(wd, "in")
-outdir <- file.path(wd, "out", "modelling", "nmixture")
-dir.create(outdir, showWarnings = F, recursive = T)
+repo_dir <- env$repo_dir
+src_dir <- file.path(repo_dir, "src", "2_model", "nmixture")
+
+wd <- file.path(repo_dir, "wd")
+dir.create(wd, showWarnings = F, recursive = T)
+setwd(wd)
+
+in_dir <- env$in_dir
+out_dir <- file.path(env$out_dir, "modelling", "nmixture")
+dir.create(out_dir, showWarnings = F, recursive = T)
+
 
 #---- load data ----#
 
 # baseline population
-codps <- read.csv(file.path(indir, "COD-PS", "population_baseline.csv"))
+codps <- read.csv(file.path(in_dir, "COD-PS", "population_baseline.csv"))
 row.names(codps) <- codps$fb_key
 
 # border crossings
-outside_border <- read.csv(file.path(wd, "out", "population_proxy", "crossing_borders", "dat_refugees.csv"))
+outside_border <- read.csv(file.path(out_dir, "population_proxy", "crossing_borders", "dat_refugees.csv"))
 
 # master index
-idx <- read.csv(file.path(wd, "out", "ua_master_index.csv"))
+idx <- read.csv(file.path(out_dir, "ua_master_index.csv"))
 
 # social media audiences
-idx_F <- read.csv(file.path(wd, "out", "population_proxy", "social_media_audience", "ua_facebook_audience.csv"))
-idx_G <- read.csv(file.path(wd, "out", "population_proxy", "social_media_audience", "ua_instagram_audience.csv"))
+idx_F <- read.csv(file.path(out_dir, "population_proxy", "social_media_audience", "ua_facebook_audience.csv"))
+idx_G <- read.csv(file.path(out_dir, "population_proxy", "social_media_audience", "ua_instagram_audience.csv"))
+
+
 
 #---- configure model ----#
 
 # define model name
 model_name <- "1_base_model"
 
-dir.create(file.path(outdir, model_name, 'mcmc'), recursive=T, showWarnings=F)
+dir.create(file.path(out_dir, model_name, "mcmc"), recursive = T, showWarnings = F)
 
 # soure model-specific config code
-source(file.path(srcdir, "models", paste0(model_name, "_config.R")))
+source(file.path(src_dir, "models", paste0(model_name, "_config.R")))
 
 
 
@@ -58,7 +65,7 @@ samples <- 4e3
 inits <- lapply(1:chains, function(id) init_generator(md = md, chain_id = id))
 
 # compile the stan model
-mod <- cmdstan_model(file.path(srcdir, "models", paste0(model_name, ".stan")))
+mod <- cmdstan_model(file.path(src_dir, "models", paste0(model_name, ".stan")))
 
 # run MCMC to sample from the posterior distribution of our model, given our data
 fit <- mod$sample(
@@ -72,4 +79,4 @@ fit <- mod$sample(
 )
 
 # save fitted model to disk
-fit$save_object(file = file.path(outdir, model_name, 'mcmc', paste0("fit_", model_name, ".rds")))
+fit$save_object(file = file.path(out_dir, model_name, "mcmc", paste0("fit_", model_name, ".rds")))
