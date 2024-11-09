@@ -6,24 +6,31 @@ gc()
 library(cmdstanr)
 library(posterior)
 library(bayesplot)
+library(here)
 
-# check working directory
-getwd()
-
-# working directory
-wd <- file.path(getwd(), "wd")
-dir.create(wd, recursive = T, showWarnings = F)
+# load environment
+env <- new.env()
+source(here::here(".env"), local = env)
 
 # directories
-outdir <- file.path(wd, "out", "modelling", "nmixture")
+repo_dir <- env$repo_dir
+src_dir <- file.path(repo_dir, "src", "2_model", "nmixture")
+
+wd <- file.path(repo_dir, "wd")
+dir.create(wd, showWarnings = F, recursive = T)
+setwd(wd)
+
+in_dir <- env$in_dir
+out_dir <- file.path(env$out_dir, "modelling", "nmixture")
+dir.create(out_dir, showWarnings = F, recursive = T)
 
 
 
 #---- load data ----#
 model_name <- "1_base_model"
 
-fit <- readRDS(file.path(outdir, model_name, "mcmc", paste0("fit_", model_name, ".rds")))
-md <- readRDS(file.path(outdir, model_name, "mcmc", paste0("md_", model_name, ".rds")))
+fit <- readRDS(file.path(out_dir, model_name, "mcmc", paste0("fit_", model_name, ".rds")))
+md <- readRDS(file.path(out_dir, model_name, "mcmc", paste0("md_", model_name, ".rds")))
 
 
 
@@ -34,12 +41,56 @@ print(fit_summary)
 not_converged <- which(fit_summary[["rhat"]] > 1.1) # 1.01 is cutoff for publication quality
 fit_summary[not_converged, ]
 
-write.csv(fit_summary, file.path(outdir, model_name, "eval", "fit_summary.csv"), row.names = F)
+write.csv(fit_summary, file.path(out_dir, model_name, "eval", "fit_summary.csv"), row.names = F)
+
+
+
+#---- check total population ----#
+jpeg(
+  filename = file.path(out_dir, model_name, "eval", "total_population.jpg"),
+  height = 720, width = 720
+)
+
+names_N_tot <- paste0("N_tot[", 1:md$T, "]")
+N_tot <- apply(fit$draws(names_N_tot, format = "df"), 2, mean)
+
+plot(
+  x = md$y_N_tot,
+  y = N_tot[names_N_tot],
+  main = "Total Population Check",
+  xlab = "Observed",
+  ylab = "Predicted"
+)
+abline(0, 1, col = "red")
+
+dev.off()
+
+
+
+#---- check observation ratios ----#
+jpeg(
+  filename = file.path(out_dir, model_name, "eval", "observation_ratio.jpg"),
+  height = 720, width = 720
+)
+
+names_FG_ratio <- paste0("FG_ratio[", 1:md$n_FG, "]")
+FG_ratio <- apply(fit$draws(names_FG_ratio, format = "df"), 2, mean)
+
+plot(
+  x = md$y_FG_ratio,
+  y = FG_ratio[names_FG_ratio],
+  main = "Observation Ratio Check",
+  xlab = "Observed",
+  ylab = "Predicted"
+)
+abline(0, 1, col = "red")
+
+dev.off()
 
 
 
 #---- time series plots ----#
-dir.create(file.path(outdir, model_name, "eval", "time_series_plots"), showWarnings = F, recursive = T)
+dir.create(file.path(out_dir, model_name, "eval", "time_series_plots"), showWarnings = F, recursive = T)
 
 plot_vars <- c("N", "p_F", "p_G")
 
@@ -51,7 +102,7 @@ for (y_name in plot_vars) {
     i_name <- gsub(" ", "_", paste(i, unique(md$idx$i_name[md$idx$i == i])))
 
     jpeg(
-      filename = file.path(outdir, model_name, "eval", "time_series_plots", paste0(i_name, "_", y_name, ".jpg")),
+      filename = file.path(out_dir, model_name, "eval", "time_series_plots", paste0(i_name, "_", y_name, ".jpg")),
       height = 720, width = 720
     )
 
@@ -89,58 +140,14 @@ for (y_name in plot_vars) {
 
 
 
-#---- check total population ----#
-jpeg(
-  filename = file.path(outdir, model_name, "eval", "total_population.jpg"),
-  height = 720, width = 720
-)
+#---- trace plot checks ----#
 
-names_N_tot <- paste0("N_tot[", 1:md$T, "]")
-N_tot <- apply(fit$draws(names_N_tot, format = "df"), 2, mean)
-
-plot(
-  x = md$y_N_tot,
-  y = N_tot[names_N_tot],
-  main = "Total Population Check",
-  xlab = "Observed",
-  ylab = "Predicted"
-)
-abline(0, 1, col = "red")
-
-dev.off()
-
-
-
-#---- check observation ratios ----#
-jpeg(
-  filename = file.path(outdir, model_name, "eval", "observation_ratio.jpg"),
-  height = 720, width = 720
-)
-
-names_FG_ratio <- paste0("FG_ratio[", 1:md$n_FG, "]")
-FG_ratio <- apply(fit$draws(names_FG_ratio, format = "df"), 2, mean)
-
-plot(
-  x = md$y_FG_ratio,
-  y = FG_ratio[names_FG_ratio],
-  main = "Observation Ratio Check",
-  xlab = "Observed",
-  ylab = "Predicted"
-)
-abline(0, 1, col = "red")
-
-dev.off()
-
-
-
-#---- trace plot checks (long format) ----#
-
-dir.create(file.path(outdir, model_name, "eval", "trace_plots"), showWarnings = F, recursive = T)
+dir.create(file.path(out_dir, model_name, "eval", "trace_plots"), showWarnings = F, recursive = T)
 
 
 ## global parameters
 jpeg(
-  filename = file.path(outdir, model_name, "eval", "trace_plots", "global_parameters.jpg"),
+  filename = file.path(out_dir, model_name, "eval", "trace_plots", "global_parameters.jpg"),
   height = 720, width = 720
 )
 
@@ -156,7 +163,7 @@ for (i in 1:md$I) {
     i_name <- gsub(" ", "_", paste(i, t, unique(md$idx$i_name[md$idx$i == i])))
 
     jpeg(
-      filename = file.path(outdir, model_name, "eval", "trace_plots", paste0(i_name, ".jpg")),
+      filename = file.path(out_dir, model_name, "eval", "trace_plots", paste0(i_name, ".jpg")),
       height = 720, width = 720
     )
 
