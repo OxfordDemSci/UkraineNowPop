@@ -149,7 +149,7 @@ dir.create(file.path(out_dir, model_name, "eval", "trace_plots"), showWarnings =
 pars <- c("alpha_r", "beta_r", "sigma_r", "mu_p_F", "sigma_p_F", "mu_p_G", "sigma_p_G")
 trace_plot <- mcmc_trace(fit$draws(pars))
 
-ggplot2::ggsave(trace_plot, filename = file.path(outdir, model_name, "eval", "trace_plots", "global_parameters.jpg"))
+ggplot2::ggsave(trace_plot, filename = file.path(out_dir, model_name, "eval", "trace_plots", "global_parameters.jpg"))
 
 
 ## location-time-specific parameters
@@ -161,6 +161,6 @@ for (i in 1:md$I) {
     pars <- c(paste0(c("N", "r", "p_F", "p_G"), "[", j, "]"))
     trace_plot <- mcmc_trace(fit$draws(pars))
 
-    ggplot2::ggsave(trace_plot, filename = file.path(outdir, model_name, "eval", "trace_plots", paste0(i_name, ".jpg")))
+    ggplot2::ggsave(trace_plot, filename = file.path(out_dir, model_name, "eval", "trace_plots", paste0(i_name, ".jpg")))
   }
 }
