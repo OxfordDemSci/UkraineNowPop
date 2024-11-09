@@ -93,7 +93,7 @@ dev.off()
 dir.create(file.path(out_dir, model_name, "eval", "time_series_plots"), showWarnings = F, recursive = T)
 
 # plotting function
-plot_time_series <- function(fit, md, model_name, plot_vars = c("N", "p_F", "p_G"), locs = 1:md$I) {
+plot_time_series <- function(fit, md, model_name, plot_vars = c("N", "r", "p_F", "p_G"), locs = 1:md$I) {
   outpath <- file.path(out_dir, model_name, "eval", "time_series_plots")
 
   for (i in locs) {
@@ -163,7 +163,7 @@ plot_time_series(
   fit = fit,
   md = md,
   model_name = model_name,
-  plot_vars = c("N", "p_F", "p_G"),
+  plot_vars = c("N", "r", "p_F", "p_G"),
   locs = 1:md$I
 )
 
