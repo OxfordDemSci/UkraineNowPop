@@ -92,45 +92,65 @@ dev.off()
 #---- time series plots ----#
 dir.create(file.path(out_dir, model_name, "eval", "time_series_plots"), showWarnings = F, recursive = T)
 
-plot_vars <- c("N", "p_F", "p_G")
+# plotting function
+plot_time_series <- function(fit, md, model_name, plot_vars = c("N", "p_F", "p_G"), locs = 1:md$I) {
+  outpath <- file.path(out_dir, model_name, "eval", "time_series_plots")
 
-for (y_name in plot_vars) {
-  dat <- fit$draws(y_name, format = "df")
-
-  for (i in 1:md$I) {
-    i_dat <- dat[paste0(y_name, "[", which(md$ii == i), "]")]
+  for (i in locs) {
     i_name <- gsub(" ", "_", paste(i, unique(md$idx$i_name[md$idx$i == i])))
+    filename <- paste0(i_name, ".jpg")
 
-    jpeg(
-      filename = file.path(out_dir, model_name, "eval", "time_series_plots", paste0(i_name, "_", y_name, ".jpg")),
-      height = 720, width = 720
+    jpeg(filename = file.path(outpath, filename), height = 960, width = 720)
+
+    layout(
+      mat = matrix(1:length(plot_vars), ncol = 1, nrow = length(plot_vars)),
+      heights = rep(1, length(plot_vars))
     )
 
-    plot(NA,
-      main = i_name,
-      ylab = y_name,
-      xlab = "time",
-      xlim = c(1, md$T),
-      ylim = c(
-        min(apply(i_dat, 2, quantile, probs = c(0.025))),
-        max(apply(i_dat, 2, quantile, probs = c(0.975)))
+    for (k in 1:length(plot_vars)) {
+      y_name <- plot_vars[k]
+      col_names <- paste0(y_name, "[", which(md$ii == i), "]")
+      draws <- fit$draws(col_names, format = "df")
+
+      dat <- data.frame(mean = rep(NA, md$T), lower = NA, upper = NA)
+      for (t in 1:md$T) {
+        col_name <- paste0(y_name, "[", which(md$tt == t & md$ii == i), "]")
+        dat$mean[t] <- mean(draws[[col_name]])
+        dat$lower[t] <- quantile(draws[[col_name]], probs = c(0.025))
+        dat$upper[t] <- quantile(draws[[col_name]], probs = c(0.975))
+      }
+
+
+      par(mar = c(
+        ifelse(k == length(plot_vars), 5, 2),
+        5,
+        ifelse(k == 1, 4, 2),
+        2
+      ))
+
+      plot(
+        y = dat$mean,
+        x = 1:md$T,
+        type = "l",
+        main = ifelse(k == 1, i_name, NA),
+        ylab = y_name,
+        xlab = ifelse(k == length(plot_vars), "t", NA),
+        xlim = c(1, md$T),
+        ylim = c(min(dat$lower), max(dat$upper)),
+        cex.axis = 1.25,
+        cex.lab = 1.75,
+        cex.main = 2
       )
-    )
 
-    for (t in 1:md$T) {
-      j <- which(md$tt == t & md$ii == i)
-
-      points(
-        x = t,
-        y = mean(fit$draws(paste0(y_name, "[", j, "]")))
+      lines(
+        y = dat$lower,
+        x = 1:md$T,
+        lty = 2
       )
 
-      arrows(
-        x0 = t,
-        x1 = t,
-        y0 = quantile(fit$draws(paste0(y_name, "[", j, "]")), probs = c(0.025)),
-        y1 = quantile(fit$draws(paste0(y_name, "[", j, "]")), probs = c(0.975)),
-        length = 0,
+      lines(
+        y = dat$upper,
+        x = 1:md$T,
         lty = 2
       )
     }
@@ -138,9 +158,18 @@ for (y_name in plot_vars) {
   }
 }
 
+# make time series plots
+plot_time_series(
+  fit = fit,
+  md = md,
+  model_name = model_name,
+  plot_vars = c("N", "p_F", "p_G"),
+  locs = 1:md$I
+)
 
 
-#---- trace plot checks ----#
+
+#---- trace plots ----#
 
 dir.create(file.path(out_dir, model_name, "eval", "trace_plots"), showWarnings = F, recursive = T)
 
