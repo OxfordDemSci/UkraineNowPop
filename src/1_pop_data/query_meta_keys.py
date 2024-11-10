@@ -16,7 +16,7 @@ out_dir = Path(os.getenv('out_dir'))
 os.makedirs(out_dir, exist_ok=True)
 
 
-#---- input data ----#
+# ---- input data ----#
 country = 'UA'
 collection_name = 'ukraine_regions'
 date_start = '2022-02-26'
@@ -27,8 +27,10 @@ age_max = 999
 geo_level = 'regions'
 location_type = '["recent"]'
 
+drop_keys = ["3782", "3788", "3791", "3797"]
 
-#---- meta key ----#
+
+# ---- meta key ----#
 sql = (f"select distinct(geo_key), geo_name from facebook_clean where "
        f"country = '{country}' and "
        f"collection_name = '{collection_name}' and "
@@ -42,9 +44,7 @@ sql = (f"select distinct(geo_key), geo_name from facebook_clean where "
 
 meta_key = pd.read_sql(sql=sql, con=pyidp.db_engine())
 meta_key.dropna(inplace=True)
+meta_key = meta_key[~meta_key["geo_key"].isin(drop_keys)]
 
 outfile = os.path.join(in_dir, country.lower() + '_meta_keys.csv')
 meta_key.to_csv(outfile, index=False)
-
-
-
