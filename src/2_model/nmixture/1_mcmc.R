@@ -13,13 +13,14 @@ library(here)
 env <- new.env()
 source(here::here(".env"), local = env)
 
+# working directory
+dir.create(file.path(here::here(), "wd"), showWarnings = F, recursive = T)
+setwd(file.path(here::here(), "wd"))
+
 # directories
 repo_dir <- env$repo_dir
 src_dir <- file.path(repo_dir, "src", "2_model", "nmixture")
 
-wd <- file.path(repo_dir, "wd")
-dir.create(wd, showWarnings = F, recursive = T)
-setwd(wd)
 
 in_dir <- env$in_dir
 out_dir <- file.path(env$out_dir)
