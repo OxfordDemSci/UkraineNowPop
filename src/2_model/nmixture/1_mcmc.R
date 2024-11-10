@@ -60,8 +60,8 @@ source(file.path(src_dir, "models", paste0(model_name, "_config.R")))
 
 # MCMC configuration
 chains <- 4
-warmup <- 2e3
-samples <- 4e3
+warmup <- 5e3
+samples <- 5e3
 inits <- lapply(1:chains, function(id) init_generator(md = md, chain_id = id))
 
 # compile the stan model
