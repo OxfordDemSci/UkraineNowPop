@@ -22,7 +22,7 @@ dir.create(wd, showWarnings = F, recursive = T)
 setwd(wd)
 
 in_dir <- env$in_dir
-out_dir <- file.path(env$out_dir, "modelling", "nmixture")
+out_dir <- file.path(env$out_dir)
 dir.create(out_dir, showWarnings = F, recursive = T)
 
 
@@ -49,7 +49,7 @@ idx_G <- read.csv(file.path(out_dir, "population_proxy", "social_media_audience"
 # define model name
 model_name <- "1_base_model"
 
-dir.create(file.path(out_dir, model_name, "mcmc"), recursive = T, showWarnings = F)
+dir.create(file.path(out_dir, "modelling", "nmixture", model_name, "mcmc"), recursive = T, showWarnings = F)
 
 # soure model-specific config code
 source(file.path(src_dir, "models", paste0(model_name, "_config.R")))
@@ -79,4 +79,4 @@ fit <- mod$sample(
 )
 
 # save fitted model to disk
-fit$save_object(file = file.path(out_dir, model_name, "mcmc", paste0("fit_", model_name, ".rds")))
+fit$save_object(file = file.path(out_dir, "modelling", "nmixture", model_name, "mcmc", paste0("fit_", model_name, ".rds")))

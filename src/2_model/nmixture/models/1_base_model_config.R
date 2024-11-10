@@ -108,7 +108,7 @@ rownames(md$X) <- md$idx$ti
 
 
 ## save to disk ##
-saveRDS(md, file.path(outdir, paste0("md_", model_name, ".rds")))
+saveRDS(md, file.path(out_dir, paste0("md_", model_name, ".rds")))
 
 
 
@@ -131,19 +131,20 @@ init_generator <- function(md = md, chain_id = 1) {
 
   result[["N_tot"]] <- md$y_N_tot
   result[["N"]] <- reshape2::melt(N, varnames = c("T", "I"))$value
-  result[["r"]] <- rlnorm(md$T * md$I, 0, 0.1)
-  result[["sigma_r"]] <- runif(1, 0, 0.5)
-  result[["mu_r"]] <- rnorm(md$T * md$I, 0, 0.1)
-  result[["alpha_r"]] <- rnorm(1, 0, 3)
-  result[["beta_r"]] <- rnorm(md$K, 0, 1)
+  result[["r"]] <- rlnorm(md$T * md$I, 0, 0.1 / 2)
+  # result[["sigma_r"]] <- runif(1, 0, 0.5)
+  # result[["mu_r"]] <- rnorm(md$T * md$I, 0, 0.1)
+  # result[["mu_r"]] <- rnorm(1, 0, 0.1)
+  # result[["alpha_r"]] <- rnorm(1, 0, 3)
+  # result[["beta_r"]] <- rnorm(md$K, 0, 1)
 
   result[["p_F"]] <- rlnorm(md$T * md$I, log(mean(md$y_F, na.rm = T) / mean(md$N0)), 0.5)
-  result[["mu_p_F"]] <- rnorm(1, 1, 1)
-  result[["sigma_p_F"]] <- runif(1, 0, 0.05)
+  result[["mu_p_F"]] <- runif(md$T, -4, -2)
+  result[["sigma_p_F"]] <- runif(1, 0, 0.2)
 
   result[["p_G"]] <- rlnorm(md$T * md$I, log(mean(md$y_G, na.rm = T) / mean(md$N0)), 0.5)
-  result[["mu_p_G"]] <- rnorm(1, 1, 1)
-  result[["sigma_p_G"]] <- runif(1, 0, 0.05)
+  result[["mu_p_G"]] <- runif(md$I, -4, -2)
+  result[["sigma_p_G"]] <- runif(1, 0, 0.2)
 
   return(result)
 }
