@@ -22,7 +22,6 @@ setwd(wd)
 
 in_dir <- env$in_dir
 out_dir <- file.path(env$out_dir, "modelling", "nmixture")
-dir.create(out_dir, showWarnings = F, recursive = T)
 
 
 
@@ -32,6 +31,7 @@ model_name <- "1_base_model"
 fit <- readRDS(file.path(out_dir, model_name, "mcmc", paste0("fit_", model_name, ".rds")))
 md <- readRDS(file.path(out_dir, model_name, "mcmc", paste0("md_", model_name, ".rds")))
 
+dir.create(file.path(out_dir, model_name, "eval"), showWarnings = F, recursive = T)
 
 
 #---- summary statistics ----#
@@ -183,7 +183,7 @@ ggplot2::ggsave(trace_plot, filename = file.path(out_dir, model_name, "eval", "t
 ## location-specific parameters
 pars <- c("mu_p_G")
 for (i in 1:length(pars)) {
-  trace_plot <- mcmc_trace(fit$draws(par))
+  trace_plot <- mcmc_trace(fit$draws(pars[i]))
   ggplot2::ggsave(trace_plot, filename = file.path(out_dir, model_name, "eval", "trace_plots", paste0("0_location_parameters_", i, ".jpg")))
 }
 

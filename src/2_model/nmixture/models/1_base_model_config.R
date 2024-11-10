@@ -108,7 +108,7 @@ rownames(md$X) <- md$idx$ti
 
 
 ## save to disk ##
-saveRDS(md, file.path(out_dir, paste0("md_", model_name, ".rds")))
+saveRDS(md, file.path(out_dir, "modelling", "nmixture", paste0("md_", model_name, ".rds")))
 
 
 
