@@ -107,10 +107,6 @@ colnames(md$X) <- paste0("x", 1:md$K)
 rownames(md$X) <- md$idx$ti
 
 
-## save to disk ##
-saveRDS(md, file.path(out_dir, "modelling", "nmixture", paste0("md_", model_name, ".rds")))
-
-
 
 #---- initial values ----#
 init_generator <- function(md = md, chain_id = 1) {

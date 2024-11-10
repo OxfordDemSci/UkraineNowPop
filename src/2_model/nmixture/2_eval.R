@@ -6,6 +6,7 @@ gc()
 library(cmdstanr)
 library(posterior)
 library(bayesplot)
+library(tidyverse)
 library(here)
 
 # load environment
@@ -80,6 +81,48 @@ plot(
   x = md$y_FG_ratio,
   y = FG_ratio[names_FG_ratio],
   main = "Observation Ratio Check",
+  xlab = "Observed",
+  ylab = "Predicted"
+)
+abline(0, 1, col = "red")
+
+dev.off()
+
+
+
+#---- in-sample posterior predictive check ----#
+
+# Facebook
+jpeg(
+  filename = file.path(out_dir, model_name, "eval", "postpredict_insamp_facebook.jpg"),
+  height = 720, width = 720
+)
+
+F_hat <- apply(fit$draws("F_hat", format = "df") |> select(!starts_with(".")), 2, mean)
+
+plot(
+  x = md$y_F,
+  y = F_hat,
+  main = "Facebook Posterior Preditive Check (in-sample)",
+  xlab = "Observed",
+  ylab = "Predicted"
+)
+abline(0, 1, col = "red")
+
+dev.off()
+
+# Instagram
+jpeg(
+  filename = file.path(out_dir, model_name, "eval", "postpredict_insamp_instagram.jpg"),
+  height = 720, width = 720
+)
+
+G_hat <- apply(fit$draws("G_hat", format = "df") |> select(!starts_with(".")), 2, mean)
+
+plot(
+  x = md$y_G,
+  y = G_hat,
+  main = "Instagram Posterior Preditive Check (in-sample)",
   xlab = "Observed",
   ylab = "Predicted"
 )
@@ -176,23 +219,44 @@ dir.create(file.path(out_dir, model_name, "eval", "trace_plots"), showWarnings =
 
 ## global parameters
 pars <- c("sigma_p_F", "sigma_p_G")
-trace_plot <- mcmc_trace(fit$draws(pars))
-ggplot2::ggsave(trace_plot, filename = file.path(out_dir, model_name, "eval", "trace_plots", "0_global_parameters.jpg"))
+dat <- fit$draws(pars)
+trace_plot <- mcmc_trace(dat)
+size <- sqrt(dim(dat)[3]) * 2
+ggplot2::ggsave(
+  trace_plot,
+  filename = file.path(out_dir, model_name, "eval", "trace_plots", "0_global_parameters.jpg"),
+  width = max(6, size),
+  height = max(6, size)
+)
 
 
 ## location-specific parameters
 pars <- c("mu_p_G")
 for (i in 1:length(pars)) {
-  trace_plot <- mcmc_trace(fit$draws(pars[i]))
-  ggplot2::ggsave(trace_plot, filename = file.path(out_dir, model_name, "eval", "trace_plots", paste0("0_location_parameters_", i, ".jpg")))
+  dat <- fit$draws(pars[i])
+  trace_plot <- mcmc_trace(dat)
+  size <- sqrt(dim(dat)[3]) * 2
+  ggplot2::ggsave(
+    trace_plot,
+    filename = file.path(out_dir, model_name, "eval", "trace_plots", paste0("0_location_parameters_", i, ".jpg")),
+    width = max(6, size),
+    height = max(6, size)
+  )
 }
 
 
 ## time-specific parameters
 pars <- c("mu_p_F")
 for (i in 1:length(pars)) {
-  trace_plot <- mcmc_trace(fit$draws(pars[i]))
-  ggplot2::ggsave(trace_plot, filename = file.path(out_dir, model_name, "eval", "trace_plots", paste0("0_time_parameters_", i, ".jpg")))
+  dat <- fit$draws(pars[i])
+  trace_plot <- mcmc_trace(dat)
+  size <- sqrt(dim(dat)[3]) * 2
+  ggplot2::ggsave(
+    trace_plot,
+    filename = file.path(out_dir, model_name, "eval", "trace_plots", paste0("0_time_parameters_", i, ".jpg")),
+    width = max(6, size),
+    height = max(6, size)
+  )
 }
 
 
@@ -203,8 +267,15 @@ for (i in 1:md$I) {
     j <- which(md$tt == t & md$ii == i)
 
     pars <- c(paste0(c("N", "r", "p_F", "p_G"), "[", j, "]"))
-    trace_plot <- mcmc_trace(fit$draws(pars))
+    dat <- fit$draws(pars)
+    trace_plot <- mcmc_trace(dat)
+    size <- sqrt(dim(dat)[3]) * 2
 
-    ggplot2::ggsave(trace_plot, filename = file.path(out_dir, model_name, "eval", "trace_plots", paste0(i_name, ".jpg")))
+    ggplot2::ggsave(
+      trace_plot,
+      filename = file.path(out_dir, model_name, "eval", "trace_plots", paste0(i_name, ".jpg")),
+      width = max(6, size),
+      height = max(6, size)
+    )
   }
 }

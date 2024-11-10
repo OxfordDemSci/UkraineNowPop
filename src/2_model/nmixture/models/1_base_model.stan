@@ -131,3 +131,10 @@ model {
   mu_p_G ~ normal(0, 5);
   sigma_p_G ~ cauchy(0, 1);
 }
+generated quantities {
+  array[n_F] int<lower=0> F_hat;
+  array[n_G] int<lower=0> G_hat;
+  
+  F_hat = poisson_rng(N[ti_F] .* p_F[ti_F]);
+  G_hat = poisson_rng(N[ti_G] .* p_G[ti_G]);
+}

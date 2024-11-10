@@ -26,6 +26,7 @@ out_dir <- file.path(env$out_dir)
 dir.create(out_dir, showWarnings = F, recursive = T)
 
 
+
 #---- load data ----#
 
 # baseline population
@@ -44,7 +45,7 @@ idx_G <- read.csv(file.path(out_dir, "population_proxy", "social_media_audience"
 
 
 
-#---- configure model ----#
+#---- configure model data ----#
 
 # define model name
 model_name <- "1_base_model"
@@ -54,9 +55,12 @@ dir.create(file.path(out_dir, "modelling", "nmixture", model_name, "mcmc"), recu
 # soure model-specific config code
 source(file.path(src_dir, "models", paste0(model_name, "_config.R")))
 
+# save model data to disk
+saveRDS(md, file.path(out_dir, "modelling", "nmixture", model_name, "mcmc", paste0("md_", model_name, ".rds")))
 
 
-#---- MCMC for Bayesian model ----#
+
+#---- fit model ----#
 
 # MCMC configuration
 chains <- 4
@@ -67,7 +71,7 @@ inits <- lapply(1:chains, function(id) init_generator(md = md, chain_id = id))
 # compile the stan model
 mod <- cmdstan_model(file.path(src_dir, "models", paste0(model_name, ".stan")))
 
-# run MCMC to sample from the posterior distribution of our model, given our data
+# run MCMC
 fit <- mod$sample(
   data = md,
   parallel_chains = chains,
