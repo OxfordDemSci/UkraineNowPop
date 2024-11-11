@@ -65,24 +65,24 @@ data {
 parameters {
   // population
   vector[T * I] r; // population growth rates
-  // real<lower=0> sigma_r; // variation in growth rates
-  // real mu_r; // intercept for population growth rates
-  // vector[K] beta_r; // covariate effects on growth rates
   
   // Facebook
   vector<lower=0>[T * I] p_F; // Facebook user ratios
   vector[T] mu_p_F; // expected value
+  real mu_mu_p_F;
+  real<lower=0> sigma_mu_p_F;
   real<lower=0> sigma_p_F; // residual variation
   
   // Instagram
   vector<lower=0>[T * I] p_G; // Instagram user ratios
   vector[I] mu_p_G; // expected value
+  real mu_mu_p_G;
+  real<lower=0> sigma_mu_p_G;
   real<lower=0> sigma_p_G; // residual variation
 }
 transformed parameters {
   vector<lower=0>[T * I] N; // population estimates
   vector<lower=0>[T] N_tot; // total population at each time step
-  // vector[T * I] mu_r; // expected growth rates
   vector<lower=0>[n_FG] FG_ratio; // ratio of Instagram to Facebook user ratios
   
   // population process model
@@ -95,9 +95,6 @@ transformed parameters {
   for (t in 1 : T) {
     N_tot[t] = sum(N[t_slice(t, I)]);
   }
-  
-  // regression on population growth rates
-  // mu_r = alpha_r + X * beta_r;
   
   // observation ratio of Instagram to Facebook
   FG_ratio = p_G[ti_FG] ./ p_F[ti_FG];
@@ -118,17 +115,18 @@ model {
   // population growth rates
   r ~ lognormal(0, 0.1 / 2);
   
-  // priors:  population
-  // alpha_r ~ normal(0, 1);
-  // beta_r ~ normal(0, 1);
-  // sigma_r ~ cauchy(0, 1);
-  
   // priors:  Facebook user ratio
-  mu_p_F ~ normal(0, 5);
+  mu_p_F ~ normal(mu_mu_p_F, sigma_mu_p_F);
+  mu_mu_p_F ~ normal(0, 5);
+  sigma_mu_p_F ~ cauchy(0, 1);
+  
   sigma_p_F ~ cauchy(0, 1);
   
   // priors:  Instagram user ratio
-  mu_p_G ~ normal(0, 5);
+  mu_p_G ~ normal(mu_mu_p_G, sigma_mu_p_G);
+  mu_mu_p_G ~ normal(0, 5);
+  sigma_mu_p_G ~ cauchy(0, 1);
+  
   sigma_p_G ~ cauchy(0, 1);
 }
 generated quantities {
