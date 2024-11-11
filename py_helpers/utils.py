@@ -11,6 +11,7 @@ import geopandas as gpd
 from plotly.express import colors as pxcolors
 from dotenv import load_dotenv
 from pathlib import Path
+import numpy as np
 
 # Load the .env file
 env_path = Path(".") / ".env"
