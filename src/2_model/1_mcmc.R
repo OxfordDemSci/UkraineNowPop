@@ -49,7 +49,7 @@ idx_G <- read.csv(file.path(out_dir, "population_proxy", "social_media_audience"
 #---- configure model data ----#
 
 # define model name
-model_name <- "1_base_model"
+model_name <- "2_covs_model"
 
 dir.create(file.path(out_dir, "modelling", model_name, "mcmc"), recursive = T, showWarnings = F)
 
@@ -65,8 +65,8 @@ saveRDS(md, file.path(out_dir, "modelling", model_name, "mcmc", paste0("md_", mo
 
 # MCMC configuration
 chains <- 4
-warmup <- 5e3
-samples <- 5e3
+warmup <- 2e3
+samples <- 2e3
 inits <- lapply(1:chains, function(id) init_generator(md = md, chain_id = id))
 
 # compile the stan model
