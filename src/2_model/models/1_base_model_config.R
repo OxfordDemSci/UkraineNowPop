@@ -35,10 +35,14 @@ md$idx_G <- idx_G |>
 
 rm(last_date)
 
+
 #---- prepare data ----#
 
 md$I <- length(unique(md$idx$i))
 md$T <- length(unique(md$idx$t))
+
+
+## social media ##
 
 # Facebook
 md$y_F <- md$idx_F$value
@@ -49,7 +53,6 @@ md$ti_F <- md$idx_F$ti
 md$y_G <- md$idx_G$value
 md$n_G <- length(md$y_G)
 md$ti_G <- md$idx_G$ti
-
 
 # Facebook:Instagram ratio
 md$ti_FG <- unique(md$ti_F[which(md$ti_F %in% md$ti_G)])
@@ -90,7 +93,6 @@ md$y_N_tot <- as.integer(sum(md$N0) - weekly_avg$avg_value)
 
 rm(weekly_avg)
 
-
 # indexing: long format for N
 md$ti_N0 <- md$idx$ti[md$idx$t == 1]
 md$ti_N <- md$idx$ti[md$idx$t > 1]
@@ -99,8 +101,7 @@ md$ti_N_lag <- md$idx$ti[md$idx$t > 1] - md$I
 md$tt <- md$idx$t
 md$ii <- md$idx$i
 
-
-## covariates
+# covariates
 md$K <- 2
 md$X <- matrix(0, nrow = nrow(md$idx), ncol = md$K)
 colnames(md$X) <- paste0("x", 1:md$K)

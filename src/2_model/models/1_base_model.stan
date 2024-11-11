@@ -118,16 +118,16 @@ model {
   // priors:  Facebook user ratio
   mu_p_F ~ normal(mu_mu_p_F, sigma_mu_p_F);
   mu_mu_p_F ~ normal(0, 5);
-  sigma_mu_p_F ~ cauchy(0, 1);
+  sigma_mu_p_F ~ normal(0, 1);
   
-  sigma_p_F ~ cauchy(0, 1);
+  sigma_p_F ~ normal(0, 1);
   
   // priors:  Instagram user ratio
   mu_p_G ~ normal(mu_mu_p_G, sigma_mu_p_G);
   mu_mu_p_G ~ normal(0, 5);
-  sigma_mu_p_G ~ cauchy(0, 1);
+  sigma_mu_p_G ~ normal(0, 1);
   
-  sigma_p_G ~ cauchy(0, 1);
+  sigma_p_G ~ normal(0, 1);
 }
 generated quantities {
   array[n_F] int<lower=0> F_hat;
