@@ -65,8 +65,8 @@ saveRDS(md, file.path(out_dir, "modelling", model_name, "mcmc", paste0("md_", mo
 
 # MCMC configuration
 chains <- 4
-warmup <- 2e3
-samples <- 2e3
+warmup <- 10e3
+samples <- 10e3
 inits <- lapply(1:chains, function(id) init_generator(md = md, chain_id = id))
 
 # compile the stan model

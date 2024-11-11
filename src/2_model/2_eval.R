@@ -26,7 +26,7 @@ out_dir <- file.path(env$out_dir, "modelling")
 
 
 #---- load data ----#
-model_name <- "1_base_model"
+model_name <- "2_covs_model"
 
 fit <- readRDS(file.path(out_dir, model_name, "mcmc", paste0("fit_", model_name, ".rds")))
 md <- readRDS(file.path(out_dir, model_name, "mcmc", paste0("md_", model_name, ".rds")))
@@ -217,8 +217,15 @@ dir.create(file.path(out_dir, model_name, "eval", "trace_plots"), showWarnings =
 
 
 ## global parameters
-pars <- c("sigma_p_F", "sigma_p_G")
-dat <- fit$draws(pars)
+pars <- list(
+  "1_base_model" = c("sigma_p_F", "sigma_p_G"),
+  "2_covs_model" = c(
+    "beta_r", "mu_alpha_r", "sigma_alpha_r", "sigma_r",
+    "beta_p_F", "mu_alpha_p_F", "sigma_alpha_p_F", "sigma_p_F",
+    "beta_p_F", "mu_alpha_p_F", "sigma_alpha_p_F", "sigma_p_G"
+  )
+)
+dat <- fit$draws(pars[[model_name]])
 trace_plot <- mcmc_trace(dat)
 size <- sqrt(dim(dat)[3]) * 2
 ggplot2::ggsave(
@@ -230,9 +237,12 @@ ggplot2::ggsave(
 
 
 ## location-specific parameters
-pars <- c("mu_p_G")
-for (i in 1:length(pars)) {
-  dat <- fit$draws(pars[i])
+pars <- list(
+  "1_base_model" = c("mu_p_G"),
+  "2_covs_model" = c("alpha_r", "alpha_p_G")
+)
+for (i in 1:length(pars[[model_name]])) {
+  dat <- fit$draws(pars[[model_name]][i])
   trace_plot <- mcmc_trace(dat)
   size <- sqrt(dim(dat)[3]) * 2
   ggplot2::ggsave(
@@ -245,9 +255,12 @@ for (i in 1:length(pars)) {
 
 
 ## time-specific parameters
-pars <- c("mu_p_F")
-for (i in 1:length(pars)) {
-  dat <- fit$draws(pars[i])
+pars <- list(
+  "1_base_model" = c("mu_p_F", "N_tot"),
+  "2_covs_model" = c("alpha_p_F", "N_tot")
+)
+for (i in 1:length(pars[[model_name]])) {
+  dat <- fit$draws(pars[[model_name]][i])
   trace_plot <- mcmc_trace(dat)
   size <- sqrt(dim(dat)[3]) * 2
   ggplot2::ggsave(
