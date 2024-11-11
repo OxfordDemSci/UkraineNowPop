@@ -217,7 +217,7 @@ dir.create(file.path(out_dir, model_name, "eval", "trace_plots"), showWarnings =
 
 
 ## global parameters
-pars <- c("sigma_p_F", "sigma_p_G")
+pars <- c("sigma_p_F", "mu_mu_p_F", "sigma_mu_p_F", "sigma_p_G")
 dat <- fit$draws(pars)
 trace_plot <- mcmc_trace(dat)
 size <- sqrt(dim(dat)[3]) * 2
