@@ -6,7 +6,7 @@ data {
   int<lower=1> N_obs_GFr;
   
   int<lower=1> N_combinations;  // Should be 486
-  int<lower=1> N_time;          // Should be 117 (total number of weeks)
+  int<lower=1> N_time;          // Should be 117 (total number of weeks between 2022-02-27 and 2024-05-14)
   
   // Combination indices for each observation
   array[N_obs_F] int<lower=1, upper=N_combinations> F_combination_id;
