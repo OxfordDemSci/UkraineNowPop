@@ -19,7 +19,7 @@ setwd(file.path(here::here(), "wd"))
 
 # directories
 repo_dir <- env$repo_dir
-src_dir <- file.path(repo_dir, "src", "2_model", "nmixture")
+src_dir <- file.path(repo_dir, "src", "2_model")
 
 
 in_dir <- env$in_dir
@@ -51,13 +51,13 @@ idx_G <- read.csv(file.path(out_dir, "population_proxy", "social_media_audience"
 # define model name
 model_name <- "1_base_model"
 
-dir.create(file.path(out_dir, "modelling", "nmixture", model_name, "mcmc"), recursive = T, showWarnings = F)
+dir.create(file.path(out_dir, "modelling", model_name, "mcmc"), recursive = T, showWarnings = F)
 
 # soure model-specific config code
 source(file.path(src_dir, "models", paste0(model_name, "_config.R")))
 
 # save model data to disk
-saveRDS(md, file.path(out_dir, "modelling", "nmixture", model_name, "mcmc", paste0("md_", model_name, ".rds")))
+saveRDS(md, file.path(out_dir, "modelling", model_name, "mcmc", paste0("md_", model_name, ".rds")))
 
 
 
@@ -84,4 +84,4 @@ fit <- mod$sample(
 )
 
 # save fitted model to disk
-fit$save_object(file = file.path(out_dir, "modelling", "nmixture", model_name, "mcmc", paste0("fit_", model_name, ".rds")))
+fit$save_object(file = file.path(out_dir, "modelling", model_name, "mcmc", paste0("fit_", model_name, ".rds")))

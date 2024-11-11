@@ -19,9 +19,9 @@ setwd(file.path(here::here(), "wd"))
 
 # directories
 repo_dir <- env$repo_dir
-src_dir <- file.path(repo_dir, "src", "2_model", "nmixture")
+src_dir <- file.path(repo_dir, "src", "2_model")
 in_dir <- env$in_dir
-out_dir <- file.path(env$out_dir, "modelling", "nmixture")
+out_dir <- file.path(env$out_dir, "modelling")
 
 
 
