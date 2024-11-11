@@ -10,9 +10,15 @@ import pandas as pd
 import geopandas as gpd
 from plotly.express import colors as pxcolors
 from dotenv import load_dotenv
+from pathlib import Path
 
-load_dotenv()
+# Load the .env file
+env_path = Path(".") / ".env"
+load_dotenv(env_path)
+in_dir = Path(os.getenv("in_dir"))
+out_dir = Path(os.getenv("out_dir"))
 
+print("in_dir and out_dir set")
 
 # logging
 logging.basicConfig(
