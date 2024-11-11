@@ -13,7 +13,6 @@ load_dotenv(env_path)
 # Access the environment variables
 in_dir = Path(os.getenv('in_dir'))
 out_dir = Path(os.getenv('out_dir'))
-out_dir = os.path.join(out_dir, 'population_proxy', 'social_media_audience')
 os.makedirs(out_dir, exist_ok=True)
 
 
@@ -44,7 +43,7 @@ sql = (f"select distinct(geo_key), geo_name from facebook_clean where "
 meta_key = pd.read_sql(sql=sql, con=pyidp.db_engine())
 meta_key.dropna(inplace=True)
 
-outfile = os.path.join(out_dir, country.lower() + '_meta_keys.csv')
+outfile = os.path.join(in_dir, country.lower() + '_meta_keys.csv')
 meta_key.to_csv(outfile, index=False)
 
 

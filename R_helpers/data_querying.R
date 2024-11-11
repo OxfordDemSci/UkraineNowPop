@@ -116,6 +116,8 @@ retrieve_data <- function(country, date_start, date_end=Sys.Date(), geo_level, a
     result <- query_api(args, endpoint='query_clean') |> 
       as_tibble()
     if (nrow(result)>0){
+      result <- result |> 
+        mutate(agesex=demgroup)
       results <- bind_rows(results, result)
     }
   }
