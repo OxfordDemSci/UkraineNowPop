@@ -58,7 +58,7 @@ time_index_expanded <- tibble(
   mutate(
     t_name = floor_date(as.Date(collection_date), "week", week_start = 1),
     t_key = str_replace_all(as.character(t_name), "-", "") |> as.integer(),
-    t = t_name |> as.character()|> as_factor() |> as.numeric()
+    t = t_name |> as.character() |> as_factor() |> as.numeric()
   ) 
 
 time_index <- time_index_expanded |>
@@ -73,8 +73,8 @@ agesex_index <- lapply(agesex, function(agesex_) agesex_col_to_query_args(agesex
     a = as.integer(factor(paste0(age_min, age_max))),
     a_key = paste0(age_min, str_pad(age_max, 3, pad = "0")) |> as.integer(),
     s_name = str_sub(agesex, 1, 1),
-    s = as.integer(gender + 1),
-    s_key = as.integer(gender)
+    s = s_name |> as_factor() |> as.numeric(),
+    s_key = s
   ) |>
   select(-age_min, -age_max, -gender)
 
