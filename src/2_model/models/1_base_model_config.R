@@ -35,10 +35,14 @@ md$idx_G <- idx_G |>
 
 rm(last_date)
 
+
 #---- prepare data ----#
 
 md$I <- length(unique(md$idx$i))
 md$T <- length(unique(md$idx$t))
+
+
+## social media ##
 
 # Facebook
 md$y_F <- md$idx_F$value
@@ -49,7 +53,6 @@ md$ti_F <- md$idx_F$ti
 md$y_G <- md$idx_G$value
 md$n_G <- length(md$y_G)
 md$ti_G <- md$idx_G$ti
-
 
 # Facebook:Instagram ratio
 md$ti_FG <- unique(md$ti_F[which(md$ti_F %in% md$ti_G)])
@@ -90,7 +93,6 @@ md$y_N_tot <- as.integer(sum(md$N0) - weekly_avg$avg_value)
 
 rm(weekly_avg)
 
-
 # indexing: long format for N
 md$ti_N0 <- md$idx$ti[md$idx$t == 1]
 md$ti_N <- md$idx$ti[md$idx$t > 1]
@@ -99,16 +101,11 @@ md$ti_N_lag <- md$idx$ti[md$idx$t > 1] - md$I
 md$tt <- md$idx$t
 md$ii <- md$idx$i
 
-
-## covariates
+# covariates
 md$K <- 2
 md$X <- matrix(0, nrow = nrow(md$idx), ncol = md$K)
 colnames(md$X) <- paste0("x", 1:md$K)
 rownames(md$X) <- md$idx$ti
-
-
-## save to disk ##
-saveRDS(md, file.path(outdir, paste0("md_", model_name, ".rds")))
 
 
 
@@ -131,19 +128,19 @@ init_generator <- function(md = md, chain_id = 1) {
 
   result[["N_tot"]] <- md$y_N_tot
   result[["N"]] <- reshape2::melt(N, varnames = c("T", "I"))$value
-  result[["r"]] <- rlnorm(md$T * md$I, 0, 0.1)
-  result[["sigma_r"]] <- runif(1, 0, 0.5)
-  result[["mu_r"]] <- rnorm(md$T * md$I, 0, 0.1)
-  result[["alpha_r"]] <- rnorm(1, 0, 3)
-  result[["beta_r"]] <- rnorm(md$K, 0, 1)
+  result[["r"]] <- rlnorm(md$T * md$I, 0, 0.1 / 2)
 
   result[["p_F"]] <- rlnorm(md$T * md$I, log(mean(md$y_F, na.rm = T) / mean(md$N0)), 0.5)
-  result[["mu_p_F"]] <- rnorm(1, 1, 1)
-  result[["sigma_p_F"]] <- runif(1, 0, 0.05)
+  result[["mu_p_F"]] <- runif(md$T, -4, -2)
+  result[["mu_mu_p_F"]] <- runif(1, -4, -2)
+  result[["sigma_mu_p_F"]] <- runif(1, 0, 0.2)
+  result[["sigma_p_F"]] <- runif(1, 0, 0.2)
 
   result[["p_G"]] <- rlnorm(md$T * md$I, log(mean(md$y_G, na.rm = T) / mean(md$N0)), 0.5)
-  result[["mu_p_G"]] <- rnorm(1, 1, 1)
-  result[["sigma_p_G"]] <- runif(1, 0, 0.05)
+  result[["mu_p_G"]] <- runif(md$I, -4, -2)
+  result[["mu_mu_p_G"]] <- runif(1, -4, -2)
+  result[["sigma_mu_p_G"]] <- runif(1, 0, 0.2)
+  result[["sigma_p_G"]] <- runif(1, 0, 0.2)
 
   return(result)
 }
