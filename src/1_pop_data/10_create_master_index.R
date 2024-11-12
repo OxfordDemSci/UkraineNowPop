@@ -52,17 +52,18 @@ geo_index <- meta_keys |>
     i_key = as.integer(i_key)
   )
 
-time_index <- tibble(
+time_index_expanded <- tibble(
   collection_date = seq(as.Date(date_start), as.Date(date_end), by = 1)
 ) |>
   mutate(
     t_name = floor_date(as.Date(collection_date), "week", week_start = 1),
-    t_key = str_replace_all(as.character(t_name), "-", "") |> as.integer()
-  ) |>
-  select(t_name, t_key) |>
-  distinct() |>
-  arrange(t_name) |>
-  mutate(t = 1:n())
+    t_key = str_replace_all(as.character(t_name), "-", "") |> as.integer(),
+    t = t_name |> as.character() |> as_factor() |> as.numeric()
+  ) 
+
+time_index <- time_index_expanded |>
+  distinct(t_name, t_key, t) |>
+  arrange(t)
 
 agesex_index <- lapply(agesex, function(agesex_) agesex_col_to_query_args(agesex_) |> as_tibble()) |>
   bind_rows() |>
@@ -72,8 +73,8 @@ agesex_index <- lapply(agesex, function(agesex_) agesex_col_to_query_args(agesex
     a = as.integer(factor(paste0(age_min, age_max))),
     a_key = paste0(age_min, str_pad(age_max, 3, pad = "0")) |> as.integer(),
     s_name = str_sub(agesex, 1, 1),
-    s = as.integer(gender + 1),
-    s_key = as.integer(gender)
+    s = s_name |> as_factor() |> as.numeric(),
+    s_key = s
   ) |>
   select(-age_min, -age_max, -gender)
 
@@ -92,4 +93,4 @@ master_index <- expand_grid(
 # Write output -----------------------------------------------------------
 
 write_csv(master_index, file.path(out_dir, paste0(tolower(country), "_master_index", output_label, ".csv")))
-write_csv(time_index, file.path(out_dir, paste0(tolower(country), "_time_index", output_label, ".csv")))
+write_csv(time_index_expanded, file.path(out_dir, paste0(tolower(country), "_time_index", output_label, ".csv")))
