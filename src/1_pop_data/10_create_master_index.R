@@ -26,7 +26,7 @@ agesex <- c("T_13Plus")
 # agesex <- create_regular_group(10)
 
 # date
-date_start <- "2022-02-25"
+date_start <- "2022-02-22"
 date_end <- "2024-10-31"
 
 country <- "UA"
@@ -59,7 +59,7 @@ time_index_expanded <- tibble(
     t_name = floor_date(as.Date(collection_date), "week", week_start = 1),
     t_key = str_replace_all(as.character(t_name), "-", "") |> as.integer(),
     t = t_name |> as.character() |> as_factor() |> as.numeric()
-  ) 
+  )
 
 time_index <- time_index_expanded |>
   distinct(t_name, t_key, t) |>
