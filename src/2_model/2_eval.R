@@ -35,7 +35,7 @@ dir.create(file.path(out_dir, model_name, "eval"), showWarnings = F, recursive =
 
 
 #---- summary statistics ----#
-fit_summary <- fit$summary()
+fit_summary <- fit$summary(.cores=4)
 print(fit_summary)
 
 not_converged <- which(fit_summary[["rhat"]] > 1.1) # 1.01 is cutoff for publication quality
@@ -128,6 +128,22 @@ plot(
 abline(0, 1, col = "red")
 
 dev.off()
+
+
+
+#---- LOO cross-validation ----#
+
+# Facebook
+loo_F <- fit$loo("log_lik_F", cores = 4)
+print(loo_F)
+
+# Instagram
+loo_G <- fit$loo("log_lik_G", cores = 4)
+print(loo_G)
+
+# save to disk
+saveRDS(file.path(loo_F, model_name, "eval", "loo_F.rds"))
+saveRDS(file.path(loo_G, model_name, "eval", "loo_G.rds"))
 
 
 
