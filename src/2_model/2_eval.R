@@ -35,7 +35,7 @@ dir.create(file.path(out_dir, model_name, "eval"), showWarnings = F, recursive =
 
 
 #---- summary statistics ----#
-fit_summary <- fit$summary(.cores=4)
+fit_summary <- fit$summary(.cores = 4)
 print(fit_summary)
 
 not_converged <- which(fit_summary[["rhat"]] > 1.1) # 1.01 is cutoff for publication quality
@@ -142,8 +142,8 @@ loo_G <- fit$loo("log_lik_G", cores = 4)
 print(loo_G)
 
 # save to disk
-saveRDS(file.path(loo_F, model_name, "eval", "loo_F.rds"))
-saveRDS(file.path(loo_G, model_name, "eval", "loo_G.rds"))
+saveRDS(loo_F, file.path(out_dir, model_name, "eval", "loo_F.rds"))
+saveRDS(loo_G, file.path(out_dir, model_name, "eval", "loo_G.rds"))
 
 
 
