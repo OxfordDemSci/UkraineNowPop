@@ -88,7 +88,7 @@ oblast_sum_lg = oblast_sum_lg.sort_values(by=['i', 't'])
 oblast_sum_lg['pwtt_interpolated'] = oblast_sum_lg.groupby(['i'])['pwtt'].transform(pd.DataFrame.interpolate, method='linear')
 
 # Write output
-oblast_sum_lg.to_csv(out_dir / 'covariates' / 'interim'/ 'pwtt_oblast.csv', index=False)
+oblast_sum_lg.to_csv(out_dir / 'covariates' / 'interim'/ (country+'_pwtt_oblast.csv'), index=False)
 
 
 filtered_data = oblast_sum_lg[oblast_sum_lg['i'].isin([4,21, 23])]

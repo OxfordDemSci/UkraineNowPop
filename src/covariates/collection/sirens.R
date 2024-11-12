@@ -24,6 +24,8 @@ git2r::pull(repo_dir)
 # Load data
 time_index <- read_csv(file.path(out_dir, paste0(tolower(country), "_time_index.csv")))
 master_index <- read_csv(file.path(out_dir, paste0(tolower(country), "_master_index.csv")))
+master_index <- master_index |>
+  distinct(i_key, i_name, i, t, t_name, t_key, ADM1_PCODE, ADM1_EN)
 sirens_official <- read_csv(file.path(repo_dir, "datasets", "official_data_en.csv"))
 sirens_volunteered <- read_csv(file.path(repo_dir, "datasets", "volunteer_data_en.csv")) |>
   rename(oblast = region)
