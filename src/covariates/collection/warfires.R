@@ -50,15 +50,20 @@ fires_oblast <- fires_sf |>
 fires_oblast_t <- fires_sf |>
   st_drop_geometry() |>
   rename(collection_date = date) |>
+  filter(collection_date <= max(time_index$collection_date)) |>
+  filter(collection_date >= min(time_index$collection_date)) |>
   left_join(time_index) |>
-  filter(!is.na(t)) |>
   filter(ADM1_PCODE %in% master_index$ADM1_PCODE) |>
   group_by(t, ADM1_EN, ADM1_PCODE) |>
   summarise(war_fires = n()) |>
-  left_join(
+  right_join(
     master_index
-  )
+  ) |>
+  mutate(war_fires = ifelse(is.na(war_fires), 0, war_fires)) |>
+  ungroup()
 
+fires_oblast_t |>
+  filter(if_any(everything(), ~ is.na(.)))
 
 
 

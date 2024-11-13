@@ -83,6 +83,7 @@ oblast_map <- c(
 
 sirens_oblast_t <- sirens |>
   filter(collection_date <= max(time_index$collection_date)) |>
+  filter(collection_date >= min(time_index$collection_date)) |>
   mutate(
     sirens = 1
   ) |>
@@ -97,11 +98,12 @@ sirens_oblast_t <- sirens |>
     i_name = oblast_map[i_name]
   ) |>
   filter(i_name %in% master_index$i_name) |>
-  left_join(
-    master_index |> distinct(i_key, i_name, i)
+  right_join(
+    master_index
   ) |>
   ungroup() |>
-  select(-oblast)
+  select(-oblast) |>
+  mutate(sirens = ifelse(is.na(sirens), 0, sirens))
 
 sirens_oblast_t |>
   filter(if_any(everything(), ~ is.na(.)))
