@@ -3,8 +3,8 @@ rm(list = ls())
 gc()
 
 # Load required helpers
-source("R_helpers/generic.R")
-source("R_helpers/data_querying.R")
+source(file.path(here::here(), "R_helpers/generic.R"))
+source(file.path(here::here(), "R_helpers/data_querying.R"))
 
 # Set up output directory
 out_dir_pop <- file.path(out_dir, "population_proxy", "social_media_audience")
