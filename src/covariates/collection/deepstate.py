@@ -242,11 +242,15 @@ for occupied in occupied_list:
     intersection.drop(columns=["geometry"], inplace=True)
     intersections = pd.concat([intersections, intersection])
 
-intersections = intersections.merge(time_index, how="left", on="collection_date").merge(
-    master_index, how="right"
+intersections.groupby(["collection_date", "ADM1_PCODE"]).size()
+intersections = (
+    intersections.merge(time_index, how="left", on="collection_date")
+    .groupby(["ADM1_PCODE", "t", "t_key", "t_name"])["occupied"]
+    .sum()
+    .reset_index(name="occupied")
 )
 
-intersections.drop(columns=["collection_date"], inplace=True)
+intersections = intersections.merge(master_index, how="right")
 
 # Write output
 intersections.to_csv(
