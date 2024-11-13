@@ -11,10 +11,8 @@ env_path = Path(".") / ".env"
 load_dotenv(env_path)
 
 # Access the environment variables
-in_dir = Path(os.getenv("in_dir"))
-out_dir = Path(os.getenv("out_dir"))
-os.makedirs(out_dir, exist_ok=True)
-
+data_dir = os.path.join(Path(os.getenv("repo_dir")), "data")
+os.makedirs(os.path.join(data_dir, "meta"), exist_ok=True)
 
 # ---- input data ----#
 country = "UA"
@@ -26,8 +24,6 @@ age_min = 13
 age_max = 999
 geo_level = "regions"
 location_type = '["recent"]'
-
-drop_keys = ["3782", "3788", "3791", "3797"]
 
 
 # ---- meta key ----#
@@ -46,7 +42,6 @@ sql = (
 
 meta_key = pd.read_sql(sql=sql, con=py_helpers.db_engine())
 meta_key.dropna(inplace=True)
-meta_key = meta_key[~meta_key["geo_key"].isin(drop_keys)]
 
-outfile = os.path.join(in_dir, country.lower() + "_meta_keys.csv")
+outfile = os.path.join(data_dir, "meta", country.lower() + "_meta_keys.csv")
 meta_key.to_csv(outfile, index=False)

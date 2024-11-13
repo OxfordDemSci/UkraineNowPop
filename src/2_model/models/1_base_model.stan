@@ -29,14 +29,10 @@ data {
   // dimensions
   int<lower=0> T; // number of weeks
   int<lower=0> I; // number of locations
-  int<lower=0> K; // number of covariates on population growth rates
   
   // baseline
   vector<lower=0>[T] y_N_tot; // total population among locations
   vector<lower=0>[I] N0; // baseline population at each location
-  
-  // population covariates
-  matrix[T * I, K] X; // covariates on population growth rates
   
   // Facebook data
   int<lower=0> n_F; // total sample size for F
@@ -130,9 +126,21 @@ model {
   sigma_p_G ~ normal(0, 1);
 }
 generated quantities {
+  // in-sample posterior predictive check
   array[n_F] int<lower=0> F_hat;
   array[n_G] int<lower=0> G_hat;
   
   F_hat = poisson_rng(N[ti_F] .* p_F[ti_F]);
   G_hat = poisson_rng(N[ti_G] .* p_G[ti_G]);
+  
+  // out-of-sample leave-one-out cross-validation
+  vector[n_F] log_lik_F;
+  for (n in 1 : n_F) {
+    log_lik_F[n] = poisson_lpmf(y_F[n] | N[ti_F[n]] .* p_F[ti_F[n]]);
+  }
+  
+  vector[n_G] log_lik_G;
+  for (n in 1 : n_G) {
+    log_lik_G[n] = poisson_lpmf(y_G[n] | N[ti_G[n]] .* p_G[ti_G[n]]);
+  }
 }
