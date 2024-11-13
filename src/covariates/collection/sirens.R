@@ -90,19 +90,18 @@ sirens_oblast_t <- sirens |>
   left_join(
     time_index
   ) |>
-  group_by(oblast, t, t_name, t_key) |>
-  summarise(sirens = sum(sirens)) |>
   rowwise() |>
   mutate(
     i_name = str_replace_all(oblast, "oblast", "Oblast"),
     i_name = oblast_map[i_name]
   ) |>
+  group_by(i_name, t, t_name, t_key) |>
+  summarise(sirens = sum(sirens)) |>
   filter(i_name %in% master_index$i_name) |>
   right_join(
     master_index
   ) |>
-  ungroup() |>
-  select(-oblast) 
+  ungroup()
 
 sirens_oblast_t |>
   filter(if_any(everything(), ~ is.na(.)))
@@ -112,7 +111,7 @@ sirens_oblast_t
 
 write_csv(
   sirens_oblast_t,
-  file.path(out_dir, "covariates", "interim", paste0(tolower(country), "_sirens_", output_label, ".csv"))
+  file.path(out_dir, "covariates", "interim", paste0(tolower(country), "_sirens_oblast", output_label, ".csv"))
 )
 
 
