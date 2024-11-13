@@ -11,10 +11,8 @@ env_path = Path(".") / ".env"
 load_dotenv(env_path)
 
 # Access the environment variables
-in_dir = Path(os.getenv("in_dir"))
-out_dir = Path(os.getenv("out_dir"))
-os.makedirs(out_dir, exist_ok=True)
-
+data_dir = os.path.join(Path(os.getenv("repo_dir")), "data")
+os.makedirs(os.path.join(data_dir, "meta"), exist_ok=True)
 
 # ---- input data ----#
 country = "UA"
@@ -45,5 +43,5 @@ sql = (
 meta_key = pd.read_sql(sql=sql, con=pyidp.db_engine())
 meta_key.dropna(inplace=True)
 
-outfile = os.path.join(in_dir, country.lower() + "_meta_keys.csv")
+outfile = os.path.join(data_dir, "meta", country.lower() + "_meta_keys.csv")
 meta_key.to_csv(outfile, index=False)
