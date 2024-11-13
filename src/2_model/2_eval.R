@@ -136,10 +136,12 @@ dev.off()
 # Facebook
 loo_F <- fit$loo("log_lik_F", cores = 4)
 print(loo_F)
+plot(loo_F)
 
 # Instagram
 loo_G <- fit$loo("log_lik_G", cores = 4)
 print(loo_G)
+plot(loo_G)
 
 # save to disk
 saveRDS(loo_F, file.path(out_dir, model_name, "eval", "loo_F.rds"))
