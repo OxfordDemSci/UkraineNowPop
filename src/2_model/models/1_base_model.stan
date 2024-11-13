@@ -29,14 +29,10 @@ data {
   // dimensions
   int<lower=0> T; // number of weeks
   int<lower=0> I; // number of locations
-  int<lower=0> K; // number of covariates on population growth rates
   
   // baseline
   vector<lower=0>[T] y_N_tot; // total population among locations
   vector<lower=0>[I] N0; // baseline population at each location
-  
-  // population covariates
-  matrix[T * I, K] X; // covariates on population growth rates
   
   // Facebook data
   int<lower=0> n_F; // total sample size for F

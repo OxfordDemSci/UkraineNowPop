@@ -10,36 +10,59 @@ if ("seed" %in% names(md)) {
 set.seed(seed)
 
 
-#---- indexes ----#
+#---- location and date filtering ----#
 
 last_date <- "2023-02-25" # max(idx$t_name)
+drop_locations <- c(3782, 3788, 3791, 3797)
+
+# new i indexes after dropping locations
+i_idx <- idx |>
+  select(i_key) |>
+  filter(!i_key %in% drop_locations) |>
+  distinct() |>
+  arrange(i_key) |>
+  mutate(i = row_number())
+
+
+#---- indexes ----#
 
 # master index
 md$idx <- idx |>
-  select(t, i, t_key, t_name, i_key, i_name) |>
+  select(t, t_key, t_name, i_key, i_name) |>
+  filter(!i_key %in% drop_locations) |>
+  left_join(i_idx, by = "i_key") |>
   arrange(t, i) |>
   mutate(ti = row_number()) |>
-  filter(t_name <= floor_date(as.Date(last_date), "week", week_start = 1))
+  filter(t_name <= floor_date(as.Date(last_date), "week", week_start = 1)) |>
+  select(ti, t, i, t_key, t_name, i_key, i_name)
 
 # Facebook
 md$idx_F <- idx_F |>
   select(t, i, m, value) |>
+  left_join(idx |> select(i, i_key) |> distinct()) |>
+  select(-i) |>
+  left_join(i_idx) |>
   right_join(md$idx |> select(t, i, ti)) |>
-  filter(value > 0 & is.finite(value))
+  filter(value > 0 & is.finite(value)) |>
+  select(ti, t, i, m, value)
 
 # Instagram
 md$idx_G <- idx_G |>
   select(t, i, m, value) |>
+  left_join(idx |> select(i, i_key) |> distinct()) |>
+  select(-i) |>
+  left_join(i_idx) |>
   right_join(md$idx |> select(t, i, ti)) |>
-  filter(value > 0 & is.finite(value))
+  filter(value > 0 & is.finite(value)) |>
+  select(ti, t, i, m, value)
 
 rm(last_date)
 
 
 #---- prepare data ----#
 
-md$I <- length(unique(md$idx$i))
-md$T <- length(unique(md$idx$t))
+md$I <- max(md$idx$i)
+md$T <- max(md$idx$t)
 
 
 ## social media ##
@@ -79,7 +102,7 @@ rm(drop, F_ti, G_ti, i)
 ## population ##
 
 # baseline population
-md$N0 <- codps[as.character(unique(idx$i_key[order(idx$i)])), "T_TL"]
+md$N0 <- codps[as.character(unique(md$idx$i_key[order(md$idx$i)])), "T_TL"]
 
 # total population at each time step
 weekly_avg <- outside_border |>
@@ -100,12 +123,6 @@ md$ti_N_lag <- md$idx$ti[md$idx$t > 1] - md$I
 
 md$tt <- md$idx$t
 md$ii <- md$idx$i
-
-# covariates
-md$K <- 2
-md$X <- matrix(0, nrow = nrow(md$idx), ncol = md$K)
-colnames(md$X) <- paste0("x", 1:md$K)
-rownames(md$X) <- md$idx$ti
 
 
 

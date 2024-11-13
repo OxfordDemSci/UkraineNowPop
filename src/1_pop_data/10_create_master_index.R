@@ -3,8 +3,8 @@ rm(list = ls())
 gc()
 
 # Load required helpers
-source("R_helpers/generic.R")
-source("R_helpers/data_querying.R")
+source(file.path(here::here(), "R_helpers/generic.R"))
+source(file.path(here::here(), "R_helpers/data_querying.R"))
 
 # Input parameters -------------------------------------------------------
 
@@ -31,8 +31,8 @@ date_end <- "2023-02-24"
 
 country <- "UA"
 
-meta_keys <- read_csv(file.path(in_dir, paste0(tolower(country), "_meta_keys.csv")))
-pcodes <- read_csv(file = file.path(in_dir, "COD-PS", "population_baseline.csv"))
+meta_keys <- read_csv(file.path(env$repo_dir, "data", 'meta', paste0(tolower(country), "_meta_keys.csv")))
+pcodes <- read_csv(file = file.path(env$repo_dir, "data", "cod-ps", "population_baseline.csv"))
 
 output_label <- ""
 
@@ -59,7 +59,7 @@ time_index_expanded <- tibble(
     t_name = floor_date(as.Date(collection_date), "week", week_start = 1),
     t_key = str_replace_all(as.character(t_name), "-", "") |> as.integer(),
     t = t_name |> as.character() |> as_factor() |> as.numeric()
-  ) 
+  )
 
 time_index <- time_index_expanded |>
   distinct(t_name, t_key, t) |>
