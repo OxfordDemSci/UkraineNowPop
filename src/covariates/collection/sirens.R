@@ -102,8 +102,7 @@ sirens_oblast_t <- sirens |>
     master_index
   ) |>
   ungroup() |>
-  select(-oblast) |>
-  mutate(sirens = ifelse(is.na(sirens), 0, sirens))
+  select(-oblast) 
 
 sirens_oblast_t |>
   filter(if_any(everything(), ~ is.na(.)))

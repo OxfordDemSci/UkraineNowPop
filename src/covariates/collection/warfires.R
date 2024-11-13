@@ -58,8 +58,7 @@ fires_oblast_t <- fires_sf |>
   summarise(war_fires = n()) |>
   right_join(
     master_index
-  ) |>
-  mutate(war_fires = ifelse(is.na(war_fires), 0, war_fires)) |>
+  ) |> 
   ungroup()
 
 fires_oblast_t |>

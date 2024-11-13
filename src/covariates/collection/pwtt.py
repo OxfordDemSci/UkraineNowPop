@@ -17,22 +17,24 @@ ggdrive = Path('H:/My Drive/')
 folder = 'pwtt_ukraine'
 country = 'ua'
 
-project_name = 'ee-nowpoplcds'
-ee.Authenticate()
-ee.Initialize(project=project_name)
-ukraine = ee.Geometry.Rectangle([22.0856083513, 44.3614785833, 40.0807890155, 52.3350745713])
+
 
 # data input
 boundaries_oblast_path = in_dir / 'COD-AB' / 'ukr_admbnda_sspe_20230201_SHP'/'ukr_admbnda_adm1_sspe_20230201.shp'
+boundaries_oblast = gpd.read_file(boundaries_oblast_path)
 master_index = pd.read_csv(out_dir / (country +'_master_index.csv'))
 master_index = master_index[['ADM1_PCODE', 't', 'i', 't_key', 'i_key', 't_name', 'i_name']].drop_duplicates()
 
 time_index = pd.read_csv(out_dir / (country +'_time_index.csv'))
 
 # 1. run pwtt
+project_name = 'ee-nowpoplcds'
+ee.Authenticate()
+ee.Initialize(project=project_name)
+ukraine = ee.Geometry.Rectangle([22.0856083513, 44.3614785833, 40.0807890155, 52.3350745713])
 
 war_date = pd.to_datetime('2022-02-22')
-end_date = pd.to_datetime('2024-11-22')
+end_date = time_index['collection_date'].max()
 dates = pd.date_range(war_date+pd.Timedelta(weeks=4), end_date, freq='ME')
 dates = [date.replace(day=22).strftime('%Y-%m-%d') for date in dates if date <= end_date]
 
@@ -63,6 +65,7 @@ shutil.copytree( ggdrive / folder,  out_dir / 'covariates' / 'raw'/ folder, dirs
 # 3. Extract building damages per admin unit
 
 tiff_list = os.listdir(out_dir / 'covariates' / 'raw'/ folder)
+tiff_list = [s for s in tiff_list if s.endswith('.tif')]
 
 oblast_sum = {}
 
@@ -84,16 +87,16 @@ oblast_sum_lg = oblast_sum_lg.merge(
         master_index, how='right'
     )
 
-oblast_sum_lg = oblast_sum_lg.sort_values(by=['i', 't'])
-oblast_sum_lg['pwtt_interpolated'] = oblast_sum_lg.groupby(['i'])['pwtt'].transform(pd.DataFrame.interpolate, method='linear')
+oblast_sum_lg.drop(columns=['collection_date'], inplace=True)	
 
 # Write output
 oblast_sum_lg.to_csv(out_dir / 'covariates' / 'interim'/ (country+'_pwtt_oblast.csv'), index=False)
 
 
-filtered_data = oblast_sum_lg[oblast_sum_lg['i'].isin([4,21, 23])]
 
 # Visualise an example
+filtered_data = oblast_sum_lg[oblast_sum_lg['i'].isin([4,21, 23])]
+
 plt.figure(figsize=(12, 6))
 
 for i in filtered_data['i_name'].unique():
