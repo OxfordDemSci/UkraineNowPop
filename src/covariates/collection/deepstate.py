@@ -35,7 +35,6 @@ ITEMS_FOLDER = out_dir / "covariates" / "raw" / "deepstate"
 
 # Create directories
 os.makedirs(ITEMS_FOLDER, exist_ok=True)
-os.makedirs(ITEMS_FOLDER / "raw", exist_ok=True)
 
 # data
 country = "ua"
@@ -138,7 +137,7 @@ def scrape_items(items):
 # XXX Beware, this will take some time as it has to download 530+ files
 scrape_items(history)
 
-files = os.listdir(ITEMS_FOLDER)
+files = [s for s in os.listdir(ITEMS_FOLDER) if s.endswith(".json")]
 
 
 # check manually the labels to define the regular expression
@@ -218,8 +217,7 @@ processed = dispatch(files)
 
 # combine occupied territory in one covariate
 
-occupied_list = os.listdir(ITEMS_FOLDER)
-occupied_list = [s for s in occupied_list if s.endswith(".gpkg")]
+occupied_list = [s for s in os.listdir(ITEMS_FOLDER) if s.endswith(".gpkg")]
 
 boundaries_oblast_proj = boundaries_oblast.to_crs("EPSG:6381")
 intersections = pd.DataFrame()
@@ -252,7 +250,7 @@ intersections.to_csv(
 # Visualise an example
 import matplotlib.pyplot as plt
 
-filtered_data = intersections_[intersections_["i"].isin([4, 21, 23])]
+filtered_data = intersections[intersections["i"].isin([4, 21, 23])]
 
 plt.figure(figsize=(12, 6))
 

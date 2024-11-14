@@ -2,6 +2,7 @@ bs4
 datetime
 geopandas
 logging
+matplotlib
 numpy
 pandas
 plotly
