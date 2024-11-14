@@ -7,29 +7,29 @@ library(sf)
 env <- new.env()
 source(here::here(".env"), local = env)
 out_dir <- env$out_dir
-in_dir <- env$in_dir
+repo_dir <- env$repo_dir
 
 country <- "UA"
 
 # Clone repository
-repo_url <- "https://github.com/TheEconomist/the-economist-war-fire-model.git"
-repo_dir <- file.path(out_dir, "covariates", "raw", "the-economist-war-fire-model")
+fireRepo_url <- "https://github.com/TheEconomist/the-economist-war-fire-model.git"
+fireRepo_dir <- file.path(out_dir, "covariates", "raw", "the-economist-war-fire-model")
 
-if (!dir.exists(repo_dir)) {
-  git2r::clone(repo_url, repo_dir)
+if (!dir.exists(fireRepo_dir)) {
+  git2r::clone(fireRepo_url, fireRepo_dir)
 }
 
-git2r::pull(repo_dir)
+git2r::pull(fireRepo_dir)
 
 # load data --------------------------------------------------------------
 time_index <- read_csv(file.path(out_dir, paste0(tolower(country), "_time_index.csv")))
 master_index <- read_csv(file.path(out_dir, paste0(tolower(country), "_master_index.csv")))
 master_index <- master_index |>
   distinct(i_key, i_name, i, t, t_name, t_key, ADM1_PCODE, ADM1_EN)
-admin <- st_read(file.path(in_dir, "COD-AB", "ukr_admbnda_sspe_20230201_SHP/ukr_admbnda_adm1_sspe_20230201.shp"))
+admin <- st_read(file.path(repo_dir, "data", "cod-ab", "ukr_admbnda_sspe_20230201_SHP/ukr_admbnda_adm1_sspe_20230201.shp"))
 
 
-fires <- read_csv(file.path(repo_dir, "output-data", "ukraine_war_fires.csv"))
+fires <- read_csv(file.path(fireRepo_dir, "output-data", "ukraine_war_fires.csv"))
 fires_sf <- st_as_sf(fires, coords = c("x", "y"), crs = "epsg:4326")
 
 
@@ -58,7 +58,7 @@ fires_oblast_t <- fires_sf |>
   summarise(war_fires = n()) |>
   right_join(
     master_index
-  ) |> 
+  ) |>
   ungroup()
 
 fires_oblast_t |>

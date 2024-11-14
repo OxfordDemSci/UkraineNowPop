@@ -3,8 +3,6 @@ from pathlib import Path
 import shutil
 import ee
 from py_helpers.utils import *
-import rasterio
-import rasterio.features
 import matplotlib.pyplot as plt
 import rasterstats
 
@@ -17,10 +15,8 @@ ggdrive = Path('H:/My Drive/')
 folder = 'pwtt_ukraine'
 country = 'ua'
 
-
-
 # data input
-boundaries_oblast_path = in_dir / 'COD-AB' / 'ukr_admbnda_sspe_20230201_SHP'/'ukr_admbnda_adm1_sspe_20230201.shp'
+boundaries_oblast_path = repo_dir / 'data' / 'COD-AB' / 'ukr_admbnda_sspe_20230201_SHP'/'ukr_admbnda_adm1_sspe_20230201.shp'
 boundaries_oblast = gpd.read_file(boundaries_oblast_path)
 master_index = pd.read_csv(out_dir / (country +'_master_index.csv'))
 master_index = master_index[['ADM1_PCODE', 't', 'i', 't_key', 'i_key', 't_name', 'i_name']].drop_duplicates()

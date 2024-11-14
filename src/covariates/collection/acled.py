@@ -9,14 +9,15 @@ import numpy as np
 # Load the .env file
 env_path = Path(".") / ".env"
 load_dotenv(env_path)
-in_dir = Path(os.getenv("in_dir"))
 out_dir = Path(os.getenv("out_dir"))
+repo_dir = Path(os.getenv("repo_dir"))
 country = "ua"
 
 # data
 boundaries_oblast = gpd.read_file(
-    in_dir
-    / "COD-AB"
+    repo_dir
+    / "data"
+    / "cod-ab"
     / "ukr_admbnda_sspe_20230201_SHP"
     / "ukr_admbnda_adm1_sspe_20230201.shp"
 )

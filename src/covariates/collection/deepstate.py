@@ -8,7 +8,6 @@
 
 import datetime
 import json
-import os
 import pathlib
 import socket
 import time
@@ -21,10 +20,7 @@ from urllib.error import HTTPError, URLError
 import geopandas as gpd
 import pandas as pd
 from shapely.geometry import shape
-from pathlib import Path
-from dotenv import load_dotenv
-from shapely.geometry import Polygon
-from shapely.ops import unary_union
+from py_helpers.utils import *
 
 USER_AGENT = "deepstate-scraper/0.0.1"
 TIMEOUT = 60
@@ -35,11 +31,6 @@ PARALLEL_PROCESSES = 16
 
 HISTORY_URL = "https://deepstatemap.live/api/history/"
 
-env_path = Path(".") / ".env"
-load_dotenv(env_path)
-
-in_dir = Path(os.getenv("in_dir"))
-out_dir = Path(os.getenv("out_dir"))
 ITEMS_FOLDER = out_dir / "covariates" / "raw" / "deepstate"
 
 # Create directories
@@ -49,8 +40,9 @@ os.makedirs(ITEMS_FOLDER / "raw", exist_ok=True)
 # data
 country = "ua"
 boundaries_oblast_path = (
-    in_dir
-    / "COD-AB"
+    repo_dir
+    / "data"
+    / "cod-ab"
     / "ukr_admbnda_sspe_20230201_SHP"
     / "ukr_admbnda_adm1_sspe_20230201.shp"
 )

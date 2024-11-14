@@ -12,22 +12,22 @@ country <- "UA"
 output_label <- ""
 
 # Clone repository
-repo_dir <- file.path(out_dir, "covariates", "raw", "ukrainian-air-raid-sirens-dataset")
-repo_url <- "https://github.com/Vadimkin/ukrainian-air-raid-sirens-dataset.git"
+sirenRepo_dir <- file.path(out_dir, "covariates", "raw", "ukrainian-air-raid-sirens-dataset")
+sirenRepo_url <- "https://github.com/Vadimkin/ukrainian-air-raid-sirens-dataset.git"
 
-if (!dir.exists(repo_dir)) {
-  git2r::clone(repo_url, repo_dir)
+if (!dir.exists(sirenRepo_dir)) {
+  git2r::clone(sirenRepo_url, sirenRepo_dir)
 }
 
-git2r::pull(repo_dir)
+git2r::pull(sirenRepo_dir)
 
 # Load data
 time_index <- read_csv(file.path(out_dir, paste0(tolower(country), "_time_index.csv")))
 master_index <- read_csv(file.path(out_dir, paste0(tolower(country), "_master_index.csv")))
 master_index <- master_index |>
   distinct(i_key, i_name, i, t, t_name, t_key, ADM1_PCODE, ADM1_EN)
-sirens_official <- read_csv(file.path(repo_dir, "datasets", "official_data_en.csv"))
-sirens_volunteered <- read_csv(file.path(repo_dir, "datasets", "volunteer_data_en.csv")) |>
+sirens_official <- read_csv(file.path(sirenRepo_dir, "datasets", "official_data_en.csv"))
+sirens_volunteered <- read_csv(file.path(sirenRepo_dir, "datasets", "volunteer_data_en.csv")) |>
   rename(oblast = region)
 
 # Concatenate official and unoffical sources
