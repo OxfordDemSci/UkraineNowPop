@@ -1,10 +1,14 @@
 import pandas as pd
 import geopandas as gpd
-import net_friction.data_preparation as prep
+
 import os
 from dotenv import load_dotenv
 from pathlib import Path
 import numpy as np
+
+if not Path('py_helpers/net_friction').exists():
+    !git clone https://github.com/GISRedeDev/PyNetworkFriction py_helpers/net_friction
+import py_helpers.net_friction.net_friction.data_preparation as prep
 
 # Load the .env file
 env_path = Path(".") / ".env"
