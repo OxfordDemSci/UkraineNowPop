@@ -3,9 +3,14 @@ import pandas as pd
 from bs4 import BeautifulSoup
 import requests
 import pickle
+import os
+from dotenv import load_dotenv
+from pathlib import Path
 
+load_dotenv()
+out_dir = Path(os.getenv("out_dir")) / "covariates" / "raw" / "airwars"
 
-OUT_FOLDER = 'K:/DemSci/data/airwars'
+os.makedirs(out_dir, exist_ok=True)
 
 
 def query_airwars_api(url, per_page=10):
@@ -14,7 +19,7 @@ def query_airwars_api(url, per_page=10):
         page = 1
         while True:
             print(page)
-            params = {'per_page': per_page, 'page': page}
+            params = {"per_page": per_page, "page": page}
             response = requests.get(url, params=params)
             if response.status_code == 200:
                 data = response.json()
@@ -31,40 +36,43 @@ def query_airwars_api(url, per_page=10):
         print(f"Error: {e}")
         return None
 
+
 def extract_attributes(row):
     try:
-        response = requests.get(row['link'])
+        response = requests.get(row["link"])
         if response.status_code == 200:
-            soup = BeautifulSoup(response.content, 'html.parser')
+            soup = BeautifulSoup(response.content, "html.parser")
 
-            location = soup.find(class_='meta-block location')
+            location = soup.find(class_="meta-block location")
             if location:
-                location_text = location.find('h4').next_sibling.strip()
-                df_gaza.loc[df_gaza['id'] == row['id'], 'location_text'] = location_text
+                location_text = location.find("h4").next_sibling.strip()
+                df_gaza.loc[df_gaza["id"] == row["id"], "location_text"] = location_text
 
             else:
                 location_text = "Location information not found"
 
-            geolocation = soup.find(class_='Geolocations primary')
+            geolocation = soup.find(class_="Geolocations primary")
             if geolocation:
-                geolocation_text = geolocation.find('i').next_sibling.strip()
-                df_gaza.loc[df_gaza['id'] == row['id'], 'geolocation_text'] = geolocation_text
+                geolocation_text = geolocation.find("i").next_sibling.strip()
+                df_gaza.loc[df_gaza["id"] == row["id"], "geolocation_text"] = (
+                    geolocation_text
+                )
 
             else:
                 geolocation_text = "Geolocation information not found"
 
-            killed = soup.select_one('ul.meta-list.summary li.sub div.value')
+            killed = soup.select_one("ul.meta-list.summary li.sub div.value")
             if killed:
                 killed_text = killed.get_text(strip=True)
-                killed_number = list(map(int, re.findall(r'\d+', killed_text)))
+                killed_number = list(map(int, re.findall(r"\d+", killed_text)))
                 if len(killed_number) == 2:
-                    killed_number = (killed_number[0]+killed_number[1])/2
+                    killed_number = (killed_number[0] + killed_number[1]) / 2
                 elif len(killed_number) == 1:
                     killed_number = int(killed_number[0])
                 else:
                     killed_number = None
-                df_gaza.loc[df_gaza['id'] == row['id'], 'killed_text'] = killed_text
-                df_gaza.loc[df_gaza['id'] == row['id'], 'killed_number'] = killed_number
+                df_gaza.loc[df_gaza["id"] == row["id"], "killed_text"] = killed_text
+                df_gaza.loc[df_gaza["id"] == row["id"], "killed_number"] = killed_number
 
             else:
                 killed_text = "Killed information not found"
@@ -73,17 +81,18 @@ def extract_attributes(row):
 
             return location_text, geolocation_text, killed_text
         else:
-            print(f'Failed to fetch webpage for link: {link}')
+            print(f"Failed to fetch webpage for link: {link}")
             return None, None
     except Exception as e:
-        print(f'Error occurred while processing link {link}: {e}')
+        print(f"Error occurred while processing link {link}: {e}")
         return None, None
+
 
 url = "https://airwars.org/wp-json/wp/v2/civ/"
 result = query_airwars_api(url, per_page=10)
 df = pd.json_normalize(result)
 
-df.to_pickle(OUT_FOLDER + '/airwars_raw.pkl')
+df.to_pickle(os.path.join(out_dir, "airwars_raw.pkl"))
 
 # 878 = UKRAINE
 # 459 = Turkey
