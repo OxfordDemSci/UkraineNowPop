@@ -260,7 +260,7 @@ if __name__ == "__main__":
 
     # ---- Visualise an example ----#
     if False:
-        filtered_data = intersections[intersections["i"].isin([4, 21, 23])]
+        filtered_data = intersections[intersections["i"].isin([5, 7, 27, 143])]
 
         plt.figure(figsize=(12, 6))
 

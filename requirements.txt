@@ -1,5 +1,7 @@
 bs4
 datetime
+earthengine-api
+geemap
 geopandas
 logging
 matplotlib
@@ -8,5 +10,6 @@ pandas
 plotly
 psycopg2-binary
 python-dotenv
+rasterstats
 requests
 sqlalchemy
