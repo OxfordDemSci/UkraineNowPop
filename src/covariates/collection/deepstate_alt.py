@@ -24,6 +24,7 @@ from py_helpers.utils import *
 
 import matplotlib.pyplot as plt
 
+
 # scraper global variables
 USER_AGENT = "deepstate-scraper/0.0.1"
 TIMEOUT = 60

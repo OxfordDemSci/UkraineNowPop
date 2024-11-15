@@ -12,6 +12,9 @@ apt-get install -y curl libssl-dev libudunits2-dev unixodbc-dev libpq-dev libfon
 # dependencies of R package tidyverse
 apt-get install -y libharfbuzz-dev libfribidi-dev
 
+# dependencies of R package 
+apt-get install -y libgit2-dev
+
 
 #---- python dependencies (OS independent) ----#
 pip install -r requirements.txt
