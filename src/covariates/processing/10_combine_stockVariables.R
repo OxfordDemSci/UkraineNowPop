@@ -1,5 +1,7 @@
 source("R_helpers/generic.R")
 
+dir.create(file.path(out_dir, "covariates", "final"), showWarnings = FALSE, recursive = TRUE)
+
 master_index <- read_csv(file.path(out_dir, paste0(tolower(country), "_master_index", output_label, ".csv")))
 cov_list <- list.files(file.path(out_dir, "covariates", "interim"), pattern = "^ua", full.names = T)
 
