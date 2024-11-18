@@ -36,7 +36,7 @@ codps <- read.csv(file.path(data_dir, "cod-ps", "population_baseline.csv"))
 row.names(codps) <- codps$fb_key
 
 # border crossings
-outside_border <- read.csv(file.path(data_dir, "population_proxy", "crossing_borders", "dat_refugees.csv"))
+outside_border <- read.csv(file.path(out_dir, "population_proxy", "crossing_borders", "dat_refugees.csv"))
 
 # master index
 idx <- read.csv(file.path(out_dir, "ua_master_index.csv"))
