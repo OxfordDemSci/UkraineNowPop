@@ -89,7 +89,7 @@ for raster_file in tiff_list:
     # raster_file = tiff_list[0]
     raster_path = out_dir / 'covariates' / 'raw'/ folder/ raster_file
     zonal = rasterstats.zonal_stats(admin_gis, raster_path, stats=['sum'])
-    admin_sum[os.path.splitext(raster_file)[0]] = [d['sum'] for d in zonal]
+    admin_sum[os.path.splitext(raster_file)[0]] = pd.Series([d['sum'] for d  in zonal]).replace(np.nan, 0)
 
 admin_sum = pd.DataFrame(admin_sum)
 admin_sum[adminName_col] = admin_gis[adminName_col]
