@@ -101,11 +101,11 @@ sirens_oblast_t <- sirens |>
   right_join(
     master_index
   ) |>
-  ungroup()
+  ungroup() |>
+  mutate(
+    sirens = ifelse(is.na(sirens), 0, sirens)
+  )
 
-sirens_oblast_t |>
-  filter(if_any(everything(), ~ is.na(.)))
-sirens_oblast_t
 
 # write output -----------------------------------------------------------
 
