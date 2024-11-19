@@ -39,12 +39,12 @@ output_label <- ""
 # create master_index ----------------------------------------------------
 
 geo_index <- meta_keys |>
-  rename(i_name = geo_name, i_key = geo_key) |>
-  distinct(i_name, i_key) |>
+  rename(i_key = geo_key) |>
+  distinct(i_key) |>
   left_join(
     pcodes |>
       select(fb_key, ADM1_PCODE, ADM1_EN) |>
-      rename(i_key = fb_key)
+      rename(i_key = fb_key, i_name = ADM1_EN),
   ) |>
   arrange(i_key) |>
   mutate(
