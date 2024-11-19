@@ -18,14 +18,14 @@ agesex <- c("T_13Plus")
 #            "T_13Plus", "T_18Plus", "T_20Plus", "T_13_19", "T_15_49", "T_15_64", "T_18_34", "T_20_29", "T_30_39", "T_40_49", "T_50_59", "T_60Plus", "T_65Plus")
 
 # Function to create regular age groupings
-create_regular_group <- function(age_gap, gender = c("F", "M"), age_max = 60) {
-  age_group <- c(paste(seq(from = 20, to = age_max - age_gap, by = age_gap),
-    seq(from = 20 + age_gap - 1, to = age_max, by = age_gap),
-    sep = "_"
-  ), paste0(age_max, "Plus"))
-  lapply(gender, function(g) paste(g, age_group, sep = "_")) |> unlist()
-}
-agesex <- create_regular_group(10)
+# create_regular_group <- function(age_gap, gender = c("F", "M"), age_max = 60) {
+#   age_group <- c(paste(seq(from = 20, to = age_max - age_gap, by = age_gap),
+#     seq(from = 20 + age_gap - 1, to = age_max, by = age_gap),
+#     sep = "_"
+#   ), paste0(age_max, "Plus"))
+#   lapply(gender, function(g) paste(g, age_group, sep = "_")) |> unlist()
+# }
+# agesex <- create_regular_group(10)
 
 # date
 date_start <- "2022-02-25"
@@ -75,7 +75,7 @@ agesex_index <- lapply(
   }
 ) |>
   bind_rows() |>
-  arrange(age_min) |>
+  arrange(age_min, desc(agesex)) |>
   mutate(
     a_name = str_sub(agesex, 3),
     a = as.integer(factor(paste0(age_min, age_max))),
