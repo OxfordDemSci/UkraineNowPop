@@ -9,32 +9,6 @@ import numpy as np
 import net_friction.data_preparation as prep
 
 
-def vary_buffer_in_subset(buffer_distance_in_meters, edges, incident_data, out_dir):
-    """Compute Incidents in Routes"""
-
-    # Define the output filenames
-    incidents_outfile_csv = (
-        out_dir / f"acled_edge_oblast_{buffer_distance_in_meters}.csv"
-    )
-    incidents_outfile_gpkg = (
-        out_dir / f"acled_edge_oblast_{buffer_distance_in_meters}.gpkg"
-    )
-
-    # Read and process the data
-    incident_subset_gdf = prep.subset_incident_data_in_buffer(
-        edges=edges,
-        incident_data=incident_data,
-        incident_out_file=incidents_outfile_csv,
-        buffer_distance=buffer_distance_in_meters,
-        crs=6383,
-        is_acled=True,
-        index_col="event_id_cnty",  # Unique ID field in incidents table
-    )
-
-    # Save the results
-    incident_subset_gdf.to_file(incidents_outfile_gpkg, driver="GPKG")
-
-
 if __name__ == "__main__":
 
     # Load the .env file
@@ -152,11 +126,3 @@ if __name__ == "__main__":
     )
 
     acled_oblast.to_csv(interim_dir / (country + "_acled_oblast.csv"), index=False)
-
-    for buffer in [1000, 5000, 10000]:
-        vary_buffer_in_subset(
-            buffer_distance_in_meters=buffer,
-            edges=out_dir / "covariates" / "network_edges_oblast.gpkg",
-            incident_data=interim_dir / (country + "_acled_oblast.csv"),
-            out_dir=out_dir,
-        )
