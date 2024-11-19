@@ -22,37 +22,18 @@ import pandas as pd
 from shapely.geometry import shape
 from py_helpers.utils import *
 
+import matplotlib.pyplot as plt
+
+
+# scraper global variables
 USER_AGENT = "deepstate-scraper/0.0.1"
 TIMEOUT = 60
 MAX_RETRIES = 10
 COOLDOWN = 2  # 5 seconds between retries/after each download
 PARALLEL_DOWNLOADS = 10
 PARALLEL_PROCESSES = 16
-
 HISTORY_URL = "https://deepstatemap.live/api/history/"
-
 ITEMS_FOLDER = out_dir / "covariates" / "raw" / "deepstate"
-
-# Create directories
-os.makedirs(ITEMS_FOLDER, exist_ok=True)
-
-# data
-country = "ua"
-boundaries_oblast_path = (
-    repo_dir
-    / "data"
-    / "cod-ab"
-    / "ukr_admbnda_sspe_20230201_SHP"
-    / "ukr_admbnda_adm1_sspe_20230201.shp"
-)
-boundaries_oblast = gpd.read_file(boundaries_oblast_path)
-boundaries_oblast = boundaries_oblast[["ADM1_PCODE", "geometry"]]
-master_index = pd.read_csv(out_dir / (country + "_master_index.csv"))
-master_index = master_index[
-    ["ADM1_PCODE", "t", "i", "t_key", "i_key", "t_name", "i_name"]
-].drop_duplicates()
-
-time_index = pd.read_csv(out_dir / (country + "_time_index.csv"))
 
 
 def scrape_json(url: str):
@@ -95,19 +76,6 @@ def scrape_json(url: str):
     raise HTTPError
 
 
-def save_to_file(items, filename):
-    # print(f"Saving results to {filename}")
-    with open(filename, "w", encoding="utf-8") as f:
-        json.dump(items, f, ensure_ascii=False, indent=2)
-
-
-history = scrape_json(HISTORY_URL)
-
-
-# Ensure 'items' dir exists
-pathlib.Path(ITEMS_FOLDER).mkdir(parents=True, exist_ok=True)
-
-
 def scrape_items(items):
 
     ids = list(enumerate(filter(None, (str(p.get("id")) for p in items))))
@@ -118,7 +86,7 @@ def scrape_items(items):
         # https://stackoverflow.com/a/5291396/2193463
         print(f"(Downloading {idx}/{len(ids)}", end="\r")
         entry = scrape_json(url)
-        save_to_file(entry, ITEMS_FOLDER.joinpath(str(id) + ".json"))
+        save_to_file(entry, ITEMS_FOLDER.joinpath("json").joinpath(str(id) + ".json"))
         entry["id"] = id
         # Artificial throttling, otherwise we'll get an HTTP 429
         time.sleep(COOLDOWN)
@@ -134,15 +102,16 @@ def scrape_items(items):
     return results
 
 
-# XXX Beware, this will take some time as it has to download 530+ files
-scrape_items(history)
+def save_to_file(items, filename):
+    # print(f"Saving results to {filename}")
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(items, f, ensure_ascii=False, indent=2)
 
-files = [s for s in os.listdir(ITEMS_FOLDER) if s.endswith(".json")]
 
-
-# check manually the labels to define the regular expression
 def read_property(filename):
-    with open(os.path.join(ITEMS_FOLDER, filename), encoding="utf-8") as f:
+    """check manually the labels to define the regular expression"""
+
+    with open(os.path.join(ITEMS_FOLDER, "json", filename), encoding="utf-8") as f:
         data = json.load(f)
     properties = []
     for feature in data["features"]:
@@ -150,19 +119,6 @@ def read_property(filename):
             properties.append(feature["properties"]["name"])
 
     return properties
-
-
-properties = [read_property(i) for i in files]
-properties = [item for sublist in properties for item in sublist]
-
-properties_table = pd.Series(properties).value_counts()
-properties_table = pd.DataFrame(
-    {"text": properties_table.index, "Frequency": properties_table.values}
-)
-
-properties_table["matched"] = properties_table["text"].str.contains(
-    "уп|ОРДЛО|Крим", case=False
-)
 
 
 def extract_occupied(features):
@@ -186,7 +142,7 @@ def extract_occupied(features):
 def process_item(args):
     idx, filename = args
     print(f"(Processing {idx}", end="\r")
-    with open(os.path.join(ITEMS_FOLDER, filename), encoding="utf-8") as f:
+    with open(os.path.join(ITEMS_FOLDER, "json", filename), encoding="utf-8") as f:
         data = json.load(f)
     id_ = filename.split(".json")[0]
     date = datetime.datetime.fromtimestamp(int(id_)).strftime("%Y-%m-%d")
@@ -195,13 +151,10 @@ def process_item(args):
     polygons["date"] = date
 
     polygons.to_file(
-        os.path.join(ITEMS_FOLDER, "occupied_" + date + ".gpkg"), driver="GPKG"
+        os.path.join(ITEMS_FOLDER, "gpkg", "occupied_" + date + ".gpkg"), driver="GPKG"
     )
 
     return [id_, polygons]
-
-
-processed = []
 
 
 def dispatch(items):
@@ -211,60 +164,121 @@ def dispatch(items):
     )
 
 
-# XXX This is slow, beware
-# Don't worry about weird text output below ("Processing ...")
-processed = dispatch(files)
+if __name__ == "__main__":
 
-# combine occupied territory in one covariate
+    # settings
+    country = "ua"
 
-occupied_list = [s for s in os.listdir(ITEMS_FOLDER) if s.endswith(".gpkg")]
+    # Create directories
+    os.makedirs(ITEMS_FOLDER / "json", exist_ok=True)
+    os.makedirs(ITEMS_FOLDER / "gpkg", exist_ok=True)
+    os.makedirs(out_dir / "covariates" / "interim", exist_ok=True)
 
-boundaries_oblast_proj = boundaries_oblast.to_crs("EPSG:6381")
-intersections = pd.DataFrame()
-for occupied in occupied_list:
-    # occupied = occupied_list[0]
-    occupied_gdf = gpd.read_file(ITEMS_FOLDER / occupied).to_crs("EPSG:6381")
-    intersection = gpd.overlay(
-        occupied_gdf[["geometry", "date"]], boundaries_oblast_proj, how="intersection"
+    # ---- load data ----#
+
+    # cod-ab
+    boundaries_oblast_path = (
+        repo_dir
+        / "data"
+        / "cod-ab"
+        / "ukr_admbnda_sspe_20230201_SHP"
+        / "ukr_admbnda_adm1_sspe_20230201.shp"
     )
-    intersection["occupied"] = intersection.area
-    intersection = intersection.rename(columns={"date": "collection_date"})
-    intersection.drop(columns=["geometry"], inplace=True)
-    intersections = pd.concat([intersections, intersection])
+    boundaries_oblast = gpd.read_file(boundaries_oblast_path)
+    boundaries_oblast = boundaries_oblast[["ADM1_PCODE", "geometry"]]
 
-intersections.groupby(["collection_date", "ADM1_PCODE"]).size()
-intersections = (
-    intersections.merge(time_index, how="left", on="collection_date")
-    .groupby(["ADM1_PCODE", "t", "t_key", "t_name"])["occupied"]
-    .sum()
-    .reset_index(name="occupied")
-)
+    # master index
+    master_index = pd.read_csv(out_dir / (country + "_master_index.csv"))
+    master_index = master_index[
+        ["ADM1_PCODE", "t", "i", "t_key", "i_key", "t_name", "i_name"]
+    ].drop_duplicates()
 
-intersections = intersections.merge(master_index, how="right")
+    # time index
+    time_index = pd.read_csv(out_dir / (country + "_time_index.csv"))
 
-# Write output
-intersections.to_csv(
-    out_dir / "covariates" / "interim" / (country + "_occupied_oblast.csv"), index=False
-)
+    # ---- scraper ----#
 
-# Visualise an example
-import matplotlib.pyplot as plt
+    # scrape history
+    history = scrape_json(HISTORY_URL)
 
-filtered_data = intersections[intersections["i"].isin([4, 21, 23])]
+    # XXX Beware, this will take some time as it has to download 530+ files
+    scrape_items(history)
 
-plt.figure(figsize=(12, 6))
+    # process file properties
+    files = os.listdir(ITEMS_FOLDER / "json")
+    files = [s for s in files if s.endswith(".json")]
 
-for i in filtered_data["i_name"].unique():
-    i_data = filtered_data[filtered_data["i_name"] == i]
-    i_key = i_data["i"].unique()[0] - 4
-    plt.scatter(
-        i_data["t"],
-        i_data["occupied"],
-        label=f"i={i} (t)",
-        color=plt.cm.tab20(i_key),
+    properties = [read_property(i) for i in files]
+    properties = [item for sublist in properties for item in sublist]
+
+    properties_table = pd.Series(properties).value_counts()
+    properties_table = pd.DataFrame(
+        {"text": properties_table.index, "Frequency": properties_table.values}
     )
 
-plt.xlabel("t")
-plt.ylabel("occupied")
-plt.legend()
-plt.show()
+    properties_table["matched"] = properties_table["text"].str.contains(
+        "уп|ОРДЛО|Крим", case=False
+    )
+
+    # XXX This is slow, beware
+    # Don't worry about weird text output below ("Processing ...")
+    processed = dispatch(files)
+
+    # combine occupied territory in one covariate
+    occupied_list = os.listdir(ITEMS_FOLDER / "gpkg")
+    occupied_list = [s for s in occupied_list if s.endswith(".gpkg")]
+
+    boundaries_oblast_proj = boundaries_oblast.to_crs("EPSG:6381")
+    intersections = pd.DataFrame()
+    for occupied in occupied_list:
+        # occupied = occupied_list[0]
+        occupied_gdf = gpd.read_file(ITEMS_FOLDER / "gpkg" / occupied).to_crs(
+            "EPSG:6381"
+        )
+        intersection = gpd.overlay(
+            occupied_gdf[["geometry", "date"]],
+            boundaries_oblast_proj,
+            how="intersection",
+        )
+        intersection["occupied"] = intersection.area
+        intersection = intersection.rename(columns={"date": "collection_date"})
+        intersection.drop(columns=["geometry"], inplace=True)
+        intersections = pd.concat([intersections, intersection])
+
+    intersections = (
+        intersections.merge(time_index, how="left", on="collection_date")
+        .groupby(["ADM1_PCODE", "t", "t_key", "t_name"])["occupied"]
+        .mean()
+        .reset_index(name="occupied")
+    )
+
+    intersections = intersections.merge(master_index, how="right")
+
+    intersections["occupied"] = intersections["occupied"].replace(np.nan, 0)
+
+    # Write output
+    intersections.to_csv(
+        out_dir / "covariates" / "interim" / (country + "_occupied_oblast.csv"),
+        index=False,
+    )
+
+    # ---- Visualise an example ----#
+    if False:
+        filtered_data = intersections[intersections["i"].isin([5, 7, 27, 14])]
+
+        plt.figure(figsize=(12, 6))
+
+        for i in filtered_data["i_name"].unique():
+            i_data = filtered_data[filtered_data["i_name"] == i]
+            i_key = i_data["i"].unique()[0] - 4
+            plt.scatter(
+                i_data["t"],
+                i_data["occupied"],
+                label=f"i={i} (t)",
+                color=plt.cm.tab20(i_key),
+            )
+
+        plt.xlabel("t")
+        plt.ylabel("occupied")
+        plt.legend()
+        plt.show()
