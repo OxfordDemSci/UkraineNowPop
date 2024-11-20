@@ -26,12 +26,12 @@ agesex <- c("T_13Plus")
 # agesex <- create_regular_group(10)
 
 # date
-date_start <- "2022-02-25"
-date_end <- "2023-02-24"
+date_start <- "2022-02-22"
+date_end <- "2024-10-31"
 
 country <- "UA"
 
-meta_keys <- read_csv(file.path(env$repo_dir, "data", 'meta', paste0(tolower(country), "_meta_keys.csv")))
+meta_keys <- read_csv(file.path(env$repo_dir, "data", "meta", paste0(tolower(country), "_meta_keys.csv")))
 pcodes <- read_csv(file = file.path(env$repo_dir, "data", "cod-ps", "population_baseline.csv"))
 
 output_label <- ""
@@ -39,12 +39,12 @@ output_label <- ""
 # create master_index ----------------------------------------------------
 
 geo_index <- meta_keys |>
-  rename(i_name = geo_name, i_key = geo_key) |>
-  distinct(i_name, i_key) |>
+  rename(i_key = geo_key) |>
+  distinct(i_key) |>
   left_join(
     pcodes |>
       select(fb_key, ADM1_PCODE, ADM1_EN) |>
-      rename(i_key = fb_key)
+      rename(i_key = fb_key, i_name = ADM1_EN),
   ) |>
   arrange(i_key) |>
   mutate(

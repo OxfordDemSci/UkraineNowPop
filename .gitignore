@@ -1,12 +1,20 @@
+.env
 private*
 venv*
 *.exe
-.env
-/src/dashboard/www/public_html/js/env.js
-/wd/
 *.exe
-venv*
-.idea
+**/.idea/
+/wd/
+/data/control/
+/py_helpers/PWTT/
+
+/src/dashboard/www/public_html/js/env.js
+.vscode
+data/dummy_tables/dummy_migration.*
+data/dummy_tables/dummy_pop.*
+
+
+#---- R ignore ----#
 
 # History files
 .Rhistory
@@ -58,8 +66,3 @@ po/*~
 # RStudio Connect folder
 rsconnect/
 
-.vscode
-data/dummy_tables/dummy_migration.*
-data/dummy_tables/dummy_pop.*
-/data/control/
-.idea/
