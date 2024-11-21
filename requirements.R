@@ -23,6 +23,7 @@ pkgs <- c(
   "jsonlite",
   "httr",
   "DBI",
-  "RPostgres"
+  "RPostgres",
+  "git2R"
 )
 install.packages(pkgs)

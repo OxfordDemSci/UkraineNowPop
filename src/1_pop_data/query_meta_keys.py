@@ -1,4 +1,4 @@
-import pyidp
+import py_helpers
 import os
 from dotenv import load_dotenv
 from pathlib import Path
@@ -40,7 +40,7 @@ sql = (
     f"location_types = '{location_type}';"
 )
 
-meta_key = pd.read_sql(sql=sql, con=pyidp.db_engine())
+meta_key = pd.read_sql(sql=sql, con=py_helpers.db_engine())
 meta_key.dropna(inplace=True)
 
 outfile = os.path.join(data_dir, "meta", country.lower() + "_meta_keys.csv")
