@@ -88,6 +88,54 @@ abline(0, 1, col = "red")
 dev.off()
 
 
+# Check dependence of F to F:G, etc.
+jpeg(
+  filename = file.path(out_dir, model_name, "eval", "observation_ratio_dependency.jpg"),
+  height = 1080, width = 720
+)
+
+layout(
+  mat = matrix(1:2, ncol = 1, nrow = 2),
+  heights = rep(1, 2)
+)
+
+x <- y <- c()
+
+for (i in 1:md$n_F) {
+  ti <- md$ti_F[i]
+  if (ti %in% md$ti_FG) {
+    y <- c(y, md$y_F[i])
+    x <- c(x, md$y_FG_ratio[md$ti_FG == ti])
+  }
+}
+
+plot(
+  x, y,
+  xlab = "F:G",
+  ylab = "F",
+  main = paste0("Facebook\n", paste("Spearman R =", round(cor(x, y, method = "spearman"), 2)))
+)
+
+x <- y <- c()
+
+for (i in 1:md$n_G) {
+  ti <- md$ti_G[i]
+  if (ti %in% md$ti_FG) {
+    y <- c(y, md$y_G[i])
+    x <- c(x, md$y_FG_ratio[md$ti_FG == ti])
+  }
+}
+
+plot(
+  x, y,
+  xlab = "F:G",
+  ylab = "G",
+  main = paste0("Instagram\n", paste("Spearman R =", round(cor(x, y, method = "spearman"), 2)))
+)
+
+dev.off()
+rm(x, y, i, ti)
+
 
 #---- in-sample posterior predictive check ----#
 

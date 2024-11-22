@@ -154,21 +154,33 @@ model {
   mu_alpha_p_F ~ normal(0, 5);
   sigma_alpha_p_F ~ normal(0, 1);
   
-  beta_p_F ~ normal(0, 1);
-  sigma_p_F ~ normal(0, 1);
+  beta_p_F ~ normal(0, 0.5);
+  sigma_p_F ~ normal(0, 0.5);
   
   // priors:  Instagram user ratio
   alpha_p_G ~ normal(mu_alpha_p_G, sigma_alpha_p_G);
   mu_alpha_p_G ~ normal(0, 5);
   sigma_alpha_p_G ~ normal(0, 1);
   
-  beta_p_G ~ normal(0, 1);
-  sigma_p_G ~ normal(0, 1);
+  beta_p_G ~ normal(0, 0.5);
+  sigma_p_G ~ normal(0, 0.5);
 }
 generated quantities {
+  // in-sample posterior predictive check
   array[n_F] int<lower=0> F_hat;
   array[n_G] int<lower=0> G_hat;
   
   F_hat = poisson_rng(N[ti_F] .* p_F[ti_F]);
   G_hat = poisson_rng(N[ti_G] .* p_G[ti_G]);
+  
+  // out-of-sample leave-one-out cross-validation
+  vector[n_F] log_lik_F;
+  for (n in 1 : n_F) {
+    log_lik_F[n] = poisson_lpmf(y_F[n] | N[ti_F[n]] .* p_F[ti_F[n]]);
+  }
+  
+  vector[n_G] log_lik_G;
+  for (n in 1 : n_G) {
+    log_lik_G[n] = poisson_lpmf(y_G[n] | N[ti_G[n]] .* p_G[ti_G[n]]);
+  }
 }
