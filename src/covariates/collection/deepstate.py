@@ -34,6 +34,7 @@ PARALLEL_DOWNLOADS = 10
 PARALLEL_PROCESSES = 16
 HISTORY_URL = "https://deepstatemap.live/api/history/"
 ITEMS_FOLDER = out_dir / "covariates" / "raw" / "deepstate"
+download = False
 
 
 def scrape_json(url: str):
@@ -198,31 +199,33 @@ if __name__ == "__main__":
 
     # ---- scraper ----#
 
-    # scrape history
-    history = scrape_json(HISTORY_URL)
+    if download:
 
-    # XXX Beware, this will take some time as it has to download 530+ files
-    scrape_items(history)
+        # scrape history
+        history = scrape_json(HISTORY_URL)
 
-    # process file properties
-    files = os.listdir(ITEMS_FOLDER / "json")
-    files = [s for s in files if s.endswith(".json")]
+        # XXX Beware, this will take some time as it has to download 530+ files
+        scrape_items(history)
 
-    properties = [read_property(i) for i in files]
-    properties = [item for sublist in properties for item in sublist]
+        # process file properties
+        files = os.listdir(ITEMS_FOLDER / "json")
+        files = [s for s in files if s.endswith(".json")]
 
-    properties_table = pd.Series(properties).value_counts()
-    properties_table = pd.DataFrame(
-        {"text": properties_table.index, "Frequency": properties_table.values}
-    )
+        properties = [read_property(i) for i in files]
+        properties = [item for sublist in properties for item in sublist]
 
-    properties_table["matched"] = properties_table["text"].str.contains(
-        "уп|ОРДЛО|Крим", case=False
-    )
+        properties_table = pd.Series(properties).value_counts()
+        properties_table = pd.DataFrame(
+            {"text": properties_table.index, "Frequency": properties_table.values}
+        )
 
-    # XXX This is slow, beware
-    # Don't worry about weird text output below ("Processing ...")
-    processed = dispatch(files)
+        properties_table["matched"] = properties_table["text"].str.contains(
+            "уп|ОРДЛО|Крим", case=False
+        )
+
+        # XXX This is slow, beware
+        # Don't worry about weird text output below ("Processing ...")
+        processed = dispatch(files)
 
     # combine occupied territory in one covariate
     occupied_list = os.listdir(ITEMS_FOLDER / "gpkg")
@@ -255,6 +258,13 @@ if __name__ == "__main__":
     intersections = intersections.merge(master_index, how="right")
 
     intersections["occupied"] = intersections["occupied"].replace(np.nan, 0)
+
+    intersections = intersections.melt(
+        id_vars=["ADM1_PCODE", "t", "t_key", "t_name", "i", "i_key", "i_name"],
+        value_vars=["occupied"],
+        var_name="covariate",
+        value_name="value",
+    )
 
     # Write output
     intersections.to_csv(

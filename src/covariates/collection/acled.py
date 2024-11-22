@@ -129,4 +129,10 @@ if __name__ == "__main__":
         .fillna(0)
     )
 
+    acled_oblast = acled_oblast.melt(
+        id_vars=["ADM1_PCODE", "t", "i", "i_key", "i_name", "t_key", "t_name"],
+        var_name="covariate",
+        value_name="value",
+    )
+
     acled_oblast.to_csv(interim_dir / (country + "_acled_oblast.csv"), index=False)
