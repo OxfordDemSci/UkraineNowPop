@@ -104,6 +104,13 @@ admin_sum_lg = admin_sum_lg.merge(
 
 admin_sum_lg.drop(columns=['collection_date'], inplace=True)	
 
+# impute pwtt for missing dates by propogating the last valid observation forward to the next valid 
+admin_sum_lg['pwtt'] = admin_sum_lg.sort_values(['i', 't']).groupby('i')['pwtt'].fillna(method='ffill')
+
+admin_sum_lg = admin_sum_lg.melt(
+    id_vars=['i', 'i_name', 't', 't_name', 'ADM1_PCODE', 'i_key', 't_key'], 
+var_name='covariate', value_name='value')
+
 # Write output
 admin_sum_lg.to_csv(out_dir / 'covariates' / 'interim'/ output_name, index=False)
 
@@ -118,7 +125,7 @@ if False:
     for i in filtered_data['i_name'].unique():
         i_data = filtered_data[filtered_data['i_name'] == i]
         i_key = i_data['i'].unique()[0]-4
-        plt.scatter(i_data['t'], i_data['pwtt'], label=f'i={i} (t)', color=plt.cm.tab20(i_key))
+        plt.scatter(i_data['t'], i_data['value'], label=f'i={i} (t)', color=plt.cm.tab20(i_key))
 
     plt.xlabel('t')
     plt.ylabel('pwtt')
