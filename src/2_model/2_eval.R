@@ -13,6 +13,9 @@ library(here)
 env <- new.env()
 source(here::here(".env"), local = env)
 
+# cores for parallel processing
+ncores <- 2
+
 # working directory
 dir.create(file.path(here::here(), "wd"), showWarnings = F, recursive = T)
 setwd(file.path(here::here(), "wd"))
@@ -35,7 +38,7 @@ dir.create(file.path(out_dir, model_name, "eval"), showWarnings = F, recursive =
 
 
 #---- summary statistics ----#
-fit_summary <- fit$summary(.cores = 4)
+fit_summary <- fit$summary(.cores = ncores)
 print(fit_summary)
 
 not_converged <- which(fit_summary[["rhat"]] > 1.1) # 1.01 is cutoff for publication quality
@@ -111,7 +114,7 @@ for (i in 1:md$n_F) {
 
 plot(
   x, y,
-  xlab = "F:G",
+  xlab = "G:F",
   ylab = "F",
   main = paste0("Facebook\n", paste("Spearman R =", round(cor(x, y, method = "spearman"), 2)))
 )
@@ -128,7 +131,7 @@ for (i in 1:md$n_G) {
 
 plot(
   x, y,
-  xlab = "F:G",
+  xlab = "G:F",
   ylab = "G",
   main = paste0("Instagram\n", paste("Spearman R =", round(cor(x, y, method = "spearman"), 2)))
 )
@@ -182,12 +185,12 @@ dev.off()
 #---- LOO cross-validation ----#
 
 # Facebook
-loo_F <- fit$loo("log_lik_F", cores = 4)
+loo_F <- fit$loo("log_lik_F", cores = ncores)
 print(loo_F)
 plot(loo_F)
 
 # Instagram
-loo_G <- fit$loo("log_lik_G", cores = 4)
+loo_G <- fit$loo("log_lik_G", cores = ncores)
 print(loo_G)
 plot(loo_G)
 

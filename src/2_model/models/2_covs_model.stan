@@ -130,7 +130,7 @@ model {
   y_F ~ poisson(N[ti_F] .* p_F[ti_F]);
   y_G ~ poisson(N[ti_G] .* p_G[ti_G]);
   
-  y_FG_ratio ~ lognormal(log(FG_ratio), 0.02 / 2);
+  y_FG_ratio ~ lognormal(log(FG_ratio), 0.05 / 2);
   
   y_N_tot ~ lognormal(log(N_tot), 0.01 / 2);
   
