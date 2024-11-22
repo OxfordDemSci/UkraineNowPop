@@ -20,10 +20,12 @@ pkgs <- c(
   "sf",
   "here",
   "tidyverse",
+  "tidyquant",
   "jsonlite",
   "httr",
   "DBI",
   "RPostgres",
-  "git2R"
+  "git2r"
 )
-install.packages(pkgs)
+
+install_if_missing(pkgs)

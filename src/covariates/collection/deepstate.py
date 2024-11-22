@@ -85,7 +85,7 @@ def scrape_items(items):
         idx, id = args
         url = HISTORY_URL + "/" + id + "/geojson"
         # https://stackoverflow.com/a/5291396/2193463
-        print(f"(Downloading {idx}/{len(ids)}", end="\r")
+        print(f"(Downloading {idx}/{len(ids)})", end="\r", flush=True)
         entry = scrape_json(url)
         save_to_file(entry, ITEMS_FOLDER.joinpath("json").joinpath(str(id) + ".json"))
         entry["id"] = id
@@ -142,7 +142,7 @@ def extract_occupied(features):
 
 def process_item(args):
     idx, filename = args
-    print(f"(Processing {idx}", end="\r")
+    print(f"(Processing {idx})", end="\r", flush=True)
     with open(os.path.join(ITEMS_FOLDER, "json", filename), encoding="utf-8") as f:
         data = json.load(f)
     id_ = filename.split(".json")[0]
