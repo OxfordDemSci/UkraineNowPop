@@ -48,7 +48,7 @@ for month in dates:
                    war_start='2022-02-22',
                    inference_start=month,
                    pre_interval=12,
-                   post_interval=2,
+                   post_interval=1,
                    export=True,
                    export_dir=folder)         
     task = ee.batch.Export.image.toDrive(
