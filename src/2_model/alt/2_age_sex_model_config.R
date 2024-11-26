@@ -172,7 +172,6 @@ md$gg <- md$idx$a
 md$ss <- md$idx$s
 
 
-
 #---- initial values ----#
 init_generator <- function(md = md, chain_id = 1) {
   result <- list()
@@ -188,22 +187,20 @@ init_generator <- function(md = md, chain_id = 1) {
 
           location_prob <- md$N0[combination_idx] / sum(md$N0[md$gg == g & md$ss == s])
 
-          N[t, i, g, s] <- rmultinom(
-            n = 1,
+          N[t, i, g, s] <- t(rmultinom(
+            n = md$T,
             size = md$y_N_tot[t],
-            prob = age_sex_prob * location_prob
+            prob = age_sex_prob * location_prob))
           
-            md$idx$tias <- which(
-              md$tt == t & md$ii == i & md$gg == g & md$ss == s )
-
-          if (any(md$y_F[md$tias_F == tias] > N[t, i, g, s])) {
-            N[t, i, g, s] <- max(md$y_F[md$tias_F == tias])
-          }}}}}
-
-          if (length(tias) > 0 && any(md$y_F[md$tias_F %in% tias] > N[t, i, g, s])) {
-            N[t, i, g, s] <- max(md$y_F[md$tias_F %in% tias])
-          }
-  
+        for (t in 1:md$T) {
+          for (i in 1:md$I) {
+            for (g in 1:md$G) {
+              for (s in 1:md$S) {
+             tias <- which(md$tt == t & md$ii == i & md$gg == g & md$ss == s )
+                if (any(md$y_F[md$tias_F == tias] > N[t, i, g, s])) {
+                  N[t, i, g, s] <- max(md$y_F[md$tias_F == tias])
+                }}}}}
+          
   result[["N"]] <- as.vector(N)
   result[["N_tot"]] <- md$y_N_tot
   result[["r"]] <- rlnorm(md$T * md$I * md$G * md$S, 0, 0.1 / 2)
