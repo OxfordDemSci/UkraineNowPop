@@ -190,7 +190,8 @@ init_generator <- function(md = md, chain_id = 1) {
           N[t, i, g, s] <- t(rmultinom(
             n = md$T,
             size = md$y_N_tot[t],
-            prob = age_sex_prob * location_prob))
+            prob = age_sex_prob * location_prob)) 
+        }}}}
           
         for (t in 1:md$T) {
           for (i in 1:md$I) {
@@ -217,4 +218,4 @@ init_generator <- function(md = md, chain_id = 1) {
   result[["sigma_p_G"]] <- runif(1, 0, 0.2)
   
   return(result)
-}
+        }
