@@ -106,15 +106,12 @@ admin_sum_lg = admin_sum_lg.merge(
 
 admin_sum_lg.drop(columns=['collection_date'], inplace=True)	
 
-# impute pwtt for missing dates by propogating the last valid observation forward to the next valid 
-admin_sum_lg['pwtt'] = admin_sum_lg.sort_values(['i', 't']).groupby('i')['pwtt'].fillna(method='ffill')
-
 admin_sum_lg = admin_sum_lg.melt(
     id_vars=['i', 'i_name', 't', 't_name', 'ADM1_PCODE', 'i_key', 't_key'], 
-var_name='covariate', value_name='value')
+    var_name='covariate', value_name='value')
 
 # Write output
-admin_sum_lg.to_csv(out_dir / 'covariates' / 'interim'/ output_name, index=False)
+admin_sum_lg.to_csv(out_dir / 'covariates' / 'raw'/ folder /output_name, index=False)
 
 
 
