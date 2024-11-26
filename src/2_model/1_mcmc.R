@@ -45,7 +45,8 @@ idx <- read.csv(file.path(out_dir, "ua_master_index.csv"))
 idx_F <- read.csv(file.path(out_dir, "population_proxy", "social_media_audience", "ua_facebook_audience.csv"))
 idx_G <- read.csv(file.path(out_dir, "population_proxy", "social_media_audience", "ua_instagram_audience.csv"))
 
-
+# covariates
+covs <- read.csv(file.path(out_dir, "covariates", "final", "ua_covariates_oblast.csv"))
 
 #---- configure model data ----#
 

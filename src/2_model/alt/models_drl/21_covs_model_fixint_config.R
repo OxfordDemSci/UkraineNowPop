@@ -144,70 +144,72 @@ md$ii <- md$idx$i
 # colnames(md$X_p_G) <- paste0("x", 1:md$K_p_G)
 # rownames(md$X_p_G) <- md$idx$ti
 
+covs |> distinct(covariate)
+covs |> names()
 
 # on growth rates
-scale_factors <- c("value_std", "value_sum6month_std") # covs |> select(contains("value_")) |> names()
+md$X_r <- md$idx |>
+  left_join(
+    covs |>
+      filter(covariate == "acled_withfatalities") |>
+      select(value_sum6month_std, i, t) |>
+      rename(x1 = "value_sum6month_std")
+  ) |>
+  left_join(
+    covs |>
+      filter(covariate == "acled_eventStrategic") |>
+      select(value_sum6month_std, i, t) |>
+      rename(x2 = "value_sum6month_std")
+  ) |>
+  left_join(
+    covs |>
+      filter(covariate == "occupied") |>
+      select(value_sum6month_std, i, t) |>
+      rename(x3 = "value_sum6month_std")
+  ) |>
+  left_join(
+    covs |>
+      filter(covariate == "pwtt") |>
+      select(value_sum6month_std, i, t) |>
+      rename(x4 = "value_sum6month_std") |>
+      mutate(x4 = coalesce(x4, min(x4, na.rm = T)))
+  ) |>
+  left_join(
+    covs |>
+      filter(covariate == "sirens") |>
+      select(value_sum6month_std, i, t) |>
+      rename(x5 = "value_sum6month_std")
+  ) |>
+  left_join(
+    covs |>
+      filter(covariate == "war_fires") |>
+      select(value_sum6month_std, i, t) |>
+      rename(x6 = "value_sum6month_std")
+  ) |>
+  select(x1:x6)
 
-covariates <- c("acled_withfatalities", "acled_eventExplosion", "acled_eventBattle", "acled_eventStrategic", "occupied", "pwtt", "sirens", "war_fires") # covs |> distinct(covariate) |> pull()
+md$K_r <- ncol(md$X_r)
 
-md$X_r <- md$idx
-k <- 0
-for (covariate_name in covariates) {
-  # covariate <- covariates[1]
-  print(covariate_name)
-  for (scale_factor in scale_factors) {
-    # scale_factor <- scale_factors[1]
-    k <- k + 1
-    col_name <- paste0("x", k)
-
-    md$X_r <- md$X_r |>
-      left_join(
-        covs |>
-          filter(covariate == covariate_name) |>
-          select(i, t, all_of(scale_factor)) |>
-          rename(!!col_name := all_of(scale_factor)) |>
-          mutate(!!col_name := coalesce(!!sym(col_name), min(!!sym(col_name), na.rm = T))),
-        by = c("i", "t")
-      )
-  }
-}
-md$X_r <- md$X_r |>
-  select(paste0("x", 1:k))
-cor(md$X_r)
-
-md$K_r <- k
 
 # on Facebook and Instagram detection rates
-scale_factors <- c("value_std") # covs |> select(contains("value_")) |> names()
+md$X_p_F <- md$X_p_G <- md$idx |>
+  left_join(
+    covs |>
+      filter(covariate == "acled_eventStrategic") |>
+      select(value_sum6month_std, i, t) |>
+      rename(x1 = "value_sum6month_std")
+  ) |>
+  left_join(
+    covs |>
+      filter(covariate == "occupied") |>
+      select(value_sum6month_std, i, t) |>
+      rename(x2 = "value_sum6month_std")
+  ) |>
+  select(x1:x2)
 
-covariates <- c("acled_eventStrategic", "occupied", "pwtt") # covs |> distinct(covariate) |> pull()
+md$K_p_F <- ncol(md$X_p_F)
+md$K_p_G <- ncol(md$X_p_G)
 
-md$X_p_F <- md$idx
-k <- 0
-for (covariate_name in covariates) {
-  # covariate <- covariates[1]
-  print(covariate_name)
-  for (scale_factor in scale_factors) {
-    # scale_factor <- scale_factors[1]
-    k <- k + 1
-    col_name <- paste0("x", k)
-
-    md$X_p_F <- md$X_p_F |>
-      left_join(
-        covs |>
-          filter(covariate == covariate_name) |>
-          select(i, t, all_of(scale_factor)) |>
-          rename(!!col_name := all_of(scale_factor)) |>
-          mutate(!!col_name := coalesce(!!sym(col_name), min(!!sym(col_name), na.rm = T))),
-        by = c("i", "t")
-      )
-  }
-}
-md$X_p_G <- md$X_p_F <- md$X_p_F |>
-  select(paste0("x", 1:k))
-cor(md$X_p_F)
-
-md$K_p_F <- md$K_p_G <- k
 
 
 
@@ -232,25 +234,19 @@ init_generator <- function(md = md, chain_id = 1) {
   result[["N"]] <- reshape2::melt(N, varnames = c("T", "I"))$value
   result[["r"]] <- rlnorm(md$T * md$I, 0, 0.1 / 2)
   result[["mu_r"]] <- rnorm(md$T * md$I, 0, 0.1)
-  result[["alpha_r"]] <- rnorm(md$I, 0, 3)
-  result[["mu_alpha_r"]] <- rnorm(1, 0, 3)
-  result[["sigma_alpha_r"]] <- runif(1, 0, 0.2)
+  result[["alpha_r"]] <- rnorm(1, 0, 3)
   result[["beta_r"]] <- rnorm(md$K_r, 0, 1)
   result[["sigma_r"]] <- runif(1, 0, 0.5)
 
   result[["p_F"]] <- rlnorm(md$T * md$I, log(mean(md$y_F, na.rm = T) / mean(md$N0)), 0.5)
   result[["mu_p_F"]] <- runif(md$T * md$I, -4, -2)
-  result[["alpha_p_F"]] <- runif(md$T, -4, -2)
-  result[["mu_alpha_p_F"]] <- runif(1, -4, -2)
-  result[["sigma_alpha_p_F"]] <- runif(1, 0, 0.2)
+  result[["alpha_p_F"]] <- runif(1, -4, -2)
   result[["beta_p_F"]] <- rnorm(md$K_p_F, 0, 1)
   result[["sigma_p_F"]] <- runif(1, 0, 0.2)
 
   result[["p_G"]] <- rlnorm(md$T * md$I, log(mean(md$y_G, na.rm = T) / mean(md$N0)), 0.5)
   result[["mu_p_G"]] <- runif(md$T * md$I, -4, -2)
-  result[["alpha_p_G"]] <- runif(md$I, -4, -2)
-  result[["mu_alpha_p_G"]] <- runif(1, -4, -2)
-  result[["sigma_alpha_p_G"]] <- runif(1, 0, 0.2)
+  result[["alpha_p_G"]] <- runif(1, -4, -2)
   result[["beta_p_G"]] <- rnorm(md$K_p_G, 0, 1)
   result[["sigma_p_G"]] <- runif(1, 0, 0.2)
 

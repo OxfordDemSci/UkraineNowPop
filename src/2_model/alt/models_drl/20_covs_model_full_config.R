@@ -13,7 +13,7 @@ set.seed(seed)
 #---- location and date filtering ----#
 
 last_date <- "2023-02-25" # max(idx$t_name)
-drop_locations <- c(3788, 3797) # c(3782, 3791, 3788, 3797)  # 3782=Donetska, 3791=Luhanksa, 3788=Crimea, 3797=Sevastopol
+drop_locations <- c(3788, 3797)  # c(3782, 3791, 3788, 3797)  # 3782=Donetska, 3791=Luhanksa, 3788=Crimea, 3797=Sevastopol
 
 # new i indexes after dropping locations
 i_idx <- idx |>
@@ -144,70 +144,72 @@ md$ii <- md$idx$i
 # colnames(md$X_p_G) <- paste0("x", 1:md$K_p_G)
 # rownames(md$X_p_G) <- md$idx$ti
 
+covs |> distinct(covariate)
+covs |> names()
 
 # on growth rates
-scale_factors <- c("value_std", "value_sum6month_std") # covs |> select(contains("value_")) |> names()
+md$X_r <- md$idx |>
+  left_join(
+    covs |>
+      filter(covariate == "acled_withfatalities") |>
+      select(value_sum6month_std, i, t) |>
+      rename(x1 = "value_sum6month_std")
+  ) |>
+  left_join(
+    covs |>
+      filter(covariate == "acled_eventStrategic") |>
+      select(value_sum6month_std, i, t) |>
+      rename(x2 = "value_sum6month_std")
+  ) |>
+  left_join(
+    covs |>
+      filter(covariate == "occupied") |>
+      select(value_sum6month_std, i, t) |>
+      rename(x3 = "value_sum6month_std")
+  ) |>
+  left_join(
+    covs |>
+      filter(covariate == "pwtt") |>
+      select(value_sum6month_std, i, t) |>
+      rename(x4 = "value_sum6month_std") |>
+      mutate(x4 = coalesce(x4, min(x4, na.rm = T)))
+  ) |>
+  left_join(
+    covs |>
+      filter(covariate == "sirens") |>
+      select(value_sum6month_std, i, t) |>
+      rename(x5 = "value_sum6month_std")
+  ) |>
+  left_join(
+    covs |>
+      filter(covariate == "war_fires") |>
+      select(value_sum6month_std, i, t) |>
+      rename(x6 = "value_sum6month_std")
+  ) |>
+  select(x1:x6)
 
-covariates <- c("acled_withfatalities", "acled_eventExplosion", "acled_eventBattle", "acled_eventStrategic", "occupied", "pwtt", "sirens", "war_fires") # covs |> distinct(covariate) |> pull()
+md$K_r <- ncol(md$X_r)
 
-md$X_r <- md$idx
-k <- 0
-for (covariate_name in covariates) {
-  # covariate <- covariates[1]
-  print(covariate_name)
-  for (scale_factor in scale_factors) {
-    # scale_factor <- scale_factors[1]
-    k <- k + 1
-    col_name <- paste0("x", k)
-
-    md$X_r <- md$X_r |>
-      left_join(
-        covs |>
-          filter(covariate == covariate_name) |>
-          select(i, t, all_of(scale_factor)) |>
-          rename(!!col_name := all_of(scale_factor)) |>
-          mutate(!!col_name := coalesce(!!sym(col_name), min(!!sym(col_name), na.rm = T))),
-        by = c("i", "t")
-      )
-  }
-}
-md$X_r <- md$X_r |>
-  select(paste0("x", 1:k))
-cor(md$X_r)
-
-md$K_r <- k
 
 # on Facebook and Instagram detection rates
-scale_factors <- c("value_std") # covs |> select(contains("value_")) |> names()
+md$X_p_F <- md$X_p_G <- md$idx |>
+  left_join(
+    covs |>
+      filter(covariate == "acled_eventStrategic") |>
+      select(value_sum6month_std, i, t) |>
+      rename(x1 = "value_sum6month_std")
+  ) |>
+  left_join(
+    covs |>
+      filter(covariate == "occupied") |>
+      select(value_sum6month_std, i, t) |>
+      rename(x2 = "value_sum6month_std")
+  ) |>
+  select(x1:x2)
 
-covariates <- c("acled_eventStrategic", "occupied", "pwtt") # covs |> distinct(covariate) |> pull()
+md$K_p_F <- ncol(md$X_p_F)
+md$K_p_G <- ncol(md$X_p_G)
 
-md$X_p_F <- md$idx
-k <- 0
-for (covariate_name in covariates) {
-  # covariate <- covariates[1]
-  print(covariate_name)
-  for (scale_factor in scale_factors) {
-    # scale_factor <- scale_factors[1]
-    k <- k + 1
-    col_name <- paste0("x", k)
-
-    md$X_p_F <- md$X_p_F |>
-      left_join(
-        covs |>
-          filter(covariate == covariate_name) |>
-          select(i, t, all_of(scale_factor)) |>
-          rename(!!col_name := all_of(scale_factor)) |>
-          mutate(!!col_name := coalesce(!!sym(col_name), min(!!sym(col_name), na.rm = T))),
-        by = c("i", "t")
-      )
-  }
-}
-md$X_p_G <- md$X_p_F <- md$X_p_F |>
-  select(paste0("x", 1:k))
-cor(md$X_p_F)
-
-md$K_p_F <- md$K_p_G <- k
 
 
 

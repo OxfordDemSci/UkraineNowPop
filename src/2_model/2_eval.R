@@ -37,17 +37,6 @@ md <- readRDS(file.path(out_dir, model_name, "mcmc", paste0("md_", model_name, "
 dir.create(file.path(out_dir, model_name, "eval"), showWarnings = F, recursive = T)
 
 
-#---- summary statistics ----#
-fit_summary <- fit$summary(.cores = ncores)
-print(fit_summary)
-
-not_converged <- which(fit_summary[["rhat"]] > 1.1) # 1.01 is cutoff for publication quality
-fit_summary[not_converged, ]
-
-write.csv(fit_summary, file.path(out_dir, model_name, "eval", "fit_summary.csv"), row.names = F)
-
-
-
 #---- check total population ----#
 jpeg(
   filename = file.path(out_dir, model_name, "eval", "total_population.jpg"),
@@ -182,24 +171,6 @@ dev.off()
 
 
 
-#---- LOO cross-validation ----#
-
-# Facebook
-loo_F <- fit$loo("log_lik_F", cores = ncores)
-print(loo_F)
-plot(loo_F)
-
-# Instagram
-loo_G <- fit$loo("log_lik_G", cores = ncores)
-print(loo_G)
-plot(loo_G)
-
-# save to disk
-saveRDS(loo_F, file.path(out_dir, model_name, "eval", "loo_F.rds"))
-saveRDS(loo_G, file.path(out_dir, model_name, "eval", "loo_G.rds"))
-
-
-
 #---- time series plots ----#
 dir.create(file.path(out_dir, model_name, "eval", "time_series_plots"), showWarnings = F, recursive = T)
 
@@ -289,9 +260,9 @@ dir.create(file.path(out_dir, model_name, "eval", "trace_plots"), showWarnings =
 pars <- list(
   "1_base_model" = c("sigma_p_F", "sigma_p_G"),
   "2_covs_model" = c(
-    "beta_r", "mu_alpha_r", "sigma_alpha_r", "sigma_r",
-    "beta_p_F", "mu_alpha_p_F", "sigma_alpha_p_F", "sigma_p_F",
-    "beta_p_F", "mu_alpha_p_F", "sigma_alpha_p_F", "sigma_p_G"
+    "beta_r", "sigma_r", "mu_alpha_r", "sigma_alpha_r",
+    "beta_p_F", "sigma_p_F", "mu_alpha_p_F", "sigma_alpha_p_F",
+    "beta_p_G", "sigma_p_G", "mu_alpha_p_G", "sigma_alpha_p_G"
   )
 )
 dat <- fit$draws(pars[[model_name]])
@@ -341,7 +312,10 @@ for (i in 1:length(pars[[model_name]])) {
 }
 
 
-## location-time-specific parameters
+#---- diagnostics that are slow to run ----#
+
+
+## trace plots for location-time-specific parameters
 for (i in 1:md$I) {
   for (t in 1:md$T) {
     i_name <- gsub(" ", "_", paste(i, t, unique(md$idx$i_name[md$idx$i == i])))
@@ -360,3 +334,30 @@ for (i in 1:md$I) {
     )
   }
 }
+
+
+## summary statistics
+fit_summary <- fit$summary(.cores = ncores)
+print(fit_summary)
+
+not_converged <- which(fit_summary[["rhat"]] > 1.1) # 1.01 is cutoff for publication quality
+fit_summary[not_converged, ]
+
+write.csv(fit_summary, file.path(out_dir, model_name, "eval", "fit_summary.csv"), row.names = F)
+
+
+## LOO cross-validation
+
+# Facebook
+loo_F <- fit$loo("log_lik_F", cores = ncores)
+print(loo_F)
+plot(loo_F)
+
+# Instagram
+loo_G <- fit$loo("log_lik_G", cores = ncores)
+print(loo_G)
+plot(loo_G)
+
+# save to disk
+saveRDS(loo_F, file.path(out_dir, model_name, "eval", "loo_F.rds"))
+saveRDS(loo_G, file.path(out_dir, model_name, "eval", "loo_G.rds"))
