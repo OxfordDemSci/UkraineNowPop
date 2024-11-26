@@ -56,7 +56,7 @@ model_name <- "2_age_sex_model"
 dir.create(file.path(out_dir, "modelling", model_name, "mcmc"), recursive = T, showWarnings = F)
 
 # soure model-specific config code
-source(file.path(src_dir, "models", paste0(model_name, "_config.R")))
+source(file.path(src_dir, "alt", paste0(model_name, "_config.R")))
 
 # save model data to disk
 saveRDS(md, file.path(out_dir, "modelling", model_name, "mcmc", paste0("md_", model_name, ".rds")))
@@ -72,7 +72,7 @@ samples <- 5e3
 inits <- lapply(1:chains, function(id) init_generator(md = md, chain_id = id))
 
 # compile the stan model
-mod <- cmdstan_model(file.path(src_dir, "models", paste0(model_name, ".stan")))
+mod <- cmdstan_model(file.path(src_dir, "alt", paste0(model_name, ".stan")))
 
 # run MCMC
 fit <- mod$sample(
