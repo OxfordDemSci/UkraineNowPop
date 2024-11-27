@@ -259,9 +259,16 @@ if __name__ == "__main__":
 
     intersections["occupied"] = intersections["occupied"].replace(np.nan, 0)
 
+    # Calculate occupied oblast proportion
+    boundaries_oblast_proj["area"] = boundaries_oblast_proj.area
+    intersections = intersections.merge(
+        boundaries_oblast_proj[["ADM1_PCODE", "area"]], how="left"
+    )
+    intersections["occupied_prop"] = intersections["occupied"] / intersections["area"]
+
     intersections = intersections.melt(
         id_vars=["ADM1_PCODE", "t", "t_key", "t_name", "i", "i_key", "i_name"],
-        value_vars=["occupied"],
+        value_vars=["occupied", "occupied_prop"],
         var_name="covariate",
         value_name="value",
     )
@@ -276,19 +283,21 @@ if __name__ == "__main__":
     if False:
         filtered_data = intersections[intersections["i"].isin([5, 7, 27, 14])]
 
-        plt.figure(figsize=(12, 6))
+        for cov in ["occupied", "occupied_prop"]:
 
-        for i in filtered_data["i_name"].unique():
-            i_data = filtered_data[filtered_data["i_name"] == i]
-            i_key = i_data["i"].unique()[0] - 4
-            plt.scatter(
-                i_data["t"],
-                i_data["occupied"],
-                label=f"i={i} (t)",
-                color=plt.cm.tab20(i_key),
-            )
+            plt.figure(figsize=(12, 6))
 
-        plt.xlabel("t")
-        plt.ylabel("occupied")
-        plt.legend()
-        plt.show()
+            for i in filtered_data["i_name"].unique():
+                i_data = filtered_data[filtered_data["i_name"] == i]
+                i_key = i_data["i"].unique()[0] - 4
+
+                plt.scatter(
+                    i_data[i_data["covariate"] == cov]["t"],
+                    i_data[i_data["covariate"] == cov]["value"],
+                    label=f"i={i} ({cov})",
+                )
+
+            plt.xlabel("t")
+            plt.ylabel(cov)
+            plt.legend()
+            plt.show()
