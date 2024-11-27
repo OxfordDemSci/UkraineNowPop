@@ -25,7 +25,8 @@ pkgs <- c(
   "httr",
   "DBI",
   "RPostgres",
-  "git2r"
+  "git2r",
+  "future.apply"
 )
 
 install_if_missing(pkgs)

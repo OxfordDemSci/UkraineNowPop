@@ -1,155 +1,120 @@
 source("R_helpers/generic.R")
 library(tidyquant)
+library(future.apply)
+plan(multisession)
 
+# param
+plot_show <- TRUE # show example plots
 dir.create(file.path(out_dir, "covariates", "final"), showWarnings = FALSE, recursive = TRUE)
 
+# Load data --------------------------------------------------------------
 master_index <- read_csv(file.path(out_dir, paste0(tolower(country), "_master_index", output_label, ".csv")))
 cov_list <- list.files(file.path(out_dir, "covariates", "interim"), pattern = "^ua", full.names = T)
 
 cov_df <- cov_list %>%
   lapply(read_csv) %>%
-  bind_rows()
+  bind_rows() |>
+  rename(raw = value)
 
-# Standardise ------------------------------------------------------------
+# Support functions -----------------------------------------------------
 
-cov_df <- cov_df |>
-  group_by(covariate, i) |>
-  arrange(t) |>
-  # compute value cumulative with two windows: sum over 7 and 1 months
-  tq_mutate(
-    select = "value",
-    mutate_fun = rollsum,
-    k = 4,
-    align = "right", # means lagging
-    fill = "extend",
-    col_rename = "value_sum1month"
-  ) |>
-  tq_mutate(
-    select = "value",
-    mutate_fun = rollsum,
-    k = 12,
-    align = "right",
-    fill = "extend",
-    col_rename = "value_sum3month"
-  ) |>
-  tq_mutate(
-    select = "value",
-    mutate_fun = rollsum,
-    k = 24,
-    align = "right",
-    fill = "extend",
-    col_rename = "value_sum6month"
-  ) |>
-  ungroup() |>
-  group_by(covariate) |>
-  # z-score on value and cumulative values
-  mutate(
-    value_std = (value - mean(value, na.rm = T)) / sd(value, na.rm = T),
-    value_sum1month_std = (value_sum1month - mean(value_sum1month, na.rm = T)) / sd(value_sum1month, na.rm = T),
-    value_sum3month_std = (value_sum3month - mean(value_sum3month, na.rm = T)) / sd(value_sum3month, na.rm = T),
-    value_sum6month_std = (value_sum6month - mean(value_sum6month, na.rm = T)) / sd(value_sum6month, na.rm = T)
-  ) |>
-  ungroup() |>
-  group_by(covariate, i) |>
-  arrange(t) |>
-  # compute value mean with two windows: mean over 1 and 3 and 6 months
-  tq_mutate(
-    select = "value",
-    mutate_fun = rollmean,
-    k = 4,
-    align = "right",
-    fill = "extend",
-    col_rename = "value_mean1month"
-  ) |>
-  tq_mutate(
-    select = "value",
-    mutate_fun = rollmean,
-    k = 12,
-    align = "right",
-    fill = "extend",
-    col_rename = "value_mean3month"
-  ) |>
-  tq_mutate(
-    select = "value",
-    mutate_fun = rollmean,
-    k = 24,
-    align = "right",
-    fill = "extend",
-    col_rename = "value_mean6month"
-  ) |>
-  # compute value sd with two windows: sd over 1 and 3 and 6 months
-  tq_mutate(
-    select = "value",
-    mutate_fun = rollapply,
-    width = 4,
-    FUN = sd,
-    align = "right",
-    fill = "extend",
-    col_rename = "value_sd1month"
-  ) |>
-  tq_mutate(
-    select = "value",
-    mutate_fun = rollapply,
-    width = 12,
-    FUN = sd,
-    align = "right",
-    fill = "extend",
-    col_rename = "value_sd3month"
-  ) |>
-  tq_mutate(
-    select = "value",
-    mutate_fun = rollapply,
-    width = 24,
-    FUN = sd,
-    align = "right",
-    fill = "extend",
-    col_rename = "value_sd6month"
-  ) |>
-  ungroup() |>
-  # standardise value with mean and sd in time windows
-  mutate(
-    value_sd1month = ifelse(!is.finite(value_sd1month), 0.001, value_sd1month),
-    value_sd3month = ifelse(!is.finite(value_sd3month), 0.001, value_sd3month),
-    value_sd6month = ifelse(!is.finite(value_sd6month), 0.001, value_sd6month),
-    value_mean1month_ = (value - value_mean1month) / value_sd1month,
-    value_mean3month_ = (value - value_mean3month) / value_sd3month,
-    value_mean6month_ = (value - value_mean6month) / value_sd6month
-  ) |>
-  group_by(covariate) |>
-  # z-score on temporal scaling
-  mutate(
-    value_mean1month_std = (value_mean1month_ - mean(value_mean1month_, na.rm = T)) / sd(value_mean1month_, na.rm = T),
-    value_mean3month_std = (value_mean3month_ - mean(value_mean3month_, na.rm = T)) / sd(value_mean3month_, na.rm = T),
-    value_mean6month_std = (value_mean6month_ - mean(value_mean6month_, na.rm = T)) / sd(value_mean6month_, na.rm = T)
-  ) |>
-  filter(t >= min(master_index$t) & t <= max(master_index$t))
-
-
-cov_df <- cov_df |>
-  ungroup() |>
-  select(i, t, i_key, i_name, t_key, t_name, covariate, ADM1_PCODE, ends_with("std"))
-
-write_csv(cov_df, file.path(out_dir, "covariates", "final", paste0(tolower(country), "_covariates_oblast", output_label, ".csv")))
-
-
-# this doesnt work for me in positron, any idea?
-for (cov in unique(cov_df$covariate)) {
-  # cov = "acled_all"
-  data <- cov_df |>
-    filter(covariate == cov & i %in% c(5, 10, 25)) |>
-    pivot_longer(ends_with("std"), names_to = "scaling", values_to = "value")
-  g <- ggplot(data, aes(x = t, y = value, colour = scaling)) +
-    geom_point() +
-    geom_path() +
-    facet_grid(i_name ~ ., scales = "free_y") +
-    theme_bw() +
-    labs(y = cov)
-  print(g)
+compute_rollMetric <- function(df, fun, window, col_name = "") {
+  fun_name <- as.character(substitute(fun))
+  if (col_name == "") {
+    col_name <- paste0(fun_name, "_", window, "week")
+  }
+  # if (fun_name == "mean") {
+  #   fun <- function(x) mean(x[-window], na.rm = T) # remove current value
+  # }
+  print(col_name)
+  var <- df |>
+    group_by(covariate, i) |>
+    arrange(covariate, i, t) |>
+    tq_mutate(
+      select = raw,
+      mutate_fun = rollapply,
+      width = window,
+      FUN = fun,
+      align = "right", # means lagging
+      fill = "extend",
+      col_rename = col_name
+    ) |>
+    ungroup() |>
+    select(last_col())
+  return(var)
 }
 
-cov_df |>
-  filter(covariate == cov) |>
-  pivot_longer(ends_with("std"), names_to = "scaling", values_to = "value") |>
-  group_by(scaling) |>
-  summarise(mean(value, na.rm = T), sd(value, na.rm = T)) |>
-  View()
+# Run computation ---------------------------------------------------------
+cov_df <- cov_df |>
+  group_by(covariate, i) |>
+  arrange(covariate, i, t)
+
+# compute cumulative covariate -------------------------------------------
+# a bit long. ~5sec
+cov_df_sum <- bind_cols(
+  cov_df,
+  future_lapply(c(4, 12, 24), function(w) compute_rollMetric(cov_df, sum, w))
+)
+
+cov_df_sum <- cov_df_sum |>
+  pivot_longer(c(contains("week"), "raw"), names_to = "sum_stat", values_to = "value")
+
+# compute time scaling  -------------------------------------------
+# a bit long. ~5sec
+cov_df_mean <- bind_cols(
+  cov_df,
+  future_lapply(c(4, 12, 24), function(w) compute_rollMetric(cov_df, mean, w))
+)
+
+cov_df_mean <- cov_df_mean |>
+  pivot_longer(contains("week"), names_to = "method", values_to = "scale_mean") |>
+  mutate(value = raw - scale_mean) |>
+  separate(method, into = c("drop", "time_scale"), sep = "_", fill = "right") |>
+  select(-raw, -drop) |>
+  mutate(sum_stat = "raw")
+
+# compute spatial scaling  -------------------------------------------
+# TODO
+
+# bind scaling together -------------------------------------------
+cov_df_scaled <- bind_rows(cov_df_sum, cov_df_mean)
+
+cov_df_scaled <- cov_df_scaled |>
+  mutate(
+    spatial_scale = NA
+  ) |>
+  group_by(covariate, sum_stat, time_scale) |>
+  mutate(
+    scale_mean = ifelse(is.na(scale_mean), mean(value), scale_mean),
+    scale_sd = sd(value, na.rm = T),
+    value_std = ifelse(sum_stat == "mean", value / scale_sd, (value - scale_mean) / scale_sd),
+  )
+
+cov_df_scaled <- cov_df_scaled |>
+  select(i, t, starts_with("i"), ADM1_PCODE, starts_with("t_"), covariate, sum_stat, time_scale, spatial_scale, value, value_std)
+
+write_csv(cov_df_scaled, file.path(out_dir, "covariates", "final", paste0(tolower(country), "_covariates_oblast", output_label, ".csv")))
+
+# write description
+cov_df_scaled_description <- cov_df_scaled |>
+  distinct(covariate, sum_stat, time_scale, spatial_scale)
+
+write_csv(cov_df_scaled_description, file.path(out_dir, "covariates", "final", paste0(tolower(country), "_covariates_oblast_description", output_label, ".csv")))
+
+# plot
+if (plot_show == TRUE) {
+  for (cov in unique(cov_df$covariate)) {
+    # cov = "acled_all"
+    print(cov)
+    data <- cov_df_scaled |>
+      filter(covariate == cov & i %in% c(5, 10, 25)) |>
+      mutate(scaling = paste0(sum_stat, "_", time_scale, "_", spatial_scale))
+    g <- ggplot(data, aes(x = t, y = value_std, colour = scaling)) +
+      geom_point() +
+      geom_path() +
+      facet_grid(i_name ~ ., scales = "free_y") +
+      theme_bw() +
+      labs(y = cov)
+    print(g)
+  }
+}
