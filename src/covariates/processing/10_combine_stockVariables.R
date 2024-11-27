@@ -67,9 +67,9 @@ cov_df_mean <- bind_cols(
 )
 
 cov_df_mean <- cov_df_mean |>
-  pivot_longer(contains("week"), names_to = "method", values_to = "scale_mean") |>
-  mutate(value = raw - scale_mean) |>
-  separate(method, into = c("drop", "time_scale"), sep = "_", fill = "right") |>
+  pivot_longer(contains("week"), names_to = "method", values_to = "center_std") |>
+  mutate(value = raw) |>
+  separate(method, into = c("drop", "time_std"), sep = "_", fill = "right") |>
   select(-raw, -drop) |>
   mutate(sum_stat = "raw")
 
@@ -81,23 +81,32 @@ cov_df_scaled <- bind_rows(cov_df_sum, cov_df_mean)
 
 cov_df_scaled <- cov_df_scaled |>
   mutate(
-    spatial_scale = NA
+    space_std = NA
   ) |>
-  group_by(covariate, sum_stat, time_scale) |>
+  group_by(covariate, sum_stat, time_std, space_std) |>
   mutate(
-    scale_mean = ifelse(is.na(scale_mean), mean(value), scale_mean),
-    scale_sd = sd(value, na.rm = T),
-    value_std = ifelse(sum_stat == "mean", value / scale_sd, (value - scale_mean) / scale_sd),
+    center_std = ifelse(is.na(center_std), mean(value), center_std),
+    scale_std = sd(value, na.rm = T),
+    value_std = (value - center_std) / scale_std
   )
 
 cov_df_scaled <- cov_df_scaled |>
-  select(i, t, starts_with("i"), ADM1_PCODE, starts_with("t_"), covariate, sum_stat, time_scale, spatial_scale, value, value_std)
+  select(
+    i, t, starts_with("i"), ADM1_PCODE, starts_with("t_"),
+    covariate, sum_stat, time_std, space_std, center_std, scale_std,
+    value, value_std
+  )
+
+cov_df_scaled |>
+  group_by(covariate, sum_stat, time_std, space_std) |>
+  summarise(mean(value_std), sd(value_std), sd(value / scale_std)) |>
+  View()
 
 write_csv(cov_df_scaled, file.path(out_dir, "covariates", "final", paste0(tolower(country), "_covariates_oblast", output_label, ".csv")))
 
 # write description
 cov_df_scaled_description <- cov_df_scaled |>
-  distinct(covariate, sum_stat, time_scale, spatial_scale)
+  distinct(covariate, sum_stat, time_std, space_std, center_std, scale_std)
 
 write_csv(cov_df_scaled_description, file.path(out_dir, "covariates", "final", paste0(tolower(country), "_covariates_oblast_description", output_label, ".csv")))
 
