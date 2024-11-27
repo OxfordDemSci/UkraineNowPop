@@ -220,6 +220,7 @@ init_generator <- function(md = md, chain_id = 1) {
   result[["mu_p_F"]] <- runif(md$T * md$I, -4, -2)
 
   result[["p_G"]] <- rlnorm(md$T * md$I, log(mean(md$y_G, na.rm = T) / mean(md$N0)), 0.5)
+  result[["mu_p_G"]] <- runif(md$T * md$I, -4, -2)
 
   result[["alpha_p"]] <- runif(1, -4, -2)
   result[["phi_p"]] <- rnorm(1, 0, 1)
