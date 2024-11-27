@@ -1,215 +1,186 @@
-# model data
-md <- list()
+prepare_md <- function(
+    idx, idx_F, idx_G,
+    covs, codps, outside_border,
+    last_date,
+    process_drop_locations, observation_drop_locations,
+    process_covariates, process_scale_factors,
+    observation_covariates, observation_scale_factors) {
+  # model data
+  md <- list()
 
-# set seed for random number generators
-if ("seed" %in% names(md)) {
-  seed <- md$seed
-} else {
+  # set seed for random number generators
   seed <- round(runif(1, 1, 1e6))
+  set.seed(seed)
+
+  #---- location and date filtering ----#
+
+  observation_drop_locations <- c(process_drop_locations, observation_drop_locations)
+
+  # new i indexes after dropping locations
+  i_idx <- idx |>
+    select(i_key) |>
+    filter(!i_key %in% process_drop_locations) |>
+    distinct() |>
+    arrange(i_key) |>
+    mutate(i = row_number())
+
+  #---- indexes ----#
+
+  # master index
+  md$idx <- idx |>
+    select(t, t_key, t_name, i_key, i_name) |>
+    # drop locations and update i
+    right_join(i_idx, by = "i_key") |>
+    # create ti index
+    arrange(t, i) |>
+    mutate(ti = row_number()) |>
+    # discard dates later than last_date
+    filter(t_name <= floor_date(as.Date(last_date), "week", week_start = 1)) |>
+    # arrange columns
+    select(ti, t, i, t_key, t_name, i_key, i_name)
+
+  # Facebook
+  md$idx_F <- idx_F |>
+    select(t, i, m, value) |>
+    # update i index to account for locations dropped from process model
+    left_join(idx |> select(i, i_key) |> distinct()) |>
+    select(-i) |>
+    left_join(i_idx) |>
+    # drop locations not in process model
+    right_join(md$idx |> select(t, i, ti)) |>
+    # drop locations excluded from observation model
+    filter(!i_key %in% observation_drop_locations) |>
+    # drop data with zeros and NAs
+    filter(value > 0 & is.finite(value)) |>
+    # arrange columns
+    select(ti, t, i, m, value)
+
+  # Instagram
+  md$idx_G <- idx_G |>
+    select(t, i, m, value) |>
+    # update i index to account for locations dropped from process model
+    left_join(idx |> select(i, i_key) |> distinct()) |>
+    select(-i) |>
+    left_join(i_idx) |>
+    # drop locations not in process model
+    right_join(md$idx |> select(t, i, ti)) |>
+    # drop locations excluded from observation model
+    filter(!i_key %in% observation_drop_locations) |>
+    # drop data with zeros and NAs
+    filter(value > 0 & is.finite(value)) |>
+    # arrange columns
+    select(ti, t, i, m, value)
+
+  #---- prepare data ----#
+
+  md$I <- length(unique(md$idx$i))
+  md$T <- length(unique(md$idx$t))
+
+  # Facebook
+  md$y_F <- md$idx_F$value
+  md$n_F <- length(md$y_F)
+  md$ti_F <- md$idx_F$ti
+
+  # Instagram
+  md$y_G <- md$idx_G$value
+  md$n_G <- length(md$y_G)
+  md$ti_G <- md$idx_G$ti
+
+  # Facebook:Instagram ratio
+  md$ti_FG <- unique(md$ti_F[which(md$ti_F %in% md$ti_G)])
+  md$n_FG <- length(md$ti_FG)
+
+  md$y_FG_ratio <- c()
+  for (i in 1:length(md$ti_FG)) {
+    ti <- md$ti_FG[i]
+    G_ti <- mean(md$y_G[which(md$ti_G == ti)])
+    F_ti <- mean(md$y_F[which(md$ti_F == ti)])
+    md$y_FG_ratio[i] <- G_ti / F_ti
+  }
+
+  drop <- which(!is.finite(md$y_FG_ratio))
+  if (length(drop) > 0) {
+    md$y_FG_ratio <- md$y_FG_ratio[-drop]
+    md$ti_FG <- md$ti_FG[-drop]
+    md$n_FG <- md$n_FG - length(drop)
+  }
+
+  ## population ##
+
+  # baseline population
+  md$N0 <- codps[as.character(unique(md$idx$i_key[order(md$idx$i)])), "T_TL"]
+
+  # total population at each time step
+  weekly_avg <- outside_border |>
+    mutate(week = floor_date(as.Date(date), "week", week_start = 1)) |>
+    group_by(week) |>
+    summarise(avg_value = mean(individuals, na.rm = TRUE)) |>
+    filter(week >= min(md$idx$t_name) &
+      week <= max(md$idx$t_name))
+
+  md$y_N_tot <- as.integer(sum(md$N0) - weekly_avg$avg_value)
+
+  rm(weekly_avg)
+
+
+  # indexing: long format for N
+  md$ti_N0 <- md$idx$ti[md$idx$t == 1]
+  md$ti_N <- md$idx$ti[md$idx$t > 1]
+  md$ti_N_lag <- md$idx$ti[md$idx$t > 1] - md$I
+
+  md$tt <- md$idx$t
+  md$ii <- md$idx$i
+
+  ## covariates ##
+
+  # on growth rates
+  md$X_r <- md$idx
+  k <- 0
+  for (covariate_name in process_covariates) {
+    for (scale_factor in process_scale_factors) {
+      k <- k + 1
+      col_name <- paste0("x", k)
+
+      md$X_r <- md$X_r |>
+        left_join(
+          covs |>
+            filter(covariate == covariate_name) |>
+            select(i, t, all_of(scale_factor)) |>
+            rename(!!col_name := all_of(scale_factor)) |>
+            mutate(!!col_name := coalesce(!!sym(col_name), min(!!sym(col_name), na.rm = T))),
+          by = c("i", "t")
+        )
+    }
+  }
+  md$X_r <- md$X_r |>
+    select(paste0("x", 1:k))
+  md$K_r <- k
+
+  # on Facebook and Instagram detection rates
+  md$X_p_F <- md$idx
+  k <- 0
+  for (covariate_name in observation_covariates) {
+    for (scale_factor in observation_scale_factors) {
+      k <- k + 1
+      col_name <- paste0("x", k)
+
+      md$X_p_F <- md$X_p_F |>
+        left_join(
+          covs |>
+            filter(covariate == covariate_name) |>
+            select(i, t, all_of(scale_factor)) |>
+            rename(!!col_name := all_of(scale_factor)) |>
+            mutate(!!col_name := coalesce(!!sym(col_name), min(!!sym(col_name), na.rm = T))),
+          by = c("i", "t")
+        )
+    }
+  }
+  md$X_p_G <- md$X_p_F <- md$X_p_F |>
+    select(paste0("x", 1:k))
+  md$K_p_F <- md$K_p_G <- k
+
+  return(md)
 }
-set.seed(seed)
-
-
-#---- location and date filtering ----#
-
-last_date <- "2023-02-25" # max(idx$t_name)
-drop_locations <- c(3788, 3797)  # c(3782, 3791, 3788, 3797)  # 3782=Donetska, 3791=Luhanksa, 3788=Crimea, 3797=Sevastopol
-
-# new i indexes after dropping locations
-i_idx <- idx |>
-  select(i_key) |>
-  filter(!i_key %in% drop_locations) |>
-  distinct() |>
-  arrange(i_key) |>
-  mutate(i = row_number())
-
-
-#---- indexes ----#
-
-# master index
-md$idx <- idx |>
-  select(t, t_key, t_name, i_key, i_name) |>
-  filter(!i_key %in% drop_locations) |>
-  left_join(i_idx, by = "i_key") |>
-  arrange(t, i) |>
-  mutate(ti = row_number()) |>
-  filter(t_name <= floor_date(as.Date(last_date), "week", week_start = 1)) |>
-  select(ti, t, i, t_key, t_name, i_key, i_name)
-
-# Facebook
-md$idx_F <- idx_F |>
-  select(t, i, m, value) |>
-  left_join(idx |> select(i, i_key) |> distinct()) |>
-  select(-i) |>
-  left_join(i_idx) |>
-  right_join(md$idx |> select(t, i, ti)) |>
-  filter(value > 0 & is.finite(value)) |>
-  select(ti, t, i, m, value)
-
-# Instagram
-md$idx_G <- idx_G |>
-  select(t, i, m, value) |>
-  left_join(idx |> select(i, i_key) |> distinct()) |>
-  select(-i) |>
-  left_join(i_idx) |>
-  right_join(md$idx |> select(t, i, ti)) |>
-  filter(value > 0 & is.finite(value)) |>
-  select(ti, t, i, m, value)
-
-rm(last_date)
-
-
-#---- prepare data ----#
-
-md$I <- length(unique(md$idx$i))
-md$T <- length(unique(md$idx$t))
-
-# Facebook
-md$y_F <- md$idx_F$value
-md$n_F <- length(md$y_F)
-md$ti_F <- md$idx_F$ti
-
-# Instagram
-md$y_G <- md$idx_G$value
-md$n_G <- length(md$y_G)
-md$ti_G <- md$idx_G$ti
-
-
-# Facebook:Instagram ratio
-md$ti_FG <- unique(md$ti_F[which(md$ti_F %in% md$ti_G)])
-md$n_FG <- length(md$ti_FG)
-
-md$y_FG_ratio <- c()
-for (i in 1:length(md$ti_FG)) {
-  ti <- md$ti_FG[i]
-  G_ti <- mean(md$y_G[which(md$ti_G == ti)])
-  F_ti <- mean(md$y_F[which(md$ti_F == ti)])
-  md$y_FG_ratio[i] <- G_ti / F_ti
-}
-
-drop <- which(!is.finite(md$y_FG_ratio))
-if (length(drop) > 0) {
-  md$y_FG_ratio <- md$y_FG_ratio[-drop]
-  md$ti_FG <- md$ti_FG[-drop]
-  md$n_FG <- md$n_FG - length(drop)
-}
-
-rm(drop, F_ti, G_ti, i)
-
-
-## population ##
-
-# baseline population
-md$N0 <- codps[as.character(unique(md$idx$i_key[order(md$idx$i)])), "T_TL"]
-
-# total population at each time step
-weekly_avg <- outside_border |>
-  mutate(week = floor_date(as.Date(date), "week", week_start = 1)) |>
-  group_by(week) |>
-  summarise(avg_value = mean(individuals, na.rm = TRUE)) |>
-  filter(week >= min(md$idx$t_name) &
-    week <= max(md$idx$t_name))
-
-md$y_N_tot <- as.integer(sum(md$N0) - weekly_avg$avg_value)
-
-rm(weekly_avg)
-
-
-# indexing: long format for N
-md$ti_N0 <- md$idx$ti[md$idx$t == 1]
-md$ti_N <- md$idx$ti[md$idx$t > 1]
-md$ti_N_lag <- md$idx$ti[md$idx$t > 1] - md$I
-
-md$tt <- md$idx$t
-md$ii <- md$idx$i
-
-
-## covariates ##
-
-# # on growth rate
-# md$K_r <- 2
-# md$X_r <- matrix(rnorm(nrow(md$idx) * md$K_r, 0, 1), nrow = nrow(md$idx), ncol = md$K_r)
-# colnames(md$X_r) <- paste0("x", 1:md$K_r)
-# rownames(md$X_r) <- md$idx$ti
-
-# # on Facebook detection rate
-# md$K_p_F <- 2
-# md$X_p_F <- matrix(rnorm(nrow(md$idx) * md$K_p_F, 0, 1), nrow = nrow(md$idx), ncol = md$K_p_F)
-# colnames(md$X_p_F) <- paste0("x", 1:md$K_p_F)
-# rownames(md$X_p_F) <- md$idx$ti
-
-# # on Instagram detection rate
-# md$K_p_G <- 2
-# md$X_p_G <- matrix(rnorm(nrow(md$idx) * md$K_p_G, 0, 1), nrow = nrow(md$idx), ncol = md$K_p_G)
-# colnames(md$X_p_G) <- paste0("x", 1:md$K_p_G)
-# rownames(md$X_p_G) <- md$idx$ti
-
-covs |> distinct(covariate)
-covs |> names()
-
-# on growth rates
-md$X_r <- md$idx |>
-  left_join(
-    covs |>
-      filter(covariate == "acled_withfatalities") |>
-      select(value_sum6month_std, i, t) |>
-      rename(x1 = "value_sum6month_std")
-  ) |>
-  left_join(
-    covs |>
-      filter(covariate == "acled_eventStrategic") |>
-      select(value_sum6month_std, i, t) |>
-      rename(x2 = "value_sum6month_std")
-  ) |>
-  left_join(
-    covs |>
-      filter(covariate == "occupied") |>
-      select(value_sum6month_std, i, t) |>
-      rename(x3 = "value_sum6month_std")
-  ) |>
-  left_join(
-    covs |>
-      filter(covariate == "pwtt") |>
-      select(value_sum6month_std, i, t) |>
-      rename(x4 = "value_sum6month_std") |>
-      mutate(x4 = coalesce(x4, min(x4, na.rm = T)))
-  ) |>
-  left_join(
-    covs |>
-      filter(covariate == "sirens") |>
-      select(value_sum6month_std, i, t) |>
-      rename(x5 = "value_sum6month_std")
-  ) |>
-  left_join(
-    covs |>
-      filter(covariate == "war_fires") |>
-      select(value_sum6month_std, i, t) |>
-      rename(x6 = "value_sum6month_std")
-  ) |>
-  select(x1:x6)
-
-md$K_r <- ncol(md$X_r)
-
-
-# on Facebook and Instagram detection rates
-md$X_p_F <- md$X_p_G <- md$idx |>
-  left_join(
-    covs |>
-      filter(covariate == "acled_eventStrategic") |>
-      select(value_sum6month_std, i, t) |>
-      rename(x1 = "value_sum6month_std")
-  ) |>
-  left_join(
-    covs |>
-      filter(covariate == "occupied") |>
-      select(value_sum6month_std, i, t) |>
-      rename(x2 = "value_sum6month_std")
-  ) |>
-  select(x1:x2)
-
-md$K_p_F <- ncol(md$X_p_F)
-md$K_p_G <- ncol(md$X_p_G)
-
 
 
 

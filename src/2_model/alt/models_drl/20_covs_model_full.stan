@@ -149,7 +149,7 @@ model {
   beta_r ~ normal(0, 1);
   sigma_r ~ normal(0, 0.1 / 2);
   
-  // priors:  Facebook user ratio
+  // priors:  Facebook detection rate
   alpha_p_F ~ normal(mu_alpha_p_F, sigma_alpha_p_F);
   mu_alpha_p_F ~ normal(0, 5);
   sigma_alpha_p_F ~ normal(0, 1);
@@ -157,7 +157,7 @@ model {
   beta_p_F ~ normal(0, 0.5);
   sigma_p_F ~ normal(0, 0.5);
   
-  // priors:  Instagram user ratio
+  // priors:  Instagram detection rate
   alpha_p_G ~ normal(mu_alpha_p_G, sigma_alpha_p_G);
   mu_alpha_p_G ~ normal(0, 5);
   sigma_alpha_p_G ~ normal(0, 1);

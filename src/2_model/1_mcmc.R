@@ -6,7 +6,6 @@ gc()
 library(cmdstanr)
 library(posterior)
 library(bayesplot)
-library(tidyverse)
 library(here)
 
 # load environment
@@ -40,7 +39,7 @@ source(file.path(src_dir, "models", paste0(model_name, "_config.R")))
 dir.create(file.path(out_dir, "modelling", model_name, "mcmc"), recursive = T, showWarnings = F)
 
 # create model data
-md <- prepare_md(
+md <- model_data(
   idx = read.csv(file.path(out_dir, "ua_master_index.csv")),
   idx_F = read.csv(file.path(out_dir, "population_proxy", "social_media_audience", "ua_facebook_audience.csv")),
   idx_G = read.csv(file.path(out_dir, "population_proxy", "social_media_audience", "ua_instagram_audience.csv")),
