@@ -6,6 +6,7 @@ gc()
 library(cmdstanr)
 library(posterior)
 library(bayesplot)
+library(dplyr)
 library(here)
 
 # load environment
@@ -259,9 +260,8 @@ dir.create(file.path(out_dir, model_name, "eval", "trace_plots"), showWarnings =
 pars <- list(
   "1_base_model" = c("sigma_p_F", "sigma_p_G"),
   "2_covs_model" = c(
-    "alpha_r", "beta_r", "sigma_r", "delta_r", "sigma_delta_r", "gamma_r", "sigma_gamma_r",
-    "alpha_p_F", "beta_p_F", "sigma_p_F", "delta_p_F", "sigma_delta_p_F", "gamma_p_F", "sigma_gamma_p_F",
-    "alpha_p_G", "beta_p_G", "sigma_p_G", "delta_p_G", "sigma_delta_p_G", "gamma_p_G", "sigma_gamma_p_G"
+    "alpha_r", "beta_r", "sigma_r", "sigma_delta_r", "sigma_gamma_r",
+    "alpha_p", "phi_p", "beta_p", "sigma_p", "sigma_delta_p", "sigma_gamma_p"
   )
 )
 dat <- fit$draws(pars[[model_name]])
@@ -278,7 +278,7 @@ ggplot2::ggsave(
 ## location-specific parameters
 pars <- list(
   "1_base_model" = c("mu_p_G"),
-  "2_covs_model" = c("alpha_r", "alpha_p_G")
+  "2_covs_model" = c("gamma_r", "gamma_p")
 )
 for (i in 1:length(pars[[model_name]])) {
   dat <- fit$draws(pars[[model_name]][i])
@@ -296,7 +296,7 @@ for (i in 1:length(pars[[model_name]])) {
 ## time-specific parameters
 pars <- list(
   "1_base_model" = c("mu_p_F", "N_tot"),
-  "2_covs_model" = c("alpha_p_F", "N_tot")
+  "2_covs_model" = c("delta_r", "delta_p", "N_tot")
 )
 for (i in 1:length(pars[[model_name]])) {
   dat <- fit$draws(pars[[model_name]][i])
