@@ -71,12 +71,6 @@ parameters {
   vector[K_r] beta_r; // covariate effects on growth rates
   real<lower=0> sigma_r; // variation in growth rates
   
-  vector[T] delta_r;
-  real<lower=0> sigma_delta_r;
-  
-  vector[I] gamma_r;
-  real<lower=0> sigma_gamma_r;
-  
   // Facebook and Instagram
   vector<lower=0>[T * I] p_F; // Facebook detection rates
   vector<lower=0>[T * I] p_G; // Instagram detection rates
@@ -84,8 +78,9 @@ parameters {
   real alpha_p; // intercept for Facebook detection rates
   real phi_p; // intercept offset for Instagram detection rates
   vector[K_p] beta_p; // covariate effects on Instagram detection rates
-  real<lower=0> sigma_p; // residual variation
- 
+  real<lower=0> sigma_p_F; // residual variation
+  real<lower=0> sigma_p_G; // residual variation
+  
   vector[T] delta_p;
   real<lower=0> sigma_delta_p;
   
@@ -96,8 +91,7 @@ transformed parameters {
   vector<lower=0>[T * I] N; // population estimates
   vector<lower=0>[T] N_tot; // total population at each time step
   vector[T * I] mu_r; // expected growth rates
-  vector[T * I] mu_p_F; // expected Facebook detection rates
-  vector[T * I] mu_p_G; // expected Instagram detection rates
+  vector[T * I] mu_p; // expected Facebook detection rates
   vector<lower=0>[n_FG] FG_ratio; // ratio of Instagram to Facebook user ratios
   
   // population process model
@@ -112,13 +106,10 @@ transformed parameters {
   }
   
   // regression on population growth rates
-  mu_r = alpha_r + delta_r[tt] + gamma_r[ii] + X_r * beta_r;
+  mu_r = alpha_r + X_r * beta_r;
   
   // regression on Facebook detection rates
-  mu_p_F = alpha_p + delta_p[tt] + gamma_p[ii] + X_p * beta_p;
-  
-  // regression on Facebook detection rates
-  mu_p_G = alpha_p + phi_p + delta_p[tt] + gamma_p[ii] + X_p * beta_p;
+  mu_p = alpha_p + delta_p[tt] + gamma_p[ii] + X_p * beta_p;
   
   // observation ratio of Instagram to Facebook
   FG_ratio = p_G[ti_FG] ./ p_F[ti_FG];
@@ -128,13 +119,11 @@ model {
   y_F ~ poisson(N[ti_F] .* p_F[ti_F]);
   y_G ~ poisson(N[ti_G] .* p_G[ti_G]);
   
-  y_FG_ratio ~ lognormal(log(FG_ratio), 0.05 / 2);
-  
   y_N_tot ~ lognormal(log(N_tot), 0.01 / 2);
   
   // observation models
-  p_F ~ lognormal(mu_p_F, sigma_p);
-  p_G ~ lognormal(mu_p_G, sigma_p);
+  p_F ~ lognormal(mu_p, sigma_p_F);
+  p_G ~ lognormal(mu_p + phi_p, sigma_p_G);
   
   // population growth rates
   r ~ lognormal(mu_r, sigma_r);
@@ -142,19 +131,16 @@ model {
   // priors:  population
   alpha_r ~ normal(0, 5);
   beta_r ~ normal(0, 1);
-  sigma_r ~ normal(0, 0.1 / 2);
-  
-  delta_r ~ normal(0, sigma_delta_r);
-  sigma_delta_r ~ normal(0, 1);
-  
-  gamma_r ~ normal(0, sigma_gamma_r);
-  sigma_gamma_r ~ normal(0, 1);
+  sigma_r ~ normal(0, 1);
   
   // priors:  Facebook and Instagram detection rate
+  FG_ratio ~ lognormal(log(y_FG_ratio), 0.05 / 2);
+  
   alpha_p ~ normal(0, 5);
-  phi_p ~ normal(0, 1);  
-  beta_p ~ normal(0, 0.5);
-  sigma_p ~ normal(0, 0.5);
+  phi_p ~ normal(0, 1);
+  beta_p ~ normal(0, 1);
+  sigma_p_F ~ normal(0, 1);
+  sigma_p_G ~ normal(0, 1);
   
   delta_p ~ normal(0, sigma_delta_p);
   sigma_delta_p ~ normal(0, 1);

@@ -37,6 +37,9 @@ md <- readRDS(file.path(out_dir, model_name, "mcmc", paste0("md_", model_name, "
 dir.create(file.path(out_dir, model_name, "eval"), showWarnings = F, recursive = T)
 
 
+# consider subsetting MCMC chains to keep the final X draws
+
+
 #---- check total population ----#
 jpeg(
   filename = file.path(out_dir, model_name, "eval", "total_population.jpg"),
@@ -137,18 +140,36 @@ jpeg(
   height = 720, width = 720
 )
 
-F_hat <- apply(fit$draws("F_hat", format = "df") |> select(!starts_with(".")), 2, mean)
+draws <- fit$draws("F_hat", format = "df") |> select(!starts_with("."))
+
+F_hat_mean <- apply(draws, 2, mean)
+F_hat_lower <- apply(draws, 2, quantile, probs = c(0.025))
+F_hat_upper <- apply(draws, 2, quantile, probs = c(0.975))
 
 plot(
   x = md$y_F,
-  y = F_hat,
+  y = F_hat_mean,
   main = "Facebook Posterior Preditive Check (in-sample)",
   xlab = "Observed",
-  ylab = "Predicted"
+  ylab = "Predicted",
+  ylim = c(min(F_hat_lower), max(F_hat_upper))
 )
+
+for (i in 1:md$n_F) {
+  arrows(
+    x0 = md$y_F[i],
+    x1 = md$y_F[i],
+    y0 = F_hat_lower[i],
+    y1 = F_hat_upper[i],
+    length = 0
+  )
+}
+
 abline(0, 1, col = "red")
 
 dev.off()
+
+rm(F_hat_mean, F_hat_lower, F_hat_upper, draws, i)
 
 # Instagram
 jpeg(
@@ -156,19 +177,35 @@ jpeg(
   height = 720, width = 720
 )
 
-G_hat <- apply(fit$draws("G_hat", format = "df") |> select(!starts_with(".")), 2, mean)
+draws <- fit$draws("G_hat", format = "df") |> select(!starts_with("."))
+
+G_hat_mean <- apply(draws, 2, mean)
+G_hat_lower <- apply(draws, 2, quantile, probs = c(0.025))
+G_hat_upper <- apply(draws, 2, quantile, probs = c(0.975))
 
 plot(
   x = md$y_G,
-  y = G_hat,
+  y = G_hat_mean,
   main = "Instagram Posterior Preditive Check (in-sample)",
   xlab = "Observed",
   ylab = "Predicted"
 )
+
 abline(0, 1, col = "red")
+
+for (i in 1:md$n_G) {
+  arrows(
+    x0 = md$y_G[i],
+    x1 = md$y_G[i],
+    y0 = G_hat_lower[i],
+    y1 = G_hat_upper[i],
+    length = 0
+  )
+}
 
 dev.off()
 
+rm(G_hat_mean, G_hat_lower, G_hat_upper, draws, i)
 
 
 #---- time series plots ----#
@@ -260,8 +297,8 @@ dir.create(file.path(out_dir, model_name, "eval", "trace_plots"), showWarnings =
 pars <- list(
   "1_base_model" = c("sigma_p_F", "sigma_p_G"),
   "2_covs_model" = c(
-    "alpha_r", "beta_r", "sigma_r", "sigma_delta_r", "sigma_gamma_r",
-    "alpha_p", "phi_p", "beta_p", "sigma_p", "sigma_delta_p", "sigma_gamma_p"
+    "alpha_r", "beta_r", "sigma_r",
+    "alpha_p", "phi_p", "beta_p", "sigma_delta_p", "sigma_gamma_p", "sigma_p_F", "sigma_p_G"
   )
 )
 dat <- fit$draws(pars[[model_name]])
@@ -278,7 +315,7 @@ ggplot2::ggsave(
 ## location-specific parameters
 pars <- list(
   "1_base_model" = c("mu_p_G"),
-  "2_covs_model" = c("gamma_r", "gamma_p")
+  "2_covs_model" = c("gamma_p")
 )
 for (i in 1:length(pars[[model_name]])) {
   dat <- fit$draws(pars[[model_name]][i])
@@ -296,7 +333,7 @@ for (i in 1:length(pars[[model_name]])) {
 ## time-specific parameters
 pars <- list(
   "1_base_model" = c("mu_p_F", "N_tot"),
-  "2_covs_model" = c("delta_r", "delta_p", "N_tot")
+  "2_covs_model" = c("delta_p", "N_tot")
 )
 for (i in 1:length(pars[[model_name]])) {
   dat <- fit$draws(pars[[model_name]][i])

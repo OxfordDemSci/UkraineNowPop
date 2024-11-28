@@ -211,21 +211,17 @@ init_generator <- function(md = md, chain_id = 1) {
   result[["sigma_r"]] <- runif(1, 0, 0.5)
   result[["alpha_r"]] <- rnorm(1, 0, 3)
   result[["beta_r"]] <- rnorm(md$K_r, 0, 1)
-  result[["delta_r"]] <- rnorm(md$T, 0, 0.1)
-  result[["sigma_delta_r"]] <- runif(1, 0, 0.1)
-  result[["gamma_r"]] <- rnorm(md$I, 0, 0.1)
-  result[["sigma_gamma_r"]] <- runif(1, 0, 0.1)
 
   result[["p_F"]] <- rlnorm(md$T * md$I, log(mean(md$y_F, na.rm = T) / mean(md$N0)), 0.5)
   result[["mu_p_F"]] <- runif(md$T * md$I, -4, -2)
 
   result[["p_G"]] <- rlnorm(md$T * md$I, log(mean(md$y_G, na.rm = T) / mean(md$N0)), 0.5)
-  result[["mu_p_G"]] <- runif(md$T * md$I, -4, -2)
 
   result[["alpha_p"]] <- runif(1, -4, -2)
   result[["phi_p"]] <- rnorm(1, 0, 1)
   result[["beta_p"]] <- rnorm(md$K_p, 0, 1)
-  result[["sigma_p"]] <- runif(1, 0, 0.2)
+  result[["sigma_p_F"]] <- runif(1, 0, 0.2)
+  result[["sigma_p_G"]] <- runif(1, 0, 0.2)
   result[["delta_p"]] <- rnorm(md$T, 0, 0.1)
   result[["sigma_delta_p"]] <- runif(1, 0, 0.1)
   result[["gamma_p"]] <- rnorm(md$I, 0, 0.1)
