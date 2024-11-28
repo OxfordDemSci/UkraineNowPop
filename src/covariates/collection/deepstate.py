@@ -34,6 +34,7 @@ PARALLEL_DOWNLOADS = 10
 PARALLEL_PROCESSES = 16
 HISTORY_URL = "https://deepstatemap.live/api/history/"
 ITEMS_FOLDER = out_dir / "covariates" / "raw" / "deepstate"
+download = False
 
 
 def scrape_json(url: str):
@@ -84,7 +85,7 @@ def scrape_items(items):
         idx, id = args
         url = HISTORY_URL + "/" + id + "/geojson"
         # https://stackoverflow.com/a/5291396/2193463
-        print(f"(Downloading {idx}/{len(ids)}", end="\r")
+        print(f"(Downloading {idx}/{len(ids)})", end="\r", flush=True)
         entry = scrape_json(url)
         save_to_file(entry, ITEMS_FOLDER.joinpath("json").joinpath(str(id) + ".json"))
         entry["id"] = id
@@ -141,7 +142,7 @@ def extract_occupied(features):
 
 def process_item(args):
     idx, filename = args
-    print(f"(Processing {idx}", end="\r")
+    print(f"(Processing {idx})", end="\r", flush=True)
     with open(os.path.join(ITEMS_FOLDER, "json", filename), encoding="utf-8") as f:
         data = json.load(f)
     id_ = filename.split(".json")[0]
@@ -198,31 +199,33 @@ if __name__ == "__main__":
 
     # ---- scraper ----#
 
-    # scrape history
-    history = scrape_json(HISTORY_URL)
+    if download:
 
-    # XXX Beware, this will take some time as it has to download 530+ files
-    scrape_items(history)
+        # scrape history
+        history = scrape_json(HISTORY_URL)
 
-    # process file properties
-    files = os.listdir(ITEMS_FOLDER / "json")
-    files = [s for s in files if s.endswith(".json")]
+        # XXX Beware, this will take some time as it has to download 530+ files
+        scrape_items(history)
 
-    properties = [read_property(i) for i in files]
-    properties = [item for sublist in properties for item in sublist]
+        # process file properties
+        files = os.listdir(ITEMS_FOLDER / "json")
+        files = [s for s in files if s.endswith(".json")]
 
-    properties_table = pd.Series(properties).value_counts()
-    properties_table = pd.DataFrame(
-        {"text": properties_table.index, "Frequency": properties_table.values}
-    )
+        properties = [read_property(i) for i in files]
+        properties = [item for sublist in properties for item in sublist]
 
-    properties_table["matched"] = properties_table["text"].str.contains(
-        "уп|ОРДЛО|Крим", case=False
-    )
+        properties_table = pd.Series(properties).value_counts()
+        properties_table = pd.DataFrame(
+            {"text": properties_table.index, "Frequency": properties_table.values}
+        )
 
-    # XXX This is slow, beware
-    # Don't worry about weird text output below ("Processing ...")
-    processed = dispatch(files)
+        properties_table["matched"] = properties_table["text"].str.contains(
+            "уп|ОРДЛО|Крим", case=False
+        )
+
+        # XXX This is slow, beware
+        # Don't worry about weird text output below ("Processing ...")
+        processed = dispatch(files)
 
     # combine occupied territory in one covariate
     occupied_list = os.listdir(ITEMS_FOLDER / "gpkg")
@@ -256,6 +259,20 @@ if __name__ == "__main__":
 
     intersections["occupied"] = intersections["occupied"].replace(np.nan, 0)
 
+    # Calculate occupied oblast proportion
+    boundaries_oblast_proj["area"] = boundaries_oblast_proj.area
+    intersections = intersections.merge(
+        boundaries_oblast_proj[["ADM1_PCODE", "area"]], how="left"
+    )
+    intersections["occupied_prop"] = intersections["occupied"] / intersections["area"]
+
+    intersections = intersections.melt(
+        id_vars=["ADM1_PCODE", "t", "t_key", "t_name", "i", "i_key", "i_name"],
+        value_vars=["occupied", "occupied_prop"],
+        var_name="covariate",
+        value_name="value",
+    )
+
     # Write output
     intersections.to_csv(
         out_dir / "covariates" / "interim" / (country + "_occupied_oblast.csv"),
@@ -266,19 +283,21 @@ if __name__ == "__main__":
     if False:
         filtered_data = intersections[intersections["i"].isin([5, 7, 27, 14])]
 
-        plt.figure(figsize=(12, 6))
+        for cov in ["occupied", "occupied_prop"]:
 
-        for i in filtered_data["i_name"].unique():
-            i_data = filtered_data[filtered_data["i_name"] == i]
-            i_key = i_data["i"].unique()[0] - 4
-            plt.scatter(
-                i_data["t"],
-                i_data["occupied"],
-                label=f"i={i} (t)",
-                color=plt.cm.tab20(i_key),
-            )
+            plt.figure(figsize=(12, 6))
 
-        plt.xlabel("t")
-        plt.ylabel("occupied")
-        plt.legend()
-        plt.show()
+            for i in filtered_data["i_name"].unique():
+                i_data = filtered_data[filtered_data["i_name"] == i]
+                i_key = i_data["i"].unique()[0] - 4
+
+                plt.scatter(
+                    i_data[i_data["covariate"] == cov]["t"],
+                    i_data[i_data["covariate"] == cov]["value"],
+                    label=f"i={i} ({cov})",
+                )
+
+            plt.xlabel("t")
+            plt.ylabel(cov)
+            plt.legend()
+            plt.show()

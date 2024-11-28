@@ -119,10 +119,20 @@ if __name__ == "__main__":
             on=["ADM1_PCODE", "t"],
         )
 
-    acled_oblast = acled_oblast[
-        acled_oblast["ADM1_PCODE"].isin(master_index["ADM1_PCODE"])
-    ].merge(
-        master_index.set_index(["ADM1_PCODE", "t"]), how="right", on=["ADM1_PCODE", "t"]
+    acled_oblast = (
+        acled_oblast[acled_oblast["ADM1_PCODE"].isin(master_index["ADM1_PCODE"])]
+        .merge(
+            master_index.set_index(["ADM1_PCODE", "t"]),
+            how="right",
+            on=["ADM1_PCODE", "t"],
+        )
+        .fillna(0)
+    )
+
+    acled_oblast = acled_oblast.melt(
+        id_vars=["ADM1_PCODE", "t", "i", "i_key", "i_name", "t_key", "t_name"],
+        var_name="covariate",
+        value_name="value",
     )
 
     acled_oblast.to_csv(interim_dir / (country + "_acled_oblast.csv"), index=False)

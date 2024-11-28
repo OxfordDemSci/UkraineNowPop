@@ -59,7 +59,15 @@ fires_oblast_t <- fires_sf |>
   right_join(
     master_index
   ) |>
-  ungroup()
+  ungroup() |>
+  mutate(
+    war_fires = ifelse(is.na(war_fires), 0, war_fires)
+  ) |>
+  pivot_longer(war_fires,
+    names_to = "covariate",
+    values_to = "value"
+  )
+
 
 fires_oblast_t |>
   filter(if_any(everything(), ~ is.na(.)))
