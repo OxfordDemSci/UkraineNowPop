@@ -10,26 +10,26 @@ out_dir <- env$out_dir
 repo_dir <- env$repo_dir
 
 country <- "UA"
-
-# Clone repository
-fireRepo_url <- "https://github.com/TheEconomist/the-economist-war-fire-model.git"
+download <- TRUE
 fireRepo_dir <- file.path(out_dir, "covariates", "raw", "the-economist-war-fire-model")
+dir.create(fireRepo_dir, showWarnings = F, recursive = T)
 
-if (!dir.exists(fireRepo_dir)) {
-  git2r::clone(fireRepo_url, fireRepo_dir)
+# Download file
+if (download) {
+  fireRepo_url <- "https://raw.githubusercontent.com/TheEconomist/the-economist-war-fire-model"
+  url <- file.path(fireRepo_url, "refs/heads/master/output-data/", "ukraine_war_fires.csv")
+  download.file(url, destfile = file.path(fireRepo_dir, "ukraine_war_fires.csv"))
 }
-
-git2r::pull(fireRepo_dir)
 
 # load data --------------------------------------------------------------
 time_index <- read_csv(file.path(out_dir, paste0(tolower(country), "_time_index.csv")))
 master_index <- read_csv(file.path(out_dir, paste0(tolower(country), "_master_index.csv")))
 master_index <- master_index |>
-  distinct(i_key, i_name, i, t, t_name, t_key, ADM1_PCODE, ADM1_EN)
+  distinct(i_key, i_name, i, t, t_name, t_key, ADM1_PCODE)
 admin <- st_read(file.path(repo_dir, "data", "cod-ab", "ukr_admbnda_sspe_20230201_SHP/ukr_admbnda_adm1_sspe_20230201.shp"))
 
 
-fires <- read_csv(file.path(fireRepo_dir, "output-data", "ukraine_war_fires.csv"))
+fires <- read_csv(file.path(fireRepo_dir, "ukraine_war_fires.csv"))
 fires_sf <- st_as_sf(fires, coords = c("x", "y"), crs = "epsg:4326")
 
 
@@ -54,7 +54,7 @@ fires_oblast_t <- fires_sf |>
   filter(collection_date >= min(time_index$collection_date)) |>
   left_join(time_index) |>
   filter(ADM1_PCODE %in% master_index$ADM1_PCODE) |>
-  group_by(t, ADM1_EN, ADM1_PCODE) |>
+  group_by(t, ADM1_PCODE) |>
   summarise(war_fires = n()) |>
   right_join(
     master_index
@@ -67,12 +67,6 @@ fires_oblast_t <- fires_sf |>
     names_to = "covariate",
     values_to = "value"
   )
-
-
-fires_oblast_t |>
-  filter(if_any(everything(), ~ is.na(.)))
-
-
 
 # write output -----------------------------------------------------------
 
