@@ -97,7 +97,7 @@ transformed parameters {
   vector<lower=0>[T] N_tot; // total population at each time step
   vector[T * I] mu_r; // expected growth rates
   vector[T * I] mu_p; // expected Facebook detection rates
-  // vector<lower=0>[n_FG] FG_ratio; // ratio of Instagram to Facebook user ratios
+  vector<lower=0>[n_FG] FG_ratio; // ratio of Instagram to Facebook user ratios
   
   // population process model
   N[ti_N0] = N0;
@@ -117,7 +117,7 @@ transformed parameters {
   mu_p = alpha_p + delta_p[tt] + gamma_p[ii] + X_p * beta_p;
   
   // observation ratio of Instagram to Facebook
-  // FG_ratio = p_G[ti_FG] ./ p_F[ti_FG];
+  FG_ratio = p_G[ti_FG] ./ p_F[ti_FG];
 }
 model {
   // likelihoods
@@ -140,7 +140,7 @@ model {
   sigma_r ~ normal(0, 1);
   
   // priors:  Facebook and Instagram detection rate
-  // FG_ratio ~ lognormal(log(y_FG_ratio), 0.05 / 2);
+  FG_ratio ~ lognormal(log(y_FG_ratio), 0.05 / 2);
   
   alpha_p ~ normal(0, 5);
   phi_p ~ normal(0, 1);

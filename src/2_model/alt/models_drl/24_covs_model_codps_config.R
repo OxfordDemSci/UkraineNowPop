@@ -3,11 +3,11 @@ library(lubridate)
 
 model_data <- function(
     idx, idx_F, idx_G,
-    covs, codps, outside_border,
-    codps_N1, confidence_N1, date_N1,
+    covs, codps, codps_N1, outside_border,
     last_date,
     process_drop_locations, observation_drop_locations,
-    process_cov_select, observation_cov_select) {
+    process_covariates, process_scale_factors,
+    observation_covariates, observation_scale_factors) {
   # model data
   md <- list()
 
@@ -111,25 +111,8 @@ model_data <- function(
   ## population ##
 
   # baseline population
-  md$N0 <- codps |>
-    arrange(match(fb_key, i_idx$i_key)) |>
-    select(T_TL) |>
-    pull()
-
-  # interim codps
-  md$N1 <- codps_N1 |>
-    group_by(ADM1_PCODE) |>
-    mutate(T_TL_ADM1 = sum(T_TL, na.rm = T)) |>
-    left_join(codps |> select(ADM1_PCODE, fb_key)) |>
-    select(fb_key, ADM1_PCODE, ADM1_NAME, T_TL_ADM1) |>
-    rename(T_TL = T_TL_ADM1) |>
-    distinct() |>
-    ungroup() |>
-    arrange(match(fb_key, i_idx$i_key)) |>
-    select(T_TL) |>
-    pull()
-
-  md$ci_N1 <- confidence_N1
+  md$N0 <- codps[as.character(unique(md$idx$i_key[order(md$idx$i)])), "T_TL"]
+  md$N1 <- codps_N1[as.character(unique(md$idx$i_key[order(md$idx$i)])), "T_TL"]
 
   # total population at each time step
   weekly_avg <- outside_border |>
@@ -145,16 +128,7 @@ model_data <- function(
 
 
   # indexing: long format for N
-  md$ti_N0 <- md$idx |>
-    filter(t == 1) |>
-    select(ti) |>
-    pull()
-
-  md$ti_N1 <- md$idx |>
-    filter(t_name == as.character(floor_date(as.Date(date_N1), "week", week_start = 1))) |>
-    select(ti) |>
-    pull()
-
+  md$ti_N0 <- md$idx$ti[md$idx$t == 1]
   md$ti_N <- md$idx$ti[md$idx$t > 1]
   md$ti_N_lag <- md$idx$ti[md$idx$t > 1] - md$I
 
@@ -162,54 +136,48 @@ model_data <- function(
   md$ii <- md$idx$i
 
   ## covariates ##
-  covs$time_std[is.na(covs$time_std)] <- "none"
-  covs$space_std[is.na(covs$space_std)] <- "none"
 
   # on growth rates
-  rcov_select <- process_cov_select |> filter(select == 1)
-  rcov_select$time_std[is.na(rcov_select$time_std)] <- "none"
-  rcov_select$space_std[is.na(rcov_select$space_std)] <- "none"
-
   md$X_r <- md$idx
-  for (k in 1:nrow(rcov_select)) {
-    col_name <- paste0("x", k)
-    md$X_r <- md$X_r |>
-      left_join(
-        covs |>
-          filter(
-            covariate == rcov_select$covariate[k] &
-              sum_stat == rcov_select$sum_stat[k] &
-              time_std == rcov_select$time_std[k] &
-              space_std == rcov_select$space_std[k]
-          ) |>
-          select(t, i, value_std) |>
-          rename(!!col_name := value_std)
-      )
+  k <- 0
+  for (covariate_name in process_covariates) {
+    for (scale_factor in process_scale_factors) {
+      k <- k + 1
+      col_name <- paste0("x", k)
+
+      md$X_r <- md$X_r |>
+        left_join(
+          covs |>
+            filter(covariate == covariate_name) |>
+            select(i, t, all_of(scale_factor)) |>
+            rename(!!col_name := all_of(scale_factor)) |>
+            mutate(!!col_name := coalesce(!!sym(col_name), min(!!sym(col_name), na.rm = T))),
+          by = c("i", "t")
+        )
+    }
   }
   md$X_r <- md$X_r |>
     select(paste0("x", 1:k))
   md$K_r <- k
 
   # on Facebook and Instagram detection rates
-  pcov_select <- observation_cov_select |> filter(select == 1)
-  pcov_select$time_std[is.na(pcov_select$time_std)] <- "none"
-  pcov_select$space_std[is.na(pcov_select$space_std)] <- "none"
-
   md$X_p <- md$idx
-  for (k in 1:nrow(pcov_select)) {
-    col_name <- paste0("x", k)
-    md$X_p <- md$X_p |>
-      left_join(
-        covs |>
-          filter(
-            covariate == pcov_select$covariate[k] &
-              sum_stat == pcov_select$sum_stat[k] &
-              time_std == pcov_select$time_std[k] &
-              space_std == pcov_select$space_std[k]
-          ) |>
-          select(t, i, value_std) |>
-          rename(!!col_name := value_std)
-      )
+  k <- 0
+  for (covariate_name in observation_covariates) {
+    for (scale_factor in observation_scale_factors) {
+      k <- k + 1
+      col_name <- paste0("x", k)
+
+      md$X_p <- md$X_p |>
+        left_join(
+          covs |>
+            filter(covariate == covariate_name) |>
+            select(i, t, all_of(scale_factor)) |>
+            rename(!!col_name := all_of(scale_factor)) |>
+            mutate(!!col_name := coalesce(!!sym(col_name), min(!!sym(col_name), na.rm = T))),
+          by = c("i", "t")
+        )
+    }
   }
   md$X_p <- md$X_p |>
     select(paste0("x", 1:k))
@@ -249,10 +217,10 @@ init_generator <- function(md = md, chain_id = 1) {
   result[["mu_p_F"]] <- runif(md$T * md$I, -4, -2)
 
   result[["p_G"]] <- rlnorm(md$T * md$I, log(mean(md$y_G, na.rm = T) / mean(md$N0)), 0.5)
-  result[["mu_p_G"]] <- runif(md$T * md$I, -4, -2)
 
   result[["alpha_p"]] <- runif(1, -4, -2)
-  result[["phi_p"]] <- rnorm(1, 0, 0.5)
+  result[["phi_p"]] <- rnorm(1, 0, 1)
+  result[["beta_p"]] <- rnorm(md$K_p, 0, 1)
   result[["sigma_p_F"]] <- runif(1, 0, 0.2)
   result[["sigma_p_G"]] <- runif(1, 0, 0.2)
   result[["delta_p"]] <- rnorm(md$T, 0, 0.1)

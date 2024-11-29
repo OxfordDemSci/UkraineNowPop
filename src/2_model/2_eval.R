@@ -261,6 +261,8 @@ plot_time_series <- function(fit, md, model_name, plot_vars = c("N", "r", "p_F",
         cex.main = 2
       )
 
+      if (y_name == "r") abline(h = 1)
+
       lines(
         y = dat$lower,
         x = 1:md$T,
@@ -298,7 +300,7 @@ pars <- list(
   "1_base_model" = c("sigma_p_F", "sigma_p_G"),
   "2_covs_model" = c(
     "alpha_r", "beta_r", "sigma_r",
-    "alpha_p", "phi_p", "beta_p", "sigma_delta_p", "sigma_gamma_p", "sigma_p_F", "sigma_p_G"
+    "alpha_p", "sigma_delta_p", "sigma_gamma_p", "sigma_p_F", "sigma_p_G", "mu_phi_p", "sigma_phi_p"  #"phi_p", "beta_p", 
   )
 )
 dat <- fit$draws(pars[[model_name]])

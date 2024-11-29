@@ -25,7 +25,7 @@ git2r::pull(fireRepo_dir)
 time_index <- read_csv(file.path(out_dir, paste0(tolower(country), "_time_index.csv")))
 master_index <- read_csv(file.path(out_dir, paste0(tolower(country), "_master_index.csv")))
 master_index <- master_index |>
-  distinct(i_key, i_name, i, t, t_name, t_key, ADM1_PCODE, ADM1_EN)
+  distinct(i_key, i_name, i, t, t_name, t_key, ADM1_PCODE)
 admin <- st_read(file.path(repo_dir, "data", "cod-ab", "ukr_admbnda_sspe_20230201_SHP/ukr_admbnda_adm1_sspe_20230201.shp"))
 
 

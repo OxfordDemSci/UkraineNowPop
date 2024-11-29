@@ -106,7 +106,7 @@ write_csv(cov_df_scaled, file.path(out_dir, "covariates", "final", paste0(tolowe
 
 # write description
 cov_df_scaled_description <- cov_df_scaled |>
-  distinct(covariate, sum_stat, time_std, space_std, center_std, scale_std)
+  distinct(covariate, sum_stat, time_std, space_std)
 
 write_csv(cov_df_scaled_description, file.path(out_dir, "covariates", "final", paste0(tolower(country), "_covariates_oblast_description", output_label, ".csv")))
 
@@ -117,7 +117,7 @@ if (plot_show == TRUE) {
     print(cov)
     data <- cov_df_scaled |>
       filter(covariate == cov & i %in% c(5, 10, 25)) |>
-      mutate(scaling = paste0(sum_stat, "_", time_scale, "_", spatial_scale))
+      mutate(scaling = paste0(sum_stat, "_", time_std, "_", space_std))
     g <- ggplot(data, aes(x = t, y = value_std, colour = scaling)) +
       geom_point() +
       geom_path() +
