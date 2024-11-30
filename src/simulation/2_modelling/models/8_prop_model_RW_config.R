@@ -3,7 +3,7 @@
 # load data
 mddir <- file.path(wd, 'out', 'simulation')
 # md <- readRDS(file.path(mddir, 'simulated_data.rds'))
-md <- readRDS(file.path(mddir, 'md_1_base_model.rds'))
+md <- readRDS(file.path(wd, 'out', 'modelling', '1_base_model', 'mcmc', 'md_1_base_model.rds'))
 
 
 # set seed for random number generators
