@@ -45,8 +45,36 @@ geo_index <- meta_keys |>
   distinct(i_key) |>
   left_join(
     pcodes |>
-      select(fb_key, ADM1_PCODE, ADM1_EN) |>
-      rename(i_key = fb_key, i_name = ADM1_EN),
+      mutate(    macroregion = case_when(
+           name=="Autonomous Republic of Crimea"~"Autonomous",
+           name=="Cherkasy Oblast"~"Center",
+           name=="Chernihiv Oblast"~"North",
+           name=="Chernivtsi Oblast"~"West",
+           name=="Dnipropetrovsk Oblast"~"East",
+           name=="Donetsk Oblast"~"East",
+           name=="Ivano-Frankivsk Oblast"~"West",
+           name=="Kharkiv Oblast"~"East",
+           name=="Kherson Oblast"~"South",
+           name=="Khmelnytskyi Oblast"~"West",
+           name=="Kyiv Oblast"~"North",
+           name=="Kirovohrad Oblast"~"Center",
+           name=="Kyiv"~"City",
+           name=="Luhansk Oblast"~"East",
+           name=="Lviv Oblast"~"West",
+           name=="Mykolaiv Oblast"~"South",
+           name=="Odessa Oblast"~"South",
+           name=="Poltava Oblast"~"Center",
+           name=="Rivne Oblast"~"West",
+           name=="Sevastopol"~"Autonomous",
+           name=="Sumy Oblast"~"North",
+           name=="Ternopil Oblast"~"West",
+           name=="Vinnytsia Oblast"~"Center",
+           name=="Volyn Oblast"~"West",
+           name=="Zakarpattia Oblast"~"West",
+           name=="Zaporizhia Oblast"~"East",
+           name=="Zhytomyr Oblast"~"North")) |> 
+      select(fb_key, ADM1_PCODE, ADM1_EN, macroregion) |>
+      rename(i_key = fb_key, i_name = ADM1_EN) ,
   ) |>
   arrange(i_key) |>
   mutate(
