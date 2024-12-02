@@ -26,7 +26,10 @@ pkgs <- c(
   "DBI",
   "RPostgres",
   "git2r",
-  "future.apply"
+  "future.apply",
+  "paletteer",
+  "corrplot",
+  "kableExtra"
 )
 
 install_if_missing(pkgs)
