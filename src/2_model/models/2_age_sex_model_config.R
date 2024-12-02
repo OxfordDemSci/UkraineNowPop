@@ -178,46 +178,89 @@ init_generator <- function(md = md, chain_id = 1) {
   result <- list()
   
   N <- array(NA, dim = c(md$T, md$I, md$G, md$S))
+
+  age_sex_prob <- matrix(0, nrow = md$G, ncol = md$S)
+  total_N0 <- sum(md$N0)
+  for (g in 1:md$G) {
+    for (s in 1:md$S) {
+      sum_N0_gs <- sum(md$N0[md$gg == g & md$ss == s], na.rm = TRUE)
+      age_sex_prob[g, s] <- sum_N0_gs / total_N0
+    }}
+  
+  location_prob <- array(0, dim = c(md$I, md$G, md$S))
+  for (g in 1:md$G) {
+    for (s in 1:md$S) {
+      sum_N0_gs <- sum(md$N0[md$gg == g & md$ss == s], na.rm = TRUE)
+      for (i in 1:md$I) {
+        combination_idx <- (i - 1) * md$G * md$S + (g - 1) * md$S + s
+        N0_value <- md$N0[combination_idx]
+        location_prob[i, g, s] <- N0_value / sum_N0_gs
+      }}}
+
+  total_prob <- array(0, dim = c(md$I, md$G, md$S))
+  for (g in 1:md$G) {
+    for (s in 1:md$S) {
+      for (i in 1:md$I) {
+        total_prob[i, g, s] <- age_sex_prob[g, s] * location_prob[i, g, s]
+      }}}
+  
+  sum_total_prob <- sum(total_prob, na.rm = TRUE)
+  total_prob_norm <- total_prob / sum_total_prob
+     
   for (t in 1:md$T) {
-    for (g in 1:md$G) {
-      for (s in 1:md$S) {
-          age_sex_prob <- sum(md$N0[md$gg == g & md$ss == s]) / sum(md$N0)
+    size <- md$y_N_tot[t]
+    probs_vector <- as.vector(total_prob_norm)
+    counts <- rmultinom(1, size, probs_vector)
+    N[t, , , ] <- array(counts, dim = c(md$I, md$G, md$S))
+  }        
 
-        for (i in 1:md$I) {
-          combination_idx <- (i - 1) * md$G * md$S + (g - 1) * md$S + s
-
-          location_prob <- md$N0[combination_idx] / sum(md$N0[md$gg == g & md$ss == s])
-
-          N[t, i, g, s] <- rmultinom(
-            n = 1,
-            size = md$y_N_tot[t],
-            prob = age_sex_prob * location_prob
-          
-            ti <- which(
-              md$tt == t & md$ii == i & md$gg == g & md$ss == s )
-
-          if (any(md$y_F[md$tias_F == ti] > N[t, i, g, s])) {
-            N[t, i, g, s] <- max(md$y_F[md$tias_F == ti])
+  for (t in 1:md$T) {
+    for (i in 1:md$I) {
+      for (g in 1:md$G) {
+        for (s in 1:md$S) {
+          tias <- which(md$tt == t & md$ii == i & md$gg == g & md$ss == s)
+          y_F_values <- md$y_F[md$tias_F == tias]
+          if (any(y_F_values > N[t, i, g, s], na.rm = TRUE)) {
+            N[t, i, g, s] <- max(y_F_values, na.rm = TRUE)
           }}}}}
-
-          if (length(ti) > 0 && any(md$y_F[md$tias_F %in% ti] > N[t, i, g, s])) {
-            N[t, i, g, s] <- max(md$y_F[md$tias_F %in% ti])
-          }
   
   result[["N"]] <- as.vector(N)
   result[["N_tot"]] <- md$y_N_tot
   result[["r"]] <- rlnorm(md$T * md$I * md$G * md$S, 0, 0.1 / 2)
   result[["p_F"]] <- rlnorm(md$T * md$I * md$G * md$S,
-                            log(mean(md$y_F, na.rm = TRUE) / mean(md$N0)),
-                            0.5)
+                            log(mean(md$y_F, na.rm = TRUE) / mean(md$N0, na.rm = TRUE)), 0.5)
   result[["mu_p_F"]] <- runif(1, -4, -2)
   result[["sigma_p_F"]] <- runif(1, 0, 0.2)
-  
+          
   result[["p_G"]] <- rlnorm(md$T * md$I * md$G * md$S,
-                            log(mean(md$y_G, na.rm = TRUE) / mean(md$N0)),
-                            0.5)
+                            log(mean(md$y_G, na.rm = TRUE) / mean(md$N0, na.rm = TRUE)), 0.5)
   result[["mu_p_G"]] <- runif(1, -4, -2)
   result[["sigma_p_G"]] <- runif(1, 0, 0.2)
-  
+          
   return(result)
 }
+
+inits <- lapply(1:chains, function(id) init_generator(md = md, chain_id = id))
+inits
+
+result <- inits[[1]]
+N_values <- result$N
+N_array <- array(N_values, dim = c(md$T, md$I, md$G, md$S))
+
+summary(N_values)
+
+mean(N_values, na.rm = TRUE)
+sd(N_values, na.rm = TRUE)
+min(N_values, na.rm = TRUE)
+max(N_values, na.rm = TRUE)
+
+summary(result$N_tot)
+summary(result$r)
+
+summary(result$p_F)
+result$mu_p_F
+result$sigma_p_F
+                
+summary(result$p_G)
+result$mu_p_G
+result$sigma_p_G
