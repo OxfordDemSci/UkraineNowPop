@@ -118,7 +118,6 @@ df_corr_neg |>
     column_spec(15, background = spec_color(df_corr_neg$`5`, scale_from= c(-50,50),palette= paletteer::paletteer_c(palette_name, n=100))) |>
   column_spec(8, width = "3mm") |> 
   column_spec(10, width = "3mm") |> 
-  collapse_rows(columns = 3) |>
   pack_rows("Raw covariate", 1, 17) |> 
   pack_rows("Cumulative covariate", 18, 68) |>
   pack_rows("Temporal scaling", 69, 119) |> 

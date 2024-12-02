@@ -2330,11 +2330,10 @@ Future week
 <span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">column_spec</span>(<span class="dv">15</span>, <span class="at">background =</span> <span class="fu">spec_color</span>(df_corr_neg<span class="sc">$</span><span class="st">`</span><span class="at">5</span><span class="st">`</span>, <span class="at">scale_from=</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">50</span>,<span class="dv">50</span>),<span class="at">palette=</span> paletteer<span class="sc">::</span><span class="fu">paletteer_c</span>(palette_name, <span class="at">n=</span><span class="dv">100</span>))) <span class="sc">|&gt;</span></span>
 <span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">column_spec</span>(<span class="dv">8</span>, <span class="at">width =</span> <span class="st">"3mm"</span>) <span class="sc">|&gt;</span> </span>
 <span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">column_spec</span>(<span class="dv">10</span>, <span class="at">width =</span> <span class="st">"3mm"</span>) <span class="sc">|&gt;</span> </span>
-<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">collapse_rows</span>(<span class="at">columns =</span> <span class="dv">3</span>) <span class="sc">|&gt;</span></span>
-<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pack_rows</span>(<span class="st">"Raw covariate"</span>, <span class="dv">1</span>, <span class="dv">17</span>) <span class="sc">|&gt;</span> </span>
-<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pack_rows</span>(<span class="st">"Cumulative covariate"</span>, <span class="dv">18</span>, <span class="dv">68</span>) <span class="sc">|&gt;</span></span>
-<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pack_rows</span>(<span class="st">"Temporal scaling"</span>, <span class="dv">69</span>, <span class="dv">119</span>) <span class="sc">|&gt;</span> </span>
-<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_header_above</span>(<span class="fu">c</span>(<span class="st">" "</span> <span class="ot">=</span> <span class="dv">2</span>,<span class="st">"Past week"</span> <span class="ot">=</span> <span class="dv">5</span>,<span class="st">"Current"</span><span class="ot">=</span><span class="dv">3</span>, <span class="st">"Future week"</span> <span class="ot">=</span> <span class="dv">5</span>)) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pack_rows</span>(<span class="st">"Raw covariate"</span>, <span class="dv">1</span>, <span class="dv">17</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pack_rows</span>(<span class="st">"Cumulative covariate"</span>, <span class="dv">18</span>, <span class="dv">68</span>) <span class="sc">|&gt;</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pack_rows</span>(<span class="st">"Temporal scaling"</span>, <span class="dv">69</span>, <span class="dv">119</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_header_above</span>(<span class="fu">c</span>(<span class="st">" "</span> <span class="ot">=</span> <span class="dv">2</span>,<span class="st">"Past week"</span> <span class="ot">=</span> <span class="dv">5</span>,<span class="st">"Current"</span><span class="ot">=</span><span class="dv">3</span>, <span class="st">"Future week"</span> <span class="ot">=</span> <span class="dv">5</span>)) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
@@ -2597,7 +2596,7 @@ Future week
 <tr class="even">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">occupied</td>
 <td style="text-align: left;"></td>
-<td rowspan="2" style="text-align: right; background-color: rgba(245, 231, 184, 255) !important; vertical-align: middle !important;">4</td>
+<td style="text-align: right; background-color: rgba(245, 231, 184, 255) !important;">4</td>
 <td style="text-align: right; background-color: rgba(245, 231, 184, 255) !important;">4</td>
 <td style="text-align: right; background-color: rgba(242, 226, 176, 255) !important;">6</td>
 <td style="text-align: right; background-color: rgba(250, 240, 194, 255) !important;">1</td>
@@ -2614,6 +2613,7 @@ Future week
 <tr class="odd">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">occupied_prop</td>
 <td style="text-align: left;"></td>
+<td style="text-align: right; background-color: rgba(245, 231, 184, 255) !important;">4</td>
 <td style="text-align: right; background-color: rgba(245, 231, 184, 255) !important;">4</td>
 <td style="text-align: right; background-color: rgba(242, 226, 176, 255) !important;">6</td>
 <td style="text-align: right; background-color: rgba(250, 240, 194, 255) !important;">1</td>
@@ -2684,7 +2684,7 @@ Future week
 <tr class="even">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">acled_all</td>
 <td style="text-align: left;">12week</td>
-<td rowspan="3" style="text-align: right; background-color: rgba(245, 231, 184, 255) !important; vertical-align: middle !important;">4</td>
+<td style="text-align: right; background-color: rgba(245, 231, 184, 255) !important;">4</td>
 <td style="text-align: right; background-color: rgba(242, 226, 176, 255) !important;">6</td>
 <td style="text-align: right; background-color: rgba(242, 226, 176, 255) !important;">6</td>
 <td style="text-align: right; background-color: rgba(222, 228, 186, 255) !important;">-7</td>
@@ -2701,6 +2701,7 @@ Future week
 <tr class="odd">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">acled_all</td>
 <td style="text-align: left;">24week</td>
+<td style="text-align: right; background-color: rgba(245, 231, 184, 255) !important;">4</td>
 <td style="text-align: right; background-color: rgba(242, 226, 176, 255) !important;">6</td>
 <td style="text-align: right; background-color: rgba(242, 226, 176, 255) !important;">6</td>
 <td style="text-align: right; background-color: rgba(222, 228, 186, 255) !important;">-7</td>
@@ -2717,6 +2718,7 @@ Future week
 <tr class="even">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">acled_all</td>
 <td style="text-align: left;">4week</td>
+<td style="text-align: right; background-color: rgba(247, 234, 187, 255) !important;">3</td>
 <td style="text-align: right; background-color: rgba(242, 226, 176, 255) !important;">6</td>
 <td style="text-align: right; background-color: rgba(242, 226, 176, 255) !important;">6</td>
 <td style="text-align: right; background-color: rgba(222, 228, 186, 255) !important;">-7</td>
@@ -2784,7 +2786,7 @@ Future week
 <tr class="even">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">acled_disPolitical</td>
 <td style="text-align: left;">12week</td>
-<td rowspan="3" style="text-align: right; background-color: rgba(245, 231, 184, 255) !important; vertical-align: middle !important;">4</td>
+<td style="text-align: right; background-color: rgba(245, 231, 184, 255) !important;">4</td>
 <td style="text-align: right; background-color: rgba(242, 226, 176, 255) !important;">6</td>
 <td style="text-align: right; background-color: rgba(242, 226, 176, 255) !important;">6</td>
 <td style="text-align: right; background-color: rgba(222, 228, 186, 255) !important;">-7</td>
@@ -2801,6 +2803,7 @@ Future week
 <tr class="odd">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">acled_disPolitical</td>
 <td style="text-align: left;">24week</td>
+<td style="text-align: right; background-color: rgba(245, 231, 184, 255) !important;">4</td>
 <td style="text-align: right; background-color: rgba(242, 226, 176, 255) !important;">6</td>
 <td style="text-align: right; background-color: rgba(242, 226, 176, 255) !important;">6</td>
 <td style="text-align: right; background-color: rgba(222, 228, 186, 255) !important;">-7</td>
@@ -2817,6 +2820,7 @@ Future week
 <tr class="even">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">acled_disPolitical</td>
 <td style="text-align: left;">4week</td>
+<td style="text-align: right; background-color: rgba(247, 234, 187, 255) !important;">3</td>
 <td style="text-align: right; background-color: rgba(242, 226, 176, 255) !important;">6</td>
 <td style="text-align: right; background-color: rgba(244, 229, 180, 255) !important;">5</td>
 <td style="text-align: right; background-color: rgba(222, 228, 186, 255) !important;">-7</td>
@@ -2833,7 +2837,7 @@ Future week
 <tr class="odd">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">acled_disPoliticalDem</td>
 <td style="text-align: left;">12week</td>
-<td rowspan="3" style="text-align: right; background-color: rgba(248, 237, 191, 255) !important; vertical-align: middle !important;">2</td>
+<td style="text-align: right; background-color: rgba(248, 237, 191, 255) !important;">2</td>
 <td style="text-align: right; background-color: rgba(239, 236, 192, 255) !important;">-3</td>
 <td style="text-align: right; background-color: rgba(250, 240, 194, 255) !important;">1</td>
 <td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">0</td>
@@ -2850,6 +2854,7 @@ Future week
 <tr class="even">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">acled_disPoliticalDem</td>
 <td style="text-align: left;">24week</td>
+<td style="text-align: right; background-color: rgba(248, 237, 191, 255) !important;">2</td>
 <td style="text-align: right; background-color: rgba(239, 236, 192, 255) !important;">-3</td>
 <td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">0</td>
 <td style="text-align: right; background-color: rgba(248, 237, 191, 255) !important;">2</td>
@@ -2866,6 +2871,7 @@ Future week
 <tr class="odd">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">acled_disPoliticalDem</td>
 <td style="text-align: left;">4week</td>
+<td style="text-align: right; background-color: rgba(248, 237, 191, 255) !important;">2</td>
 <td style="text-align: right; background-color: rgba(239, 236, 192, 255) !important;">-3</td>
 <td style="text-align: right; background-color: rgba(250, 240, 194, 255) !important;">1</td>
 <td style="text-align: right; background-color: rgba(235, 234, 190, 255) !important;">-4</td>
@@ -2984,7 +2990,7 @@ Future week
 <tr class="even">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">acled_eventBattle</td>
 <td style="text-align: left;">12week</td>
-<td rowspan="3" style="text-align: right; background-color: rgba(245, 231, 184, 255) !important; vertical-align: middle !important;">4</td>
+<td style="text-align: right; background-color: rgba(245, 231, 184, 255) !important;">4</td>
 <td style="text-align: right; background-color: rgba(244, 229, 180, 255) !important;">5</td>
 <td style="text-align: right; background-color: rgba(242, 226, 176, 255) !important;">6</td>
 <td style="text-align: right; background-color: rgba(222, 228, 186, 255) !important;">-7</td>
@@ -3001,6 +3007,7 @@ Future week
 <tr class="odd">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">acled_eventBattle</td>
 <td style="text-align: left;">24week</td>
+<td style="text-align: right; background-color: rgba(245, 231, 184, 255) !important;">4</td>
 <td style="text-align: right; background-color: rgba(244, 229, 180, 255) !important;">5</td>
 <td style="text-align: right; background-color: rgba(242, 226, 176, 255) !important;">6</td>
 <td style="text-align: right; background-color: rgba(222, 228, 186, 255) !important;">-7</td>
@@ -3017,6 +3024,7 @@ Future week
 <tr class="even">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">acled_eventBattle</td>
 <td style="text-align: left;">4week</td>
+<td style="text-align: right; background-color: rgba(247, 234, 187, 255) !important;">3</td>
 <td style="text-align: right; background-color: rgba(244, 229, 180, 255) !important;">5</td>
 <td style="text-align: right; background-color: rgba(244, 229, 180, 255) !important;">5</td>
 <td style="text-align: right; background-color: rgba(218, 225, 184, 255) !important;">-8</td>
@@ -3033,7 +3041,7 @@ Future week
 <tr class="odd">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">acled_eventExplosion</td>
 <td style="text-align: left;">12week</td>
-<td rowspan="3" style="text-align: right; background-color: rgba(245, 231, 184, 255) !important; vertical-align: middle !important;">4</td>
+<td style="text-align: right; background-color: rgba(245, 231, 184, 255) !important;">4</td>
 <td style="text-align: right; background-color: rgba(242, 226, 176, 255) !important;">6</td>
 <td style="text-align: right; background-color: rgba(242, 226, 176, 255) !important;">6</td>
 <td style="text-align: right; background-color: rgba(222, 228, 186, 255) !important;">-7</td>
@@ -3050,6 +3058,7 @@ Future week
 <tr class="even">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">acled_eventExplosion</td>
 <td style="text-align: left;">24week</td>
+<td style="text-align: right; background-color: rgba(245, 231, 184, 255) !important;">4</td>
 <td style="text-align: right; background-color: rgba(242, 226, 176, 255) !important;">6</td>
 <td style="text-align: right; background-color: rgba(244, 229, 180, 255) !important;">5</td>
 <td style="text-align: right; background-color: rgba(222, 228, 186, 255) !important;">-7</td>
@@ -3066,6 +3075,7 @@ Future week
 <tr class="odd">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">acled_eventExplosion</td>
 <td style="text-align: left;">4week</td>
+<td style="text-align: right; background-color: rgba(247, 234, 187, 255) !important;">3</td>
 <td style="text-align: right; background-color: rgba(242, 226, 176, 255) !important;">6</td>
 <td style="text-align: right; background-color: rgba(244, 229, 180, 255) !important;">5</td>
 <td style="text-align: right; background-color: rgba(222, 228, 186, 255) !important;">-7</td>
@@ -3218,7 +3228,7 @@ Future week
 <tr class="even">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">acled_eventStrategic</td>
 <td style="text-align: left;">4week</td>
-<td rowspan="2" style="text-align: right; background-color: rgba(244, 229, 180, 255) !important; vertical-align: middle !important;">5</td>
+<td style="text-align: right; background-color: rgba(244, 229, 180, 255) !important;">5</td>
 <td style="text-align: right; background-color: rgba(242, 226, 176, 255) !important;">6</td>
 <td style="text-align: right; background-color: rgba(241, 223, 172, 255) !important;">7</td>
 <td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">-1</td>
@@ -3235,6 +3245,7 @@ Future week
 <tr class="odd">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">acled_withfatalities</td>
 <td style="text-align: left;">12week</td>
+<td style="text-align: right; background-color: rgba(244, 229, 180, 255) !important;">5</td>
 <td style="text-align: right; background-color: rgba(242, 226, 176, 255) !important;">6</td>
 <td style="text-align: right; background-color: rgba(242, 226, 176, 255) !important;">6</td>
 <td style="text-align: right; background-color: rgba(214, 223, 183, 255) !important;">-9</td>
@@ -3285,7 +3296,7 @@ Future week
 <tr class="even">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">occupied</td>
 <td style="text-align: left;">12week</td>
-<td rowspan="2" style="text-align: right; background-color: rgba(245, 231, 184, 255) !important; vertical-align: middle !important;">4</td>
+<td style="text-align: right; background-color: rgba(245, 231, 184, 255) !important;">4</td>
 <td style="text-align: right; background-color: rgba(245, 231, 184, 255) !important;">4</td>
 <td style="text-align: right; background-color: rgba(242, 226, 176, 255) !important;">6</td>
 <td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">0</td>
@@ -3302,6 +3313,7 @@ Future week
 <tr class="odd">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">occupied</td>
 <td style="text-align: left;">24week</td>
+<td style="text-align: right; background-color: rgba(244, 229, 180, 255) !important;">5</td>
 <td style="text-align: right; background-color: rgba(245, 231, 184, 255) !important;">4</td>
 <td style="text-align: right; background-color: rgba(242, 226, 176, 255) !important;">6</td>
 <td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">0</td>
@@ -3335,7 +3347,7 @@ Future week
 <tr class="odd">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">occupied_prop</td>
 <td style="text-align: left;">12week</td>
-<td rowspan="2" style="text-align: right; background-color: rgba(245, 231, 184, 255) !important; vertical-align: middle !important;">4</td>
+<td style="text-align: right; background-color: rgba(245, 231, 184, 255) !important;">4</td>
 <td style="text-align: right; background-color: rgba(245, 231, 184, 255) !important;">4</td>
 <td style="text-align: right; background-color: rgba(242, 226, 176, 255) !important;">6</td>
 <td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">0</td>
@@ -3352,6 +3364,7 @@ Future week
 <tr class="even">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">occupied_prop</td>
 <td style="text-align: left;">24week</td>
+<td style="text-align: right; background-color: rgba(244, 229, 180, 255) !important;">5</td>
 <td style="text-align: right; background-color: rgba(245, 231, 184, 255) !important;">4</td>
 <td style="text-align: right; background-color: rgba(242, 226, 176, 255) !important;">6</td>
 <td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">0</td>
@@ -3385,7 +3398,7 @@ Future week
 <tr class="even">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">pwtt</td>
 <td style="text-align: left;">12week</td>
-<td rowspan="2" style="text-align: right; background-color: rgba(242, 226, 176, 255) !important; vertical-align: middle !important;">6</td>
+<td style="text-align: right; background-color: rgba(242, 226, 176, 255) !important;">6</td>
 <td style="text-align: right; background-color: rgba(237, 214, 161, 255) !important;">10</td>
 <td style="text-align: right; background-color: rgba(247, 234, 187, 255) !important;">3</td>
 <td style="text-align: right; background-color: rgba(247, 234, 187, 255) !important;">3</td>
@@ -3402,6 +3415,7 @@ Future week
 <tr class="odd">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">pwtt</td>
 <td style="text-align: left;">24week</td>
+<td style="text-align: right; background-color: rgba(244, 229, 180, 255) !important;">5</td>
 <td style="text-align: right; background-color: rgba(237, 214, 161, 255) !important;">10</td>
 <td style="text-align: right; background-color: rgba(248, 237, 191, 255) !important;">2</td>
 <td style="text-align: right; background-color: rgba(250, 240, 194, 255) !important;">1</td>
@@ -3435,7 +3449,7 @@ Future week
 <tr class="odd">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">sirens</td>
 <td style="text-align: left;">12week</td>
-<td rowspan="3" style="text-align: right; background-color: rgba(250, 240, 194, 255) !important; vertical-align: middle !important;">1</td>
+<td style="text-align: right; background-color: rgba(250, 240, 194, 255) !important;">1</td>
 <td style="text-align: right; background-color: rgba(244, 238, 193, 255) !important;">-2</td>
 <td style="text-align: right; background-color: rgba(250, 240, 194, 255) !important;">1</td>
 <td style="text-align: right; background-color: rgba(178, 200, 172, 255) !important;">-19</td>
@@ -3452,6 +3466,7 @@ Future week
 <tr class="even">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">sirens</td>
 <td style="text-align: left;">24week</td>
+<td style="text-align: right; background-color: rgba(250, 240, 194, 255) !important;">1</td>
 <td style="text-align: right; background-color: rgba(244, 238, 193, 255) !important;">-2</td>
 <td style="text-align: right; background-color: rgba(248, 237, 191, 255) !important;">2</td>
 <td style="text-align: right; background-color: rgba(188, 207, 175, 255) !important;">-16</td>
@@ -3468,6 +3483,7 @@ Future week
 <tr class="odd">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">sirens</td>
 <td style="text-align: left;">4week</td>
+<td style="text-align: right; background-color: rgba(250, 240, 194, 255) !important;">1</td>
 <td style="text-align: right; background-color: rgba(244, 238, 193, 255) !important;">-2</td>
 <td style="text-align: right; background-color: rgba(250, 240, 194, 255) !important;">1</td>
 <td style="text-align: right; background-color: rgba(184, 205, 174, 255) !important;">-17</td>
@@ -3484,7 +3500,7 @@ Future week
 <tr class="even">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">war_fires</td>
 <td style="text-align: left;">12week</td>
-<td rowspan="2" style="text-align: right; background-color: rgba(247, 234, 187, 255) !important; vertical-align: middle !important;">3</td>
+<td style="text-align: right; background-color: rgba(247, 234, 187, 255) !important;">3</td>
 <td style="text-align: right; background-color: rgba(244, 229, 180, 255) !important;">5</td>
 <td style="text-align: right; background-color: rgba(247, 234, 187, 255) !important;">3</td>
 <td style="text-align: right; background-color: rgba(239, 236, 192, 255) !important;">-3</td>
@@ -3501,6 +3517,7 @@ Future week
 <tr class="odd">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">war_fires</td>
 <td style="text-align: left;">24week</td>
+<td style="text-align: right; background-color: rgba(244, 229, 180, 255) !important;">5</td>
 <td style="text-align: right; background-color: rgba(244, 229, 180, 255) !important;">5</td>
 <td style="text-align: right; background-color: rgba(244, 229, 180, 255) !important;">5</td>
 <td style="text-align: right; background-color: rgba(231, 232, 188, 255) !important;">-5</td>
@@ -3690,7 +3707,7 @@ Future week
 <tr class="odd">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">acled_disPoliticalDem</td>
 <td style="text-align: left;">12week</td>
-<td rowspan="3" style="text-align: right; background-color: rgba(248, 240, 195, 255) !important; vertical-align: middle !important;">-1</td>
+<td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">-1</td>
 <td style="text-align: right; background-color: rgba(245, 231, 184, 255) !important;">4</td>
 <td style="text-align: right; background-color: rgba(244, 238, 193, 255) !important;">-2</td>
 <td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">0</td>
@@ -3707,6 +3724,7 @@ Future week
 <tr class="even">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">acled_disPoliticalDem</td>
 <td style="text-align: left;">24week</td>
+<td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">0</td>
 <td style="text-align: right; background-color: rgba(245, 231, 184, 255) !important;">4</td>
 <td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">0</td>
 <td style="text-align: right; background-color: rgba(244, 238, 193, 255) !important;">-2</td>
@@ -3723,6 +3741,7 @@ Future week
 <tr class="odd">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">acled_disPoliticalDem</td>
 <td style="text-align: left;">4week</td>
+<td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">-1</td>
 <td style="text-align: right; background-color: rgba(245, 231, 184, 255) !important;">4</td>
 <td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">-1</td>
 <td style="text-align: right; background-color: rgba(247, 234, 187, 255) !important;">3</td>
@@ -3756,7 +3775,7 @@ Future week
 <tr class="odd">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">acled_disStrategic</td>
 <td style="text-align: left;">24week</td>
-<td rowspan="2" style="text-align: right; background-color: rgba(248, 240, 195, 255) !important; vertical-align: middle !important;">-1</td>
+<td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">-1</td>
 <td style="text-align: right; background-color: rgba(250, 240, 194, 255) !important;">1</td>
 <td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">0</td>
 <td style="text-align: right; background-color: rgba(247, 234, 187, 255) !important;">3</td>
@@ -3773,6 +3792,7 @@ Future week
 <tr class="even">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">acled_disStrategic</td>
 <td style="text-align: left;">4week</td>
+<td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">-1</td>
 <td style="text-align: right; background-color: rgba(250, 240, 194, 255) !important;">1</td>
 <td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">-1</td>
 <td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">-1</td>
@@ -3840,7 +3860,7 @@ Future week
 <tr class="even">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">acled_eventBattle</td>
 <td style="text-align: left;">12week</td>
-<td rowspan="2" style="text-align: right; background-color: rgba(248, 240, 195, 255) !important; vertical-align: middle !important;">0</td>
+<td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">0</td>
 <td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">0</td>
 <td style="text-align: right; background-color: rgba(244, 238, 193, 255) !important;">-2</td>
 <td style="text-align: right; background-color: rgba(214, 223, 183, 255) !important;">-9</td>
@@ -3857,6 +3877,7 @@ Future week
 <tr class="odd">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">acled_eventBattle</td>
 <td style="text-align: left;">24week</td>
+<td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">0</td>
 <td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">0</td>
 <td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">-1</td>
 <td style="text-align: right; background-color: rgba(210, 221, 182, 255) !important;">-10</td>
@@ -4060,7 +4081,7 @@ Future week
 <tr class="odd">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">acled_eventStrategic</td>
 <td style="text-align: left;">24week</td>
-<td rowspan="2" style="text-align: right; background-color: rgba(248, 240, 195, 255) !important; vertical-align: middle !important;">-1</td>
+<td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">-1</td>
 <td style="text-align: right; background-color: rgba(250, 240, 194, 255) !important;">1</td>
 <td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">0</td>
 <td style="text-align: right; background-color: rgba(247, 234, 187, 255) !important;">3</td>
@@ -4077,6 +4098,7 @@ Future week
 <tr class="even">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">acled_eventStrategic</td>
 <td style="text-align: left;">4week</td>
+<td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">-1</td>
 <td style="text-align: right; background-color: rgba(250, 240, 194, 255) !important;">1</td>
 <td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">-1</td>
 <td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">-1</td>
@@ -4314,7 +4336,7 @@ Future week
 <tr class="even">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">sirens</td>
 <td style="text-align: left;">24week</td>
-<td rowspan="2" style="text-align: right; background-color: rgba(248, 240, 195, 255) !important; vertical-align: middle !important;">0</td>
+<td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">0</td>
 <td style="text-align: right; background-color: rgba(247, 234, 187, 255) !important;">3</td>
 <td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">0</td>
 <td style="text-align: right; background-color: rgba(226, 230, 187, 255) !important;">-6</td>
@@ -4331,6 +4353,7 @@ Future week
 <tr class="odd">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">sirens</td>
 <td style="text-align: left;">4week</td>
+<td style="text-align: right; background-color: rgba(250, 240, 194, 255) !important;">1</td>
 <td style="text-align: right; background-color: rgba(247, 234, 187, 255) !important;">3</td>
 <td style="text-align: right; background-color: rgba(248, 237, 191, 255) !important;">2</td>
 <td style="text-align: right; background-color: rgba(235, 234, 190, 255) !important;">-4</td>
@@ -4347,7 +4370,7 @@ Future week
 <tr class="even">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">war_fires</td>
 <td style="text-align: left;">12week</td>
-<td rowspan="3" style="text-align: right; background-color: rgba(239, 236, 192, 255) !important; vertical-align: middle !important;">-3</td>
+<td style="text-align: right; background-color: rgba(239, 236, 192, 255) !important;">-3</td>
 <td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">-1</td>
 <td style="text-align: right; background-color: rgba(244, 238, 193, 255) !important;">-2</td>
 <td style="text-align: right; background-color: rgba(239, 236, 192, 255) !important;">-3</td>
@@ -4364,6 +4387,7 @@ Future week
 <tr class="odd">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">war_fires</td>
 <td style="text-align: left;">24week</td>
+<td style="text-align: right; background-color: rgba(239, 236, 192, 255) !important;">-3</td>
 <td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">-1</td>
 <td style="text-align: right; background-color: rgba(239, 236, 192, 255) !important;">-3</td>
 <td style="text-align: right; background-color: rgba(239, 236, 192, 255) !important;">-3</td>
@@ -4380,6 +4404,7 @@ Future week
 <tr class="even">
 <td style="text-align: left; padding-left: 2em;" data-indentlevel="1">war_fires</td>
 <td style="text-align: left;">4week</td>
+<td style="text-align: right; background-color: rgba(244, 238, 193, 255) !important;">-2</td>
 <td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">-1</td>
 <td style="text-align: right; background-color: rgba(248, 240, 195, 255) !important;">-1</td>
 <td style="text-align: right; background-color: rgba(239, 236, 192, 255) !important;">-3</td>
