@@ -1,0 +1,126 @@
+---
+title: "Correlation with population change"
+author: "Edith"
+date: "`r format(Sys.time(), '%d %m %Y')`"
+format: 
+  html:
+    fig-width: 8
+    fig-height: 4
+    code-fold: true
+    toc: true
+---
+
+```{r, message=FALSE, warning=FALSE}
+# Load necessary libraries
+library(kableExtra)
+source("../../../R_helpers/generic.R")
+cov_df <- read_csv(file.path(out_dir, "covariates", "final",  "ua_covariates_oblast.csv")) %>%
+  mutate(
+         covariate = str_replace(covariate, 'disorder', "dis"),
+         covariate = str_replace(covariate, 'Demonstration', "Dem"),
+    scale_label = paste0(sum_stat, ", ", time_std, ", ", space_std),
+    cov_process = paste0(covariate, ",", scale_label)
+    )
+
+master_index <- read_csv(file.path(out_dir, paste0(tolower(country), "_master_index.csv")))|>
+  distinct(i_key, i_name, i, ADM1_PCODE, macroregion,t, t_key, t_name)
+
+pop_proxy <- read_csv(file.path(out_dir,"population_proxy", "deterministic_estimates", "ua_deterministic_estimates.csv"))
+
+n_lags <- 5
+
+df <- cov_df |> 
+  mutate(
+    process_type = case_when(
+      grepl('sum', sum_stat) ~ "cumulative",
+      !is.na(time_std) ~ "temporal scaling",
+      T~'raw'
+    ) |> factor(levels = c('raw', 'cumulative', 'temporal scaling'))
+  ) |> 
+  select(i,t, i_name, t_name, covariate,process_type, scale_label,cov_process, value_std) |>
+  right_join(pop_proxy |> select(i, t, total) |> rename(pop_proxy=total)) |> 
+  group_by(covariate, scale_label,process_type,cov_process, i) |> 
+  arrange(t) |> 
+  mutate(pop_change = (pop_proxy - lag(pop_proxy))/lag(pop_proxy)) 
+
+compute_ccf <- function(df, n_lags=5, change_type_name=''){
+  df |> 
+    filter(t>ceiling(n_lags/2)) |> 
+    group_by(process_type, covariate, scale_label, ) |>
+    reframe(
+      lag = ccf(value_std, pop_change, n_lags, type='covariance', plot=F, na.action=na.pass)$lag[,,1],
+      ccf_diff_cor = ccf(value_std, pop_change, n_lags, type='correlation', plot=F, na.action=na.pass)$acf[,,1]
+    ) |> 
+    mutate(change_type=change_type_name,
+            ccf_diff_cor = round(ccf_diff_cor*100)) |>
+  pivot_wider(names_from=lag, values_from = ccf_diff_cor)
+}
+
+df_corr_pos <- compute_ccf(df |> filter(pop_change>0), n_lags, 'positive')
+df_corr_neg <- compute_ccf(df |> filter(pop_change<0), n_lags, 'negative')
+
+```
+
+This report illustrates the correlation between covariates and population change in Ukraine. 
+
+The correlation is computed using the cross-correlation function (CCF) between the covariate, its past and future values and the population change. The correlation is computed across the entire period and oblast, for positive and negative population change separately. The correlation can vary between -100 (dark blue) and 100 (dark red).
+
+
+# Covariates correlated with positive population change
+```{r}
+palette_name <- "grDevices::Geyser"
+df_corr_pos |> 
+  mutate(Window = str_remove_all(scale_label, "raw|sum_|,|NA"), .before=scale_label) |> 
+  mutate(` ` ='', .before = `0`) |>
+  mutate(`  ` ='', .after = `0`) |>
+  rename(`   `=covariate) |> 
+  select(-scale_label, -change_type, -process_type) |> 
+  kbl() |> 
+  column_spec(3, background = spec_color(df_corr_pos$`-5`, scale_from= c(-50,50), palette= paletteer::paletteer_c(palette_name, n=100) )) |> 
+  column_spec(4, background = spec_color(df_corr_pos$`-4`, scale_from= c(-50,50),palette= paletteer::paletteer_c(palette_name, n=100))) |>
+  column_spec(5, background = spec_color(df_corr_pos$`-3`, scale_from= c(-50,50),palette= paletteer::paletteer_c(palette_name, n=100))) |>
+  column_spec(6, background = spec_color(df_corr_pos$`-2`, scale_from= c(-50,50),palette= paletteer::paletteer_c(palette_name, n=100))) |>
+  column_spec(7, background = spec_color(df_corr_pos$`-1`, scale_from= c(-50,50),palette= paletteer::paletteer_c(palette_name, n=100))) |>
+  column_spec(9, background = spec_color(df_corr_pos$`0`, scale_from= c(-50,50),palette= paletteer::paletteer_c(palette_name, n=100))) |>
+  column_spec(11, background = spec_color(df_corr_pos$`1`, scale_from= c(-50,50),palette= paletteer::paletteer_c(palette_name, n=100))) |>
+  column_spec(12, background = spec_color(df_corr_pos$`2`, scale_from= c(-50,50),palette= paletteer::paletteer_c(palette_name, n=100))) |>
+  column_spec(13, background = spec_color(df_corr_pos$`3`, scale_from= c(-50,50),palette= paletteer::paletteer_c(palette_name, n=100))) |>
+  column_spec(14, background = spec_color(df_corr_pos$`4`, scale_from= c(-50,50),palette= paletteer::paletteer_c(palette_name, n=100))) |>
+    column_spec(15, background = spec_color(df_corr_pos$`5`, scale_from= c(-50,50),palette= paletteer::paletteer_c(palette_name, n=100))) |>
+  column_spec(8, width = "3mm") |> 
+  column_spec(10, width = "3mm") |> 
+  pack_rows("Raw covariate", 1, 17) |> 
+  pack_rows("Cumulative covariate", 18, 68) |>
+  pack_rows("Temporal scaling", 69, 119) |> 
+  add_header_above(c(" " = 2,"Past week" = 5,"Current"=3, "Future week" = 5)) 
+```
+
+# Covariates correlated with negative population change
+
+```{r}
+df_corr_neg |> 
+  mutate(Window = str_remove_all(scale_label, "raw|sum_|,|NA"), .before=scale_label) |> 
+  mutate(` ` ='', .before = `0`) |>
+  mutate(`  ` ='', .after = `0`) |>
+  rename(`   `=covariate) |> 
+  select(-scale_label, -change_type, -process_type) |> 
+  kbl() |> 
+  column_spec(3, background = spec_color(df_corr_neg$`-5`, scale_from= c(-50,50),palette= paletteer::paletteer_c(palette_name, n=100))) |> 
+  column_spec(4, background = spec_color(df_corr_neg$`-4`, scale_from= c(-50,50),palette= paletteer::paletteer_c(palette_name, n=100))) |>
+  column_spec(5, background = spec_color(df_corr_neg$`-3`, scale_from= c(-50,50),palette= paletteer::paletteer_c(palette_name, n=100))) |>
+  column_spec(6, background = spec_color(df_corr_neg$`-2`, scale_from= c(-50,50),palette= paletteer::paletteer_c(palette_name, n=100))) |>
+  column_spec(7, background = spec_color(df_corr_neg$`-1`, scale_from= c(-50,50),palette= paletteer::paletteer_c(palette_name, n=100))) |>
+  column_spec(9, background = spec_color(df_corr_neg$`0`, scale_from= c(-50,50),palette= paletteer::paletteer_c(palette_name, n=100))) |>
+  column_spec(11, background = spec_color(df_corr_neg$`1`, scale_from= c(-50,50),palette= paletteer::paletteer_c(palette_name, n=100))) |>
+  column_spec(12, background = spec_color(df_corr_neg$`2`, scale_from= c(-50,50),palette= paletteer::paletteer_c(palette_name, n=100))) |>
+  column_spec(13, background = spec_color(df_corr_neg$`3`, scale_from= c(-50,50),palette= paletteer::paletteer_c(palette_name, n=100))) |>
+  column_spec(14, background = spec_color(df_corr_neg$`4`, scale_from= c(-50,50),palette= paletteer::paletteer_c(palette_name, n=100))) |>
+    column_spec(15, background = spec_color(df_corr_neg$`5`, scale_from= c(-50,50),palette= paletteer::paletteer_c(palette_name, n=100))) |>
+  column_spec(8, width = "3mm") |> 
+  column_spec(10, width = "3mm") |> 
+  collapse_rows(columns = 3) |>
+  pack_rows("Raw covariate", 1, 17) |> 
+  pack_rows("Cumulative covariate", 18, 68) |>
+  pack_rows("Temporal scaling", 69, 119) |> 
+  add_header_above(c(" " = 2,"Past week" = 5,"Current"=3, "Future week" = 5)) 
+```
