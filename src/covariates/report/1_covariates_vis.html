@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Edith">
-<meta name="dcterms.date" content="2001-11-27">
+<meta name="dcterms.date" content="2024-12-04">
 
 <title>Visualise individual covariates</title>
 <style>
@@ -131,7 +131,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">November 27, 2001</p>
+      <p class="date">December 4, 2024</p>
     </div>
   </div>
   
@@ -148,7 +148,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load necessary libraries</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(kableExtra)</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="st">"../../../R_helpers/generic.R"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(here<span class="sc">::</span><span class="fu">here</span>(<span class="st">"R_helpers/generic.R"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] "Input directory is : K:/DemSci/projects/2023_WHO_Ukraine_Population/input/"
@@ -185,8 +185,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <th style="text-align: left;" data-quarto-table-cell-role="th">Label</th>
 <th style="text-align: left;" data-quarto-table-cell-role="th">Name</th>
 <th style="text-align: left;" data-quarto-table-cell-role="th">Source</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">Type</th>
 <th style="text-align: left;" data-quarto-table-cell-role="th">Description</th>
 <th style="text-align: left;" data-quarto-table-cell-role="th">Options</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">Spatial coverage</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">Temporal coverage</th>
 <th style="text-align: left;" data-quarto-table-cell-role="th">Link</th>
 </tr>
 </thead>
@@ -195,40 +198,55 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td style="text-align: left;">acled</td>
 <td style="text-align: left;">Conflict Location</td>
 <td style="text-align: left;">Armed Conflict Location and Event Data Project</td>
+<td style="text-align: left;">Discrete</td>
 <td style="text-align: left;">Tracking a range of violent and non-violent actions by or affecting political agents.</td>
 <td style="text-align: left;">withfatalities, disorderPolitical, disorderStrategic, disorderDemonstration, disorderPoliticalDemonstration, eventExplosion, eventBattle, eventStrategic, eventAgainstCivilians, eventProtest, eventRiot</td>
+<td style="text-align: left;">all</td>
+<td style="text-align: left;">daily</td>
 <td style="text-align: left;">https://acleddata.com/</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">occupied</td>
 <td style="text-align: left;">Territory occupied by the Russian</td>
 <td style="text-align: left;">Ukrainian Open-Source intelligence DeepState project</td>
+<td style="text-align: left;">Continuous</td>
 <td style="text-align: left;">live map of Russian and Ukrainian military operations</td>
 <td style="text-align: left;">Amount and proportion</td>
+<td style="text-align: left;">all</td>
+<td style="text-align: left;">daily</td>
 <td style="text-align: left;">https://en.wikipedia.org/wiki/DeepStateMap.Live</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">sirens</td>
 <td style="text-align: left;">Air raid sirens</td>
 <td style="text-align: left;">eTryvoga</td>
+<td style="text-align: left;">Discrete</td>
 <td style="text-align: left;">Air-raid sirens collected by volunteers from eTryvoga channel</td>
 <td style="text-align: left;">NA</td>
+<td style="text-align: left;">all except Crimea and Sebastopol</td>
+<td style="text-align: left;">daily</td>
 <td style="text-align: left;">https://github.com/Vadimkin/ukrainian-air-raid-sirens-dataset</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">pwtt</td>
 <td style="text-align: left;">Building change</td>
 <td style="text-align: left;">Pixel-Wise T-Test</td>
+<td style="text-align: left;">Continuous</td>
 <td style="text-align: left;">Building change detected by the Synthetic Aperture Radar imagery from the Sentinel-1 satellite.</td>
 <td style="text-align: left;">NA</td>
+<td style="text-align: left;">all</td>
+<td style="text-align: left;">monthly</td>
 <td style="text-align: left;">https://github.com/oballinger/PWTT</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">war_fires</td>
 <td style="text-align: left;">War fires</td>
 <td style="text-align: left;">The Economist</td>
+<td style="text-align: left;">Discrete</td>
 <td style="text-align: left;">War fire detected from temperature anomalies</td>
 <td style="text-align: left;">NA</td>
+<td style="text-align: left;">all</td>
+<td style="text-align: left;">daily</td>
 <td style="text-align: left;">https://github.com/TheEconomist/the-economist-war-fire-model/</td>
 </tr>
 </tbody>

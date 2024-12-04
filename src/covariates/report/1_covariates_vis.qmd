@@ -13,7 +13,7 @@ format:
 ```{r, message=FALSE, warning=FALSE}
 # Load necessary libraries
 library(kableExtra)
-source("../../../R_helpers/generic.R")
+source(here::here("R_helpers/generic.R"))
 cov_df <- read_csv(file.path(out_dir, "covariates", "final",  "ua_covariates_oblast.csv")) %>%
   mutate(scale_label = paste0(sum_stat, ", ", time_std, ", ", space_std))
 cov_processing <- read_csv(file.path(out_dir, "covariates", "final",  "ua_covariates_oblast_description.csv")) %>%
