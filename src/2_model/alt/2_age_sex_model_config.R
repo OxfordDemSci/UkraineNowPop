@@ -241,62 +241,6 @@ init_generator <- function(md = md, chain_id = 1) {
   return(result)
 }
 
-inits <- lapply(1:chains, function(id) init_generator(md = md, chain_id = id))
-inits
-
-result <- inits[[1]]
-
-N_values <- result$N
-N_array <- array(N_values, dim = c(md$T, md$I, md$G, md$S))
-summary(N_values)
-
-mean(N_values, na.rm = TRUE)
-sd(N_values, na.rm = TRUE)
-min(N_values, na.rm = TRUE)
-max(N_values, na.rm = TRUE)
-
-summary(result$N_tot)
-summary(result$r)
-summary(result$p_F)
-summary(result$p_G)
-
-# All initial values muts sum to 1 per time t
-verify_probabilities <- function(md, inits) {
-  age_sex_prob <- matrix(0, nrow = md$G, ncol = md$S)
-  total_N0 <- sum(md$N0)
-  for (g in 1:md$G) {
-    for (s in 1:md$S) {
-      sum_N0_gs <- sum(md$N0[md$gg == g & md$ss == s], na.rm = TRUE)
-      age_sex_prob[g, s] <- sum_N0_gs / total_N0
-    }}
-  
-  location_prob <- array(0, dim = c(md$I, md$G, md$S))
-  for (g in 1:md$G) {
-    for (s in 1:md$S) {
-      sum_N0_gs <- sum(md$N0[md$gg == g & md$ss == s], na.rm = TRUE)
-      for (i in 1:md$I) {
-        combination_idx <- (i - 1) * md$G * md$S + (g - 1) * md$S + s
-        N0_value <- md$N0[combination_idx]
-        location_prob[i, g, s] <- N0_value / sum_N0_gs
-      }}}
-  
-  total_prob <- array(0, dim = c(md$I, md$G, md$S))
-  for (g in 1:md$G) {
-    for (s in 1:md$S) {
-      for (i in 1:md$I) {
-        total_prob[i, g, s] <- age_sex_prob[g, s] * location_prob[i, g, s]
-      }}}
-  
-  total_prob[total_prob == 0] <- 0.0001
-    sum_total_prob <- sum(total_prob, na.rm = TRUE)
-  total_prob_norm <- total_prob / sum_total_prob
-  
-  for (t in 1:md$T) {
-    probs_vector <- as.vector(total_prob_norm)
-    sum_probs <- sum(probs_vector, na.rm = TRUE)
-    cat(sprintf("Sum of probabilities for time %d: %.6f\n", t, sum_probs))
-  }}
-verify_probabilities(md, inits)
 
 
 
