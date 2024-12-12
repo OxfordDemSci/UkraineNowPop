@@ -56,9 +56,9 @@ data {
   array[T * I * G * S] int<lower=0> gg; // location index for tc vector
   array[T * I * G * S] int<lower=0> ss; // location index for tc vector
   
-  array[I * G * S] int<lower=0> tias_N0; // ti (year, location) index for N0
-  array[T * C - C] int<lower=0> tias_N; // ti (year, location) index for N[t]      
-  array[T * C - C] int<lower=0> tias_N_lag; // ti (year, location) index for N[t-1]
+  array[I * G * S] int<lower=0> tias_N0; // c (location, age, sex) index for N0
+  array[T * C - C] int<lower=0> tias_N; // tc (year, combination) index for N[t]      
+  array[T * C - C] int<lower=0> tias_N_lag; // ti (year, comb) index for N[t-1]
   
   array[n_F] int<lower=0> tias_F; // tias (year, location, age, sex) index for F
   array[n_G] int<lower=0> tias_G; // tias (year, location, age, sex) index for G
@@ -138,4 +138,8 @@ model {
   
   // priors:  Instagram user ratio
   mu_p_GF ~ normal(0,5);
+
+  // priors for over-dispersion parameters
+  log_kappa_F ~ normal(0,1);
+  log_kappa_G ~ normal(0,1);
 }
