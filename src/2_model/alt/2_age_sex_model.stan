@@ -57,9 +57,9 @@ data {
   array[T * I * G * S] int<lower=0> gg; // location index for ti vector
   array[T * I * G * S] int<lower=0> ss; // location index for ti vector
   
-  array[I * G * S] int<lower=0> tias_N0; // ti (year, location) index for N0
-  array[T * C - C] int<lower=0> tias_N; // ti (year, location) index for N[t]      
-  array[T * C - C] int<lower=0> tias_N_lag; // ti (year, location) index for N[t-1]
+  array[I * G * S] int<lower=0> tias_N0; // c index for N0
+  array[T * C - C] int<lower=0> tias_N; // tc (year, c) index for N[t]      
+  array[T * C - C] int<lower=0> tias_N_lag; // tc (year, c) index for N[t-1]
   
   array[n_F] int<lower=0> tias_F; // tias (year, location, age, sex) index for F
   array[n_G] int<lower=0> tias_G; // tias (year, location, age, sex) index for G
@@ -78,17 +78,20 @@ parameters {
   real<lower=0> sigma_p_F; // residual variation
   
   // Instagram
-  vector<lower=0>[T * I * G * S] p_G; // Instagram user ratios
+  vector<lower=0>[T * C] p_GF;
+  real mu_p_GF;
+  real log_sigma_p_GF;
+
+  //vector<lower=0>[T * I * G * S] p_G; // Instagram user ratios
   //vector[I] mu_p_G; // expected value
-  real mu_p_G;
+  //real mu_p_G;
   //real mu_mu_p_G;
   //real<lower=0> sigma_mu_p_G;
-  real<lower=0> sigma_p_G; // residual variation
+  //real<lower=0> sigma_p_G; // residual variation
 }
 transformed parameters {
   vector<lower=0>[T * I * G * S] N; // population estimates
   vector<lower=0>[T] N_tot; // total population at each time step
-  vector<lower=0>[n_FG] FG_ratio; // ratio of Instagram to Facebook user ratios
   
   // population process model
   N[tias_N0] = N0;
@@ -101,27 +104,33 @@ transformed parameters {
     N_tot[t] = sum(N[t_slice(t, C)]);
   }
   
-  // observation ratio of Instagram to Facebook
-  FG_ratio = p_G[tias_FG] ./ p_F[tias_FG];
-}
+  //vector<lower=0>[n_FG] FG_ratio; // ratio of Instagram to Facebook user ratios
+  vector<lower=0>[n_FG] FG_ratio = p_GF[tias_FG];
+  vector<lower=0>[T * C] p_G = p_F .* p_GF;
+  }
 model {
   // likelihoods
   y_F ~ poisson(N[tias_F] .* p_F[tias_F]);
   y_G ~ poisson(N[tias_G] .* p_G[tias_G]);
   
-  y_FG_ratio ~ lognormal(log(FG_ratio), 0.02 / 2);
+  y_FG_ratio ~ lognormal(log(p_GF[tias_FG]), 0.02/2);
+  //y_FG_ratio ~ lognormal(log(FG_ratio), 0.02 / 2);
   
   y_N_tot ~ lognormal(log(N_tot), 0.01 / 2);
   
   // observation models
   p_F ~ lognormal(mu_p_F, sigma_p_F);   
-  p_G ~ lognormal(mu_p_G, sigma_p_G);
+  
+  mu_p_GF ~ normal(0,5);
+  log_sigma_p_GF ~ normal(0,1);
+  p_GF ~ lognormal(mu_p_GF, exp(log_sigma_p_GF));
+
   
   // population growth rates
   r ~ lognormal(0, 0.1 / 2);
   
   // priors:  Facebook user ratio
-  mu_p_F ~ normal(0, 5);
+  mu_p_F ~ normal(0, 3);
   //mu_p_F ~ normal(mu_mu_p_F, sigma_mu_p_F);
   //mu_mu_p_F ~ normal(0, 5);
   //sigma_mu_p_F ~ normal(0, 1);
@@ -129,10 +138,10 @@ model {
   sigma_p_F ~ normal(0, 1);
   
   // priors:  Instagram user ratio
-  mu_p_G ~ normal(0, 5);
+  //mu_p_G ~ normal(0, 3);
   //mu_p_G ~ normal(mu_mu_p_G, sigma_mu_p_G);
   //mu_mu_p_G ~ normal(0, 5);
   //sigma_mu_p_G ~ normal(0, 1);
   
-  sigma_p_G ~ normal(0, 1);
+  //sigma_p_G ~ normal(0, 1);
 }
