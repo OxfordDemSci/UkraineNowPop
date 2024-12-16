@@ -63,82 +63,86 @@ parameters {
   array[T-1] vector[I-1] logit_p; // population proportions in each oblast
   real log_sigma_p;
   
+  real<lower=-1,upper=1> ar_tot;
+  real log_sigma_tot;
+  real mu_tot;
+  
   // Facebook
-  vector<lower=0>[T * I] p_F; // Facebook user ratios
-  real mu_p_F0;
-  vector[T] mu_p_F_t; // time effect
-  vector[I] mu_p_F_i; // location effect
-  real log_sigma_p_F_t;
-  real log_sigma_p_F_i;
+  vector[T * I] log_p_F;
+  real mu_p_F; // p_F mean
   real log_sigma_p_F;
+  vector[I] mu_p_F_i; // location random effect
+  real log_sigma_p_F_i;  
   
   // Instagram
-  vector<lower=0>[T * I] p_GF; 
+  vector[T * I] log_p_GF;
   real mu_p_GF;
   real log_sigma_p_GF;
   
-  real log_kappa_F; // over-dispersion
+  real log_kappa_F; // over-dispersion scale parameter
   real log_kappa_G;
   
 }
 transformed parameters {
-  array[T-1] simplex[I] p;
+  array[T] simplex[I] p;
   vector<lower=0>[T * I] N; // population estimates
-  vector<lower=0>[n_FG] FG_ratio; // ratio of Instagram to Facebook user ratios
+  vector<lower=0>[T * I] p_F = exp(log_p_F);
+  vector<lower=0>[T * I] p_GF = exp(log_p_GF);
   vector<lower=0>[T * I] p_G = p_F .* p_GF;
-  vector[T*I] mu_p_F = mu_p_F0 + to_vector(mu_p_F_t * mu_p_F_i');
-  
+  vector[n_F+n_G+T-1] log_lik;
+  real log_prior = 0;  
+  vector[I-1] logit_p0;  
   
   // population process model
-  p[1] = softmax(append_row(logit_p[1],1));
+  p[1] = N0/sum(N0);
+  logit_p0 = log(p[1,1:(I-1)]) - log(p[1,I]);
   N[ti_N0] = N0;
+
+  log_prior += normal_lpdf(logit_p[1] | logit_p0, exp(log_sigma_p));
   for (t in 2 : T) {
     if(t < T){
-      p[t] = softmax(append_row(logit_p[t],1));
+      log_prior += normal_lpdf(logit_p[t] | logit_p[t-1],exp(log_sigma_p));
     }
-    N[t_slice(t, I)] = y_N_tot[t] * p[t-1];
+    p[t] = softmax(append_row(logit_p[t-1],1));
+  
+    N[t_slice(t, I)] = y_N_tot[t] * p[t];    
+    
+    // ar(1) model on total population time series
+    log_lik[t-1] = lognormal_lpdf(y_N_tot[t] | mu_tot + ar_tot*(log(y_N_tot[t-1]) - mu_tot),exp(log_sigma_tot));
+    
+    // model on p_F and p_G
+    log_prior += normal_lpdf(log_p_F[t_slice(t,I)] | mu_p_F + mu_p_F_i, exp(log_sigma_p_F));
+    log_prior += normal_lpdf(log_p_GF[t_slice(t,I)] | mu_p_GF, exp(log_sigma_p_GF));
   }
   
-  // observation ratio of Instagram to Facebook
-  FG_ratio = p_G[ti_FG] ./ p_F[ti_FG];
+  // model on p_F and p_G, initial time
+  log_prior += normal_lpdf(log_p_F[t_slice(1,I)] | mu_p_F + mu_p_F_i, exp(log_sigma_p_F));
+  log_prior += normal_lpdf(log_p_GF[t_slice(1,I)] | mu_p_GF, exp(log_sigma_p_GF));
+  
+  for (n in 1 : n_F) {
+    log_lik[n + T-1] = neg_binomial_2_lpmf(y_F[n] | N[ti_F[n]] .* p_F[ti_F[n]],exp(-log_kappa_F));
+  }
+  for (n in 1 : n_G) {
+    log_lik[n + n_F + T-1] = neg_binomial_2_lpmf(y_G[n] | N[ti_G[n]] .* p_G[ti_G[n]],exp(-log_kappa_G));
+  }
 }
 model {
   // likelihoods
-  y_F ~ neg_binomial_2(N[ti_F] .* p_F[ti_F],exp(-log_kappa_F));
-  y_G ~ neg_binomial_2(N[ti_G] .* p_G[ti_G],exp(-log_kappa_G));
+  target += sum(log_lik);
   
-  p_F ~ lognormal(mu_p_F, exp(log_sigma_p_F));
-  p_GF ~ lognormal(mu_p_GF,exp(log_sigma_p_GF));
-  
-  // population growth rates
-  for(t in 2:(T-1)){
-    logit_p[t] ~ normal(logit_p[t-1],exp(log_sigma_p));
-  }
-  
-  // priors:  Facebook user ratio
-  mu_p_F_t ~ normal(0, exp(log_sigma_p_F_t));
+  // priors 
+  target += log_prior;
   mu_p_F_i ~ normal(0, exp(log_sigma_p_F_i));
-  mu_p_F0 ~ normal(0,5);
-  
-  // priors:  Instagram user ratio
-  mu_p_GF ~ normal(0,5);
 }
 generated quantities {
   // in-sample posterior predictive check
   array[n_F] int<lower=0> F_hat;
   array[n_G] int<lower=0> G_hat;
+  array[T] real<lower=0> y_N_tot_hat;
   
   F_hat = neg_binomial_2_rng(N[ti_F] .* p_F[ti_F],exp(-log_kappa_F));
   G_hat = neg_binomial_2_rng(N[ti_G] .* p_G[ti_G],exp(-log_kappa_G));
   
-  // out-of-sample leave-one-out cross-validation
-  vector[n_F] log_lik_F;
-  for (n in 1 : n_F) {
-    log_lik_F[n] = neg_binomial_2_lpmf(y_F[n] | N[ti_F[n]] .* p_F[ti_F[n]],exp(-log_kappa_F));
-  }
-  
-  vector[n_G] log_lik_G;
-  for (n in 1 : n_G) {
-    log_lik_G[n] = neg_binomial_2_lpmf(y_G[n] | N[ti_G[n]] .* p_G[ti_G[n]],exp(-log_kappa_F));
-  }
+  y_N_tot_hat[1] = lognormal_rng((log(y_N_tot[2])-mu_tot)/ar_tot+mu_tot,exp(log_sigma_tot)/abs(ar_tot));
+  y_N_tot_hat[2:T] = lognormal_rng(mu_tot + ar_tot*(log(y_N_tot[1:(T-1)]) - mu_tot),exp(log_sigma_tot));
 }
