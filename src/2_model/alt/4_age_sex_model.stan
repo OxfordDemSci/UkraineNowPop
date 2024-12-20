@@ -87,8 +87,8 @@ transformed parameters {
   vector<lower=0>[T * I * G * S] N; // population estimates
   vector<lower=0>[T] N_tot; // total population at each time step
   
-  vector[T * I] mu_r; // expected growth rates
-  vector[T * I] mu_p; // expected Facebook detection rates
+  vector[T * I * G * S] mu_r; // expected growth rates
+  vector[T * I * G * S] mu_p; // expected Facebook detection rates
 
   // population process model
   N[tias_N0] = N0;
