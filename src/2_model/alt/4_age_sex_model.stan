@@ -40,7 +40,7 @@ data {
   vector<lower=0>[I * G * S] N0; // baseline population at each location
   //vector<lower=0>[I * G * S] p_F0; // baseline detectio rate
   
-  matrix[T * I, K_r] X_r; // covariates on population growth rates
+  matrix[T * I * G * S, K_r] X_r; // covariates on population growth rates
 
   // Facebook data
   int<lower=0> n_F; // total sample size for F
