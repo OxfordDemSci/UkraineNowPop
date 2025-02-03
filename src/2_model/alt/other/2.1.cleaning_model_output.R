@@ -34,19 +34,28 @@ pop_stocks2 <- pop_stocks1 %>%
         pop_upper = round(rowQuantiles(as.matrix(select(., starts_with("V"))), probs = 0.975), 0) %>% as.integer()) %>%
   rename("pcode" = "ADM1_PCODE",
          "day" = "t_name",
-         "sex" = "s") %>%
-  rowwise() %>%
-  mutate(across(starts_with("V"), ~ as.integer(round(.))), 
-                       pop_posterior = paste0("[", paste(sort(c_across(starts_with("V"))), collapse = ","), "]")) %>% ungroup() %>% 
-  dplyr::select(country, admin_level, pcode, 
-                day, 
-                age_min, age_max,
-                sex,
-                pop, pop_lower, pop_upper,
-                pop_posterior
-                )
+         "sex" = "s")
   
-write.csv(pop_stocks2,
+
+         library(dplyr)
+
+
+pop_stocks3 <- pop_stocks2 %>%         
+  rowwise() %>%
+  mutate(
+  across(starts_with("V"), ~ as.integer(round(.))),  # Corrected across() usage
+             pop_posterior = paste0("[", paste(sort(c_across(starts_with("V"))), collapse = ","), "]")  # Fixed c_across()
+           ) %>%
+  ungroup() %>% 
+           dplyr::select(
+             country, admin_level, pcode, 
+             day, age_min, age_max,
+             sex, pop, pop_lower, pop_upper,
+             pop_posterior
+           )
+         
+  
+write.csv(pop_stocks3,
           file = file.path(out_dir, model_name, "eval", "mod_output_pop.csv"),
           row.names = FALSE)
                 
