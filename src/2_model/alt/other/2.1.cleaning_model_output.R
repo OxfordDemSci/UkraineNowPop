@@ -35,7 +35,6 @@ pop_stocks2 <- pop_stocks1 %>%
         pop = round(rowMeans(select(., starts_with("V")), na.rm = TRUE), 0) %>% as.integer(),
         pop_lower = round(rowQuantiles(as.matrix(select(., starts_with("V"))), probs = 0.025), 0) %>% as.integer(),
         pop_upper = round(rowQuantiles(as.matrix(select(., starts_with("V"))), probs = 0.975), 0) %>% as.integer()) %>%
-      select(-starts_with("V")) %>%
       rename("pcode" = "ADM1_PCODE",
              "day" = "t_name",
             "sex" = "s") %>%
