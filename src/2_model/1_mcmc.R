@@ -62,6 +62,22 @@ md <- model_data(
   observation_cov_select = read.csv(file.path(in_dir, "ua_p_covariates_oblast_selection.csv"))
 )
 
+# idx = read.csv(file.path(out_dir, "ua_master_index.csv"))
+# idx_F = read.csv(file.path(out_dir, "population_proxy", "social_media_audience", "ua_facebook_audience.csv"))
+# idx_G = read.csv(file.path(out_dir, "population_proxy", "social_media_audience", "ua_instagram_audience.csv"))
+# covs = read.csv(file.path(out_dir, "covariates", "final", "ua_covariates_oblast.csv"))
+# codps = read.csv(file.path(data_dir, "cod-ps", "population_baseline.csv"))
+# codps_N1 = codps_N1
+# date_N1 = "2023-07-01"
+# confidence_N1 = 0.1 # 95% chance true pop is within confidence_N1*100 percent of codps_N1 estimate
+# outside_border = read.csv(file.path(out_dir, "population_proxy", "crossing_borders", "dat_refugees.csv"))
+# last_date = "2023-08-31" # max(idx$t_name)
+# process_drop_locations = c() # 3782=Donetska, 3791=Luhanksa, 3788=Crimea, 3797=Sevastopol
+# observation_drop_locations = c(3782, 3788, 3791, 3797)
+# process_cov_select = read.csv(file.path(in_dir, "ua_r_covariates_oblast_selection.csv"))
+# observation_cov_select = read.csv(file.path(in_dir, "ua_p_covariates_oblast_selection.csv"))
+
+
 # save model data to disk
 saveRDS(md, file.path(out_dir, "modelling", model_name, "mcmc", paste0("md_", model_name, ".rds")))
 
@@ -71,8 +87,8 @@ saveRDS(md, file.path(out_dir, "modelling", model_name, "mcmc", paste0("md_", mo
 
 # MCMC configuration
 chains <- 4
-warmup <- 10e3
-samples <- 10e3
+warmup <- 5e3
+samples <- 5e3
 inits <- lapply(1:chains, function(id) init_generator(md = md, chain_id = id))
 
 # compile the stan model

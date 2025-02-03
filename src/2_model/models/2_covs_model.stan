@@ -46,6 +46,7 @@ data {
   // Facebook data
   int<lower=0> n_F; // total sample size for F
   array[n_F] int<lower=0> y_F; // Facebook daily active users
+  vector<lower=0>[I] p_F0;
   
   // Instagram data
   int<lower=0> n_G; // total sample size for G
@@ -77,7 +78,7 @@ parameters {
   real<lower=0> sigma_r; // variation in growth rates
   
   // Facebook and Instagram
-  vector<lower=0>[T * I] p_F; // Facebook detection rates
+  vector<lower=0>[T * I - I] p_F_free; // Facebook detection rates
   vector<lower=0>[T * I] p_G; // Instagram detection rates
   
   real alpha_p; // intercept for Facebook detection rates
@@ -97,8 +98,12 @@ transformed parameters {
   vector<lower=0>[T] N_tot; // total population at each time step
   vector[T * I] mu_r; // expected growth rates
   vector[T * I] mu_p; // expected Facebook detection rates
-  // vector<lower=0>[n_FG] FG_ratio; // ratio of Instagram to Facebook user ratios
-  
+  vector<lower=0>[T * I] p_F;
+
+  // Facebook proportion parameters with data for t=1
+  p_F[1:I] = p_F0;
+  p_F[(I+1):(T*I)] = p_F_free; 
+
   // population process model
   N[ti_N0] = N0;
   for (t in 2 : T) {
@@ -117,6 +122,7 @@ transformed parameters {
   mu_p = alpha_p + delta_p[tt] + gamma_p[ii] + X_p * beta_p;
   
   // observation ratio of Instagram to Facebook
+  // vector<lower=0>[n_FG] FG_ratio; // ratio of Instagram to Facebook user ratios
   // FG_ratio = p_G[ti_FG] ./ p_F[ti_FG];
 }
 model {
@@ -139,9 +145,7 @@ model {
   beta_r ~ normal(0, 1);
   sigma_r ~ normal(0, 1);
   
-  // priors:  Facebook and Instagram detection rate
-  // FG_ratio ~ lognormal(log(y_FG_ratio), 0.05 / 2);
-  
+  // priors:  Facebook and Instagram detection rates
   alpha_p ~ normal(0, 5);
   phi_p ~ normal(0, 1);
   beta_p ~ normal(0, 1);
@@ -158,9 +162,15 @@ generated quantities {
   // in-sample posterior predictive check
   array[n_F] int<lower=0> F_hat;
   array[n_G] int<lower=0> G_hat;
+  array[T * I] real<lower=0> p_F_hat; // Facebook detection rates
+  array[T * I] real<lower=0> p_G_hat; // Instagram detection rates
+
+  // observation models
+  p_F_hat = lognormal_rng(mu_p, sigma_p_F);
+  p_G_hat = lognormal_rng(mu_p + phi_p, sigma_p_G);
   
-  F_hat = poisson_rng(N[ti_F] .* p_F[ti_F]);
-  G_hat = poisson_rng(N[ti_G] .* p_G[ti_G]);
+  F_hat = poisson_rng(fmin(N[ti_F] .* to_vector(p_F_hat[ti_F]), 1e9));
+  G_hat = poisson_rng(fmin(N[ti_G] .* to_vector(p_G_hat[ti_G]), 1e9));
   
   // out-of-sample leave-one-out cross-validation
   vector[n_F] log_lik_F;

@@ -131,6 +131,10 @@ model_data <- function(
 
   md$ci_N1 <- confidence_N1
 
+  # baseline p for observation models with data for t = 1
+  F0 <- md$idx_F |> filter(t==1) |> group_by(i) |> summarise(mean_value = mean(value, na.rm=T)) |> select(mean_value) |> pull() 
+  md$p_F0 <- F0 / md$N0
+  
   # total population at each time step
   weekly_avg <- outside_border |>
     mutate(week = floor_date(as.Date(date), "week", week_start = 1)) |>
