@@ -3,6 +3,7 @@ private*
 venv*
 *.exe
 **/.idea/
+**/.DS_Store
 /wd/
 /data/control/
 /py_helpers/PWTT/
