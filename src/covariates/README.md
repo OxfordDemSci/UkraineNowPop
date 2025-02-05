@@ -13,7 +13,6 @@ The covariates code is divided in three: the scripts collecting the data, the on
 │  ├── 00_impute_NAs.py
 │  ├── 10_combine_stockVariables.R
 ├── report
-│  ├──
 ```
 
 ## Covariates description
@@ -69,5 +68,26 @@ Example of the output:
 
 ![image](https://github.com/user-attachments/assets/08d47b9b-7e4e-4ed6-93a9-bb8d61bb9b6c)
 
+
+## Report on covariates
+The covariates visualisation is stored in src/covariates/report.
+I have organised it into three different reports, each consisting of a Quarto .qmd file and its rendered .html version.
+
+The three reports are as follows:
+
+1.  1_covariates_vis: _Visualise individual covariates_. This report contains scatterplots over time for each covariate along with their 31 + 2 × 3 related standardisations:
+-  Raw values
+-  Cumulative values (with three different time windows)
+-  Time-scaled values (with three different time windows)
+
+2. 2_covariates_corr: _Correlation between covariates_. This report provides a correlation analysis split into three sections:
+-  Correlation between processing methods for each covariate
+-  Correlation between covariates for each processing method
+-  A full correlation table for further exploration
+
+3. 3_covariates_popChange: _Correlation with population change_. This is my favourite. It analyses the correlation between covariates and a proxy for population change (daily changes in deterministic population estimates). The analysis distinguishes between population increase and decrease, evaluating correlations based on:
+-  Current value of the covariate
+-  Lagged values (up to -5 weeks)
+-  Lead values (up to +5 weeks)
 
 
