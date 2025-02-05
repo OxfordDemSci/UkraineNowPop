@@ -41,7 +41,7 @@ dir.create(file.path(out_dir, "modelling", model_name, "mcmc"), recursive = T, s
 if (file.exists(file.path(in_dir, "cod-ps_2023", "DO_NOT_SHARE_UKR_ADM2_POP_2023.csv"))) {
   codps_N1 <- read.csv(file.path(in_dir, "cod-ps_2023", "DO_NOT_SHARE_UKR_ADM2_POP_2023.csv"))
 } else {
-  codps_N1 <- NA
+  codps_N1 <- read.csv(file.path(in_dir, "cod-ps_2023", "UKR_ADM2_POP_2023_sim.csv"))
 }
 
 # create model data
@@ -87,8 +87,8 @@ saveRDS(md, file.path(out_dir, "modelling", model_name, "mcmc", paste0("md_", mo
 
 # MCMC configuration
 chains <- 4
-warmup <- 5e3
-samples <- 5e3
+warmup <- 1e3
+samples <- 1e3
 inits <- lapply(1:chains, function(id) init_generator(md = md, chain_id = id))
 
 # compile the stan model
