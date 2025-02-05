@@ -11,7 +11,8 @@ source(file.path(here::here(), "R_helpers/data_querying.R"))
 
 # agesex demographic groups
 
-agesex <- c("T_13Plus")
+agesex <- c("F_20_29", "F_30_39", "F_40_49", "F_50_59", "F_60Plus", 
+            "M_20_29", "M_30_39", "M_40_49", "M_50_59", "M_60Plus")
 
 # agesex <- c("F_13Plus", "F_18Plus", "F_20Plus", "F_13_19", "F_15_49", "F_15_64", "F_18_34", "F_20_29", "F_30_39", "F_40_49", "F_50_59", "F_60Plus", "F_65Plus",
 #            "M_13Plus", "M_18Plus", "M_20Plus", "M_13_19", "M_15_49", "M_15_64", "M_18_34", "M_20_29", "M_30_39", "M_40_49", "M_50_59", "M_60Plus", "M_65Plus",
@@ -32,7 +33,7 @@ date_end <- "2023-02-24"
 country <- "UA"
 
 meta_keys <- read_csv(file.path(env$repo_dir, "data", 'meta', paste0(tolower(country), "_meta_keys.csv")))
-pcodes <- read_csv(file = file.path(env$repo_dir, "data", "cod-ps", "population_baseline.csv"))
+pcodes <- read_csv(file = file.path(env$repo_dir, "data", "COD-PS", "population_baseline.csv"))
 
 output_label <- ""
 
@@ -67,16 +68,16 @@ time_index <- time_index_expanded |>
 
 agesex_index <- lapply(agesex, function(agesex_) agesex_col_to_query_args(agesex_) |> as_tibble()) |>
   bind_rows() |>
-  arrange(age_min) |>
   mutate(
     a_name = str_sub(agesex, 3),
     a = as.integer(factor(paste0(age_min, age_max))),
     a_key = paste0(age_min, str_pad(age_max, 3, pad = "0")) |> as.integer(),
     s_name = str_sub(agesex, 1, 1),
-    s = s_name |> as_factor() |> as.numeric(),
+    s = ifelse(s_name == "F", 2, 1),  # Assign 2 for F and 1 for M
     s_key = s
   ) |>
   select(-age_min, -age_max, -gender)
+
 
 master_index <- expand_grid(
   t = unique(time_index$t),
@@ -87,6 +88,7 @@ master_index <- expand_grid(
   left_join(time_index, by = "t") |>
   left_join(geo_index, by = "i") |>
   left_join(agesex_index, by = c("a", "s")) |>
+  mutate(parameter = row_number())
   arrange(t, i, a, s)
 
 
