@@ -72,8 +72,10 @@ sirens_oblast_t <- sirens |>
   right_join(
     master_index
   ) |>
-  ungroup() |>
+  ungroup()|>
   mutate(
+    sirens = ifelse(i_name == 'Luhanska'  &is.na(sirens), max(sirens, na.rm=T), sirens), # permanent sirens
+    sirens = ifelse(i_name == 'Autonomous Republic of Crimea' &is.na(sirens), max(sirens, na.rm=T), sirens),
     sirens = ifelse(is.na(sirens), 0, sirens)
   ) |>
   pivot_longer(sirens,
