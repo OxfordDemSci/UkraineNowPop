@@ -29,7 +29,7 @@ out_dir <- file.path(env$out_dir, "modelling")
 
 
 #---- load data ----#
-model_name <- "2_covs_model"
+model_name <- "3_covs_model"
 
 fit <- readRDS(file.path(out_dir, model_name, "mcmc", paste0("fit_", model_name, ".rds")))
 md <- readRDS(file.path(out_dir, model_name, "mcmc", paste0("md_", model_name, ".rds")))
@@ -41,26 +41,29 @@ dir.create(file.path(out_dir, model_name, "eval"), showWarnings = F, recursive =
 
 
 #---- check total population ----#
-jpeg(
-  filename = file.path(out_dir, model_name, "eval", "total_population.jpg"),
-  height = 720, width = 720
-)
+models_to_skip <- c('2_props_model')
+if(!model_name %in% models_to_skip){
+  jpeg(
+    filename = file.path(out_dir, model_name, "eval", "total_population.jpg"),
+    height = 720, width = 720
+  )
+  
+  names_N_tot <- paste0("N_tot[", 1:md$T, "]")
+  N_tot <- apply(fit$draws(names_N_tot, format = "df"), 2, mean)
+  
+  plot(
+    x = md$y_N_tot,
+    y = N_tot[names_N_tot],
+    main = "Total Population Check",
+    xlab = "Observed",
+    ylab = "Predicted"
+  )
+  abline(0, 1, col = "red")
+  
+  dev.off()
+}
 
-names_N_tot <- paste0("N_tot[", 1:md$T, "]")
-N_tot <- apply(fit$draws(names_N_tot, format = "df"), 2, mean)
-
-plot(
-  x = md$y_N_tot,
-  y = N_tot[names_N_tot],
-  main = "Total Population Check",
-  xlab = "Observed",
-  ylab = "Predicted"
-)
-abline(0, 1, col = "red")
-
-dev.off()
-
-
+rm(models_to_skip)
 
 #---- check observation ratios ----#
 # jpeg(
@@ -214,6 +217,7 @@ dir.create(file.path(out_dir, model_name, "eval", "time_series_plots"), showWarn
 # plotting function
 plot_time_series <- function(fit, md, model_name, plot_vars = c("N", "r", "p_F", "p_G"), locs = 1:md$I) {
   outpath <- file.path(out_dir, model_name, "eval", "time_series_plots")
+  vars_ti <- c("pi")
 
   for (i in locs) {
     i_name <- gsub(" ", "_", paste(i, unique(md$idx$i_name[md$idx$i == i])))
@@ -228,12 +232,20 @@ plot_time_series <- function(fit, md, model_name, plot_vars = c("N", "r", "p_F",
 
     for (k in 1:length(plot_vars)) {
       y_name <- plot_vars[k]
-      col_names <- paste0(y_name, "[", which(md$ii == i), "]")
+      if(y_name %in% vars_ti) {
+        col_names <- paste0(y_name, "[", 1:md$T, ",", i, "]")
+      } else {
+        col_names <- paste0(y_name, "[", which(md$ii == i), "]")
+      }
       draws <- fit$draws(col_names, format = "df")
 
       dat <- data.frame(mean = rep(NA, md$T), lower = NA, upper = NA)
       for (t in 1:md$T) {
-        col_name <- paste0(y_name, "[", which(md$tt == t & md$ii == i), "]")
+        if(y_name %in% vars_ti) {
+          col_name <- paste0(y_name, "[", t, ",", i, "]")
+        } else {
+          col_name <- paste0(y_name, "[", which(md$tt == t & md$ii == i), "]")
+        }
         dat$mean[t] <- mean(draws[[col_name]])
         dat$lower[t] <- quantile(draws[[col_name]], probs = c(0.025))
         dat$upper[t] <- quantile(draws[[col_name]], probs = c(0.975))
@@ -280,12 +292,17 @@ plot_time_series <- function(fit, md, model_name, plot_vars = c("N", "r", "p_F",
 }
 
 # make time series plots
+plot_vars <- list(
+  "1_base_model" = c("N", "r", "p_F", "p_G"),
+  "2_props_model" = c("N", "pi", "p_F", "p_G"),
+  "3_covs_model" = c("N", "r", "p_F", "p_G")
+)
+
 plot_time_series(
   fit = fit,
   md = md,
   model_name = model_name,
-  plot_vars = c("N", "r", "p_F", "p_G"),
-  # plot_vars = c("N", "p_F", "p_G"),
+  plot_vars = plot_vars[[model_name]],
   locs = 1:md$I
 )
 
@@ -299,9 +316,12 @@ dir.create(file.path(out_dir, model_name, "eval", "trace_plots"), showWarnings =
 ## global parameters
 pars <- list(
   "1_base_model" = c("sigma_p_F", "sigma_p_G"),
-  "2_covs_model" = c(
+  "2_props_model" = c(
+    "log_sigma_pi", "alpha_p", "phi_p" , "log_sigma_delta_p", "log_sigma_gamma_p", "log_sigma_F", "log_sigma_G"
+  ),
+  "3_covs_model" = c(
     "alpha_r", "beta_r", "log_sigma_r",
-    "alpha_p", "log_sigma_delta_p", "log_sigma_gamma_p", "log_sigma_F", "log_sigma_G", "phi_p" 
+    "alpha_p", "phi_p" , "log_sigma_delta_p", "log_sigma_gamma_p", "log_sigma_F", "log_sigma_G"
   )
 )
 dat <- fit$draws(pars[[model_name]])
@@ -318,7 +338,8 @@ ggplot2::ggsave(
 ## location-specific parameters
 pars <- list(
   "1_base_model" = c("mu_p_G"),
-  "2_covs_model" = c("gamma_p")
+  "2_props_model" = c("gamma_p"),
+  "3_covs_model" = c("gamma_p")
 )
 for (i in 1:length(pars[[model_name]])) {
   dat <- fit$draws(pars[[model_name]][i])
@@ -336,7 +357,8 @@ for (i in 1:length(pars[[model_name]])) {
 ## time-specific parameters
 pars <- list(
   "1_base_model" = c("mu_p_F", "N_tot"),
-  "2_covs_model" = c("delta_p", "N_tot")
+  "2_props_model" = c("delta_p"),
+  "3_covs_model" = c("delta_p", "N_tot")
 )
 for (i in 1:length(pars[[model_name]])) {
   dat <- fit$draws(pars[[model_name]][i])
@@ -352,7 +374,11 @@ for (i in 1:length(pars[[model_name]])) {
 
 
 #---- diagnostics that are slow to run ----#
-
+pars <- list(
+  "1_base_model" = c("N", "r", "p_F", "p_G"),
+  "2_props_model" = c("N", "pi", "p_F", "p_G"),
+  "3_covs_model" = c("N", "r", "p_F", "p_G")
+)
 
 ## trace plots for location-time-specific parameters
 for (i in 1:md$I) {
@@ -360,8 +386,14 @@ for (i in 1:md$I) {
     i_name <- gsub(" ", "_", paste(i, t, unique(md$idx$i_name[md$idx$i == i])))
     j <- which(md$tt == t & md$ii == i)
 
-    pars <- c(paste0(c("N", "r", "p_F", "p_G"), "[", j, "]"))
-    dat <- fit$draws(pars)
+    pars_ti <- c('pi')
+    pars_model <- pars[[model_name]]
+    pars_indexed <- c(paste0(pars_model[!pars_model %in% pars_ti], "[", j, "]"))
+    if(any(pars_model %in% pars_ti)){
+      pars_indexed <- c(pars_indexed, c(paste0(pars_model[pars_model %in% pars_ti], "[", t, ",", i, "]")))
+    }
+
+    dat <- fit$draws(pars_indexed)
     trace_plot <- mcmc_trace(dat)
     size <- sqrt(dim(dat)[3]) * 2
 
@@ -386,17 +418,9 @@ write.csv(fit_summary, file.path(out_dir, model_name, "eval", "fit_summary.csv")
 
 
 ## LOO cross-validation
-
-# Facebook
-loo_F <- fit$loo("log_lik_F", cores = ncores)
-print(loo_F)
-plot(loo_F)
-
-# Instagram
-loo_G <- fit$loo("log_lik_G", cores = ncores)
-print(loo_G)
-plot(loo_G)
+loo <- fit$loo("log_lik", cores = ncores)
+print(loo)
+plot(loo)
 
 # save to disk
-saveRDS(loo_F, file.path(out_dir, model_name, "eval", "loo_F.rds"))
-saveRDS(loo_G, file.path(out_dir, model_name, "eval", "loo_G.rds"))
+saveRDS(loo, file.path(out_dir, model_name, "eval", "loo.rds"))
