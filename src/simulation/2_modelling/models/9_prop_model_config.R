@@ -3,7 +3,7 @@
 # load data
 mddir <- file.path(wd, 'out', 'simulation')
 # md <- readRDS(file.path(mddir, 'simulated_data.rds'))
-md <- readRDS(file.path(wd, 'out', 'modelling', '1_base_model', 'mcmc', 'md_1_base_model.rds'))
+md <- readRDS(file.path(mddir, 'md_1_base_model.rds'))
 
 
 # set seed for random number generators
@@ -148,27 +148,40 @@ init_generator <- function(md = md, chain_id = 1) {
   result[["r"]] <- rlnorm(md$T * md$I, 0, 0.1 / 2)
   
   result[["p_F"]] <- rlnorm(md$T * md$I, log(mean(md$y_F, na.rm = T) / mean(md$N0)), 0.5)
-  result[["mu_p_F"]] <- runif(1, -4, -2)
+  # result[["mu_p_F"]] <- runif(md$I, -4, -2)
+  result[["mu_p_F"]] <- rnorm(1, -2.35,0.05)  
   result[["mu_mu_p_F"]] <- runif(1, -4, -2)
   result[["sigma_mu_p_F"]] <- runif(1, 0, 0.2)
   result[["sigma_p_F"]] <- runif(1, 0, 0.2)
   
   result[["p_G"]] <- rlnorm(md$T * md$I, log(mean(md$y_G, na.rm = T) / mean(md$N0)), 0.5)
   result[['p_GF']] <- runif(md$T * md$I)
-  result[['mu_p_GF']] <- runif(1)
+  result[['mu_p_GF']] <- rnorm(1,-0.79,0.01)
   result[["mu_mu_p_G"]] <- runif(1, -4, -2)
   result[["sigma_mu_p_G"]] <- runif(1, 0, 0.2)
   result[['sigma_p_GF']] <- runif(1, 0, 0.05)
   
-  result[['logit_p']] <- 
+  result[['logit_p']] <-
     matrix(
       rnorm((md$T-1)*(md$I-1),
-            rep(log((md$N0/sum(md$N0))[1:(md$I-1)] / 
+            rep(log((md$N0/sum(md$N0))[1:(md$I-1)] /
                       (1-sum((md$N0/sum(md$N0))[1:(md$I-1)]))),times=md$T-1),
             0.25),
       nrow=md$T-1,ncol=md$I-1)
   result[['sigma_p']] <- runif(1,0,2)
+  result[['ar_tot']] <- runif(1,0.5,0.95)  
+  result[['mu_tot']] <- rnorm(1,log(tail(md$y_N_tot,1)),sd(log(md$y_N_tot)))
   
+  result[['log_sigma_p']] <- rnorm(1,-3.05,0.05)
+  result[['log_sigma_tot']] <- rnorm(1,-5.55,0.1)
+  result[['log_p_F']] <- rnorm((md$T)*(md$I),-2.35,exp(-2.25))
+  result[['log_sigma_p_F']] <- rnorm(1,-2.25,0.025)    
+  result[['mu_p_F_i']] <- rnorm(md$I,0,exp(-1.4))
+  result[['log_sigma_p_F_i']] <- rnorm(1,-1.4,0.1)  
+  result[['log_p_GF']] <- rnorm((md$T)*(md$I),-0.79,exp(-2))
+  result[['log_sigma_p_GF']] <- rnorm(1,-2,0.05)
+  result[['log_kappa_F']] <- rnorm(1,-6.2,0.01)
+  result[['log_kappa_G']] <- rnorm(1,-6.85,0.025)
   
   return(result)
 }
