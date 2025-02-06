@@ -5,7 +5,7 @@ library(ggplot2)
 # all functions assume global variables:  fit, md
 
 #---- check total population ----#
-plot_total_pop_fit <- function(outfile=NA){
+plot_total_pop_fit <- function(dat="y_N_tot", hat="N_tot", outfile=NA){
   
   if(!is.na(outfile)){
     jpeg(
@@ -14,11 +14,11 @@ plot_total_pop_fit <- function(outfile=NA){
     )
   }
   
-  names_N_tot <- paste0("N_tot[", 1:md$T, "]")
+  names_N_tot <- paste0(hat, "[", 1:md$T, "]")
   N_tot <- apply(fit$draws(names_N_tot, format = "df"), 2, mean)
   
   plot(
-    x = md$y_N_tot,
+    x = md[[dat]],
     y = N_tot[names_N_tot],
     main = "Total Population Check",
     xlab = "Observed",

@@ -47,13 +47,26 @@ dir.create(file.path(out_dir, model_name, "eval", "trace_plots"), showWarnings =
 
 #---- check total population ----#
 if(!model_name %in% c('2_props_model')){
-  plot_total_pop_fit(outfile = file.path(out_dir, model_name, "eval", "total_population.jpg"))
+  plot_total_pop_fit(
+    dat="y_N_tot", 
+    hat="N_tot", 
+    outfile = file.path(out_dir, model_name, "eval", "total_population.jpg")
+  )
 }
 
 
 #---- in-sample posterior predictive check ----#
-plot_postpred_fit(dat = "y_F", hat = "F_hat", outfile = file.path(out_dir, model_name, "eval", "postpredict_insamp_facebook.jpg"))
-plot_postpred_fit(dat = "y_G", hat = "G_hat", outfile = file.path(out_dir, model_name, "eval", "postpredict_insamp_instagram.jpg"))
+plot_postpred_fit(
+  dat = "y_F", 
+  hat = "F_hat", 
+  outfile = file.path(out_dir, model_name, "eval", "postpredict_insamp_facebook.jpg")
+)
+
+plot_postpred_fit(
+  dat = "y_G", 
+  hat = "G_hat", 
+  outfile = file.path(out_dir, model_name, "eval", "postpredict_insamp_instagram.jpg")
+)
 
 
 #---- time series plots ----#
