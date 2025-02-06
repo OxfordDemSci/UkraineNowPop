@@ -41,7 +41,7 @@ data {
   
   // population covariates
   matrix[T * I, K_r] X_r; // covariates on population growth rates
-  matrix[T * I, K_p] X_p; // covariates on Facebook detection rates (note: these are weekly but could be daily)
+  matrix[T * I, K_p] X_p; // covariates on detection rates (note: these are weekly but could be daily)
   
   // Facebook data
   int<lower=0> n_F; // total sample size for F
@@ -64,16 +64,16 @@ data {
   array[n_G] int<lower=0> ti_G; // ti (year, location) index for G
 }
 parameters {
-  // population
+  // latent population process
   vector[T * I] r; // population growth rates
   real alpha_r; // random intercept for population growth rates
   vector[K_r] beta_r; // covariate effects on growth rates
   real log_sigma_r; // variation in growth rates
   
-  // Facebook and Instagram
+  // observation models
   real alpha_p; // intercept for Facebook detection rates
-  real phi_p; // intercept offset for Instagram detection rates
-  vector[K_p] beta_p; // covariate effects on Instagram detection rates
+  real phi_p; // offset for Instagram detection rates
+  vector[K_p] beta_p; // covariate effects on detection rates
   real log_sigma_F; // residual variation
   real log_sigma_G; // residual variation
   
@@ -107,18 +107,22 @@ transformed parameters {
   // regression on population growth rates
   mu_r = alpha_r + X_r * beta_r;
   
-  // regression on Facebook detection rates
+  // regression on detection rates
   log_p_F = alpha_p + delta_p[tt] + gamma_p[ii] + X_p * beta_p;
   p_F = exp(log_p_F);
   
   log_p_G = p_F + phi_p;
   p_G = exp(log_p_G);
 
-  // elements of log-likelihood (case-wise log_lik required for LOO-CV)
+  // likelihoods (case-wise log_lik required for LOO-CV)
+  
+  // y_F ~ lognormal(log(N[ti_F] .* p_F[ti_F]), exp(log_sigma_F));
   for(i in 1:n_F){
     log_lik[i] = lognormal_lpdf(y_F[i] | log(N[ti_F[i]] .* p_F[ti_F[i]]), exp(log_sigma_F));
   }
-  for(i in 1:n_G){
+  
+  // y_G ~ lognormal(log(N[ti_G] .* p_G[ti_G]), exp(log_sigma_G));
+    for(i in 1:n_G){
     log_lik[i + n_F] = lognormal_lpdf(y_G[i] | log(N[ti_G[i]] .* p_G[ti_G[i]]), exp(log_sigma_G));
   }
 }

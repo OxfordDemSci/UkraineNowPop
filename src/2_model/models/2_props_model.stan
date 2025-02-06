@@ -39,7 +39,7 @@ data {
   real<lower=0> ci_N1; // confidence in N1. (i.e. 0.95 probability that the true N[t_N1] is within ci_N1*100 percent of N1)
   
   // population covariates
-  matrix[T * I, K_p] X_p; // covariates on Facebook detection rates (note: these are weekly but could be daily)
+  matrix[T * I, K_p] X_p; // covariates on detection rates (note: these are weekly but could be daily)
   
   // Facebook data
   int<lower=0> n_F; // total sample size for F
@@ -62,11 +62,11 @@ data {
   array[n_G] int<lower=0> ti_G; // ti (year, location) index for G
 }
 parameters {
-  // population
+  // latent population process
   array[T] vector[I-1] logit_pi; // population proportions in each oblast
   real log_sigma_pi; // variation in growth rates
   
-  // Facebook and Instagram
+  // observation models
   real alpha_p; // intercept for Facebook detection rates
   real phi_p; // intercept offset for Instagram detection rates
   vector[K_p] beta_p; // covariate effects on Instagram detection rates
@@ -96,17 +96,21 @@ transformed parameters {
     N[t_slice(t, I)] = y_N_tot[t] * pi[t];
   }
 
-  // regression on Facebook detection rates
+  // regression on detection rates
   log_p_F = alpha_p + delta_p[tt] + gamma_p[ii] + X_p * beta_p;
   p_F = exp(log_p_F);
   
   log_p_G = p_F + phi_p;
   p_G = exp(log_p_G);
 
-  // elements of log-likelihood (case-wise log_lik required for LOO-CV)
+  // likelihoods (case-wise log_lik required for LOO-CV)
+  
+  // y_F ~ lognormal(log(N[ti_F] .* p_F[ti_F]), exp(log_sigma_F));
   for(i in 1:n_F){
     log_lik[i] = lognormal_lpdf(y_F[i] | log(N[ti_F[i]] .* p_F[ti_F[i]]), exp(log_sigma_F));
   }
+
+  // y_G ~ lognormal(log(N[ti_G] .* p_G[ti_G]), exp(log_sigma_G));
   for(i in 1:n_G){
     log_lik[i + n_F] = lognormal_lpdf(y_G[i] | log(N[ti_G[i]] .* p_G[ti_G[i]]), exp(log_sigma_G));
   }
