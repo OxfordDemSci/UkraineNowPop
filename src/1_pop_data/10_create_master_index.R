@@ -28,7 +28,7 @@ agesex <- c("F_20_29", "F_30_39", "F_40_49", "F_50_59", "F_60Plus",
 
 # date
 date_start <- "2022-02-25"
-date_end <- "2023-02-24"
+date_end <- "2024-05-14"
 
 country <- "UA"
 
@@ -88,7 +88,7 @@ master_index <- expand_grid(
   left_join(time_index, by = "t") |>
   left_join(geo_index, by = "i") |>
   left_join(agesex_index, by = c("a", "s")) |>
-  mutate(parameter = row_number())
+  mutate(parameter = row_number()) |>
   arrange(t, i, a, s)
 
 
