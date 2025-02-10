@@ -63,7 +63,7 @@ data {
 }
 parameters {
   // population
-  array[T-1] vector[I-1] logit_pi; // population proportions in each oblast
+  array[T-1] vector[I-1] logit_pi_free;
   real log_sigma_pi; // variation in growth rates
 
   // Facebook and Instagram
@@ -87,13 +87,14 @@ transformed parameters {
   vector[T * I] log_p_F;
   vector[T * I] log_p_G;
   vector[n_F + n_G] log_lik;
-  vector[I-1] logit_pi0;
+  array[T] vector[I-1] logit_pi;
 
   // population process model
-  pi[1] = N0/y_N_tot[1];
+  pi[1] = N0 / y_N_tot[1];
   N[ti_N0] = y_N_tot[1] * pi[1]; 
-  logit_pi0 = log(pi[1,1:(I-1)]/(1-pi[1,I]));
+  logit_pi[1] = log(pi[1,1:(I-1)]/(1-pi[1,I]));
   for (t in 2 : T) {
+    logit_pi[t] = logit_pi_free[t-1]; // t-1 because logit_pi_free does not include t=1
     pi[t] = softmax(append_row(logit_pi[t],1));
     N[t_slice(t, I)] = y_N_tot[t] * pi[t];
   }
@@ -121,7 +122,6 @@ model {
   N[ti_N1] ~ lognormal(log(N1), ci_N1 / 2);
 
   // population growth rates
-  logit_pi[1] ~ normal(logit_pi0, exp(log_sigma_pi));
   for (t in 2 : T) {
     logit_pi[t] ~ normal(logit_pi[t-1], exp(log_sigma_pi));
   }

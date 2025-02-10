@@ -241,13 +241,15 @@ init_generator <- function(md = md, chain_id = 1) {
   result[["N"]] <- reshape2::melt(N, varnames = c("T", "I"))$value
   result[['log_sigma_pi']] <- rnorm(1,-3.05,0.05)
   
-  result[['logit_p']] <- 
+  result[['logit_pi']] <- 
     matrix(
       rnorm((md$T)*(md$I-1),
             rep(log((md$N0/sum(md$N0))[1:(md$I-1)] / 
                       (1-sum((md$N0/sum(md$N0))[1:(md$I-1)]))),times=md$T),
             0.25),
       nrow=md$T,ncol=md$I-1)  
+  
+  result[['pi']] <- boot::inv.logit(result[['logit_pi']])
 
   result[["p_F"]] <- rlnorm(md$T * md$I, log(mean(md$y_F, na.rm = T) / mean(md$N0)), 0.5)
   result[["log_p_F"]] <- log(result[["p_F"]])
@@ -257,11 +259,13 @@ init_generator <- function(md = md, chain_id = 1) {
 
   result[["alpha_p"]] <- runif(1, -4, -2)
   result[["phi_p"]] <- rnorm(1, 0, 0.5)
-  result[["log_sigma_p_F"]] <- log(runif(1, 0, 0.2))
-  result[["log_sigma_p_G"]] <- log(runif(1, 0, 0.2))
-  result[["delta_p"]] <- rnorm(md$T, 0, 0.1)
+  result[["beta_p"]] <- runif(md$K_p, -1, -1)
+  result[["delta_p"]] <- rnorm(md$T, -1, 1)
+  result[["gamma_p"]] <- rnorm(md$I, -1, 1)
+  
+  result[["log_sigma_F"]] <- log(runif(1, 0, 0.2))
+  result[["log_sigma_G"]] <- log(runif(1, 0, 0.2))
   result[["log_sigma_delta_p"]] <- log(runif(1, 0, 0.1))
-  result[["gamma_p"]] <- rnorm(md$I, 0, 0.1)
   result[["log_sigma_gamma_p"]] <- log(runif(1, 0, 0.1))
 
   return(result)
