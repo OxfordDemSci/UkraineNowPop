@@ -253,11 +253,13 @@ init_generator <- function(md = md, chain_id = 1) {
 
   result[["alpha_p"]] <- runif(1, -4, -2)
   result[["phi_p"]] <- rnorm(1, 0, 0.5)
-  result[["log_sigma_p_F"]] <- log(runif(1, 0, 0.2))
-  result[["log_sigma_p_G"]] <- log(runif(1, 0, 0.2))
-  result[["delta_p"]] <- rnorm(md$T, 0, 0.1)
+  result[["beta_p"]] <- runif(md$K_p, -1, -1)
+  result[["delta_p"]] <- rnorm(md$T, -1, 1)
+  result[["gamma_p"]] <- rnorm(md$I, -1, 1)
+  
+  result[["log_sigma_F"]] <- log(runif(1, 0, 0.2))
+  result[["log_sigma_G"]] <- log(runif(1, 0, 0.2))
   result[["log_sigma_delta_p"]] <- log(runif(1, 0, 0.1))
-  result[["gamma_p"]] <- rnorm(md$I, 0, 0.1)
   result[["log_sigma_gamma_p"]] <- log(runif(1, 0, 0.1))
 
   return(result)

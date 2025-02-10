@@ -89,8 +89,6 @@ transformed parameters {
   vector[T * I] mu_r; // expected growth rates
   vector<lower=0>[T * I] p_F;
   vector<lower=0>[T * I] p_G;
-  vector[T * I] log_p_F;
-  vector[T * I] log_p_G;
   vector[n_F + n_G] log_lik;
 
   // population process model
@@ -108,11 +106,8 @@ transformed parameters {
   mu_r = alpha_r + X_r * beta_r;
   
   // regression on detection rates
-  log_p_F = alpha_p + delta_p[tt] + gamma_p[ii] + X_p * beta_p;
-  p_F = exp(log_p_F);
-  
-  log_p_G = p_F + phi_p;
-  p_G = exp(log_p_G);
+  p_F = exp(alpha_p + delta_p[tt] + gamma_p[ii] + X_p * beta_p);
+  p_G = exp(p_F + phi_p);
 
   // likelihoods (case-wise log_lik required for LOO-CV)
   
