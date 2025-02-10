@@ -92,12 +92,12 @@ pars <- list(
   "1_base_model" = c("sigma_p_F", "sigma_p_G"),
   "2_props_model" = c(
     "log_sigma_pi", 
-    "alpha_p", "phi_p" , "log_sigma_delta_p", "log_sigma_gamma_p", 
+    "alpha_p", "phi_p", "beta_p", "delta_p", "gamma_p" , "log_sigma_delta_p", "log_sigma_gamma_p", 
     "log_sigma_F", "log_sigma_G"
   ),
   "3_covs_model" = c(
     "alpha_r", "beta_r", "log_sigma_r",
-    "alpha_p", "phi_p" , "log_sigma_delta_p", "log_sigma_gamma_p", 
+    "alpha_p", "phi_p", "beta_p", "delta_p", "gamma_p" , "log_sigma_delta_p", "log_sigma_gamma_p", 
     "log_sigma_F", "log_sigma_G"
   )
 )

@@ -122,7 +122,7 @@ transformed parameters {
   }
   
   // y_G ~ lognormal(log(N[ti_G] .* p_G[ti_G]), exp(log_sigma_G));
-    for(i in 1:n_G){
+  for(i in 1:n_G){
     log_lik[i + n_F] = lognormal_lpdf(y_G[i] | log(N[ti_G[i]] .* p_G[ti_G[i]]), exp(log_sigma_G));
   }
 }
