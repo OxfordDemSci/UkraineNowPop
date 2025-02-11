@@ -252,10 +252,7 @@ init_generator <- function(md = md, chain_id = 1) {
   result[['pi']] <- boot::inv.logit(result[['logit_pi']])
 
   result[["p_F"]] <- rlnorm(md$T * md$I, log(mean(md$y_F, na.rm = T) / mean(md$N0)), 0.5)
-  result[["log_p_F"]] <- log(result[["p_F"]])
-
   result[["p_G"]] <- rlnorm(md$T * md$I, log(mean(md$y_G, na.rm = T) / mean(md$N0)), 0.5)
-  result[["log_p_G"]] <- log(result[["p_G"]])
 
   result[["alpha_p"]] <- runif(1, -4, -2)
   result[["phi_p"]] <- rnorm(1, 0, 0.5)
