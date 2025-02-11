@@ -74,7 +74,8 @@ plot_vars <- list(
   "1_base_model" = c("N", "r", "p_F", "p_G"),
   "2_props_model" = c("N", "pi", "p_F", "p_G"),
   "3_covs_model" = c("N", "r", "p_F", "p_G"),
-  "4_props_covs_model" = c("N", "pi", "p_F", "p_G")
+  # "4_props_covs_model" = c("N", "pi", "p_F", "p_G")
+  "4_props_covs_model" = c("N", "r", "p_F", "p_G")
 )
 
 plot_time_series(
@@ -101,11 +102,17 @@ pars <- list(
     "alpha_p", "phi_p", "beta_p", "delta_p", "gamma_p" , "log_sigma_delta_p", "log_sigma_gamma_p", 
     "log_sigma_F", "log_sigma_G"
   ),
+  # "4_props_covs_model" = c(
+  #   "alpha_pi", "beta_pi", "log_sigma_pi", 
+  #   "alpha_p", "phi_p", "beta_p", "delta_p", "gamma_p" , "log_sigma_delta_p", "log_sigma_gamma_p", 
+  #   "log_sigma_F", "log_sigma_G"
+  # )
   "4_props_covs_model" = c(
-    "alpha_pi", "beta_pi", "log_sigma_pi", 
+    "alpha_r", "beta_r", "log_sigma_r", "log_sigma_pi", 
     "alpha_p", "phi_p", "beta_p", "delta_p", "gamma_p" , "log_sigma_delta_p", "log_sigma_gamma_p", 
     "log_sigma_F", "log_sigma_G"
   )
+
 )
 
 plot_trace(
