@@ -82,29 +82,24 @@ parameters {
 transformed parameters {
   vector<lower=0>[T * I] N; // population estimates
   array[T] simplex[I] pi;
+  array[T] vector[I-1] logit_pi;
   vector<lower=0>[T * I] p_F;
   vector<lower=0>[T * I] p_G;
-  vector[T * I] log_p_F;
-  vector[T * I] log_p_G;
   vector[n_F + n_G] log_lik;
-  array[T] vector[I-1] logit_pi;
 
   // population process model
   pi[1] = N0 / y_N_tot[1];
   N[ti_N0] = y_N_tot[1] * pi[1]; 
-  logit_pi[1] = log(pi[1,1:(I-1)]/(1-pi[1,I]));
+  logit_pi[1] = log(pi[1,1:(I-1)] / (1-pi[1, I]));
   for (t in 2 : T) {
     logit_pi[t] = logit_pi_free[t-1]; // t-1 because logit_pi_free does not include t=1
-    pi[t] = softmax(append_row(logit_pi[t],1));
+    pi[t] = softmax(append_row(logit_pi[t], 1));
     N[t_slice(t, I)] = y_N_tot[t] * pi[t];
   }
 
   // regression on Facebook detection rates
-  log_p_F = alpha_p + delta_p[tt] + gamma_p[ii] + X_p * beta_p;
-  p_F = exp(log_p_F);
-
-  log_p_G = p_F + phi_p;
-  p_G = exp(log_p_G);
+  p_F = exp(alpha_p + delta_p[tt] + gamma_p[ii] + X_p * beta_p);
+  p_G = exp(p_F + phi_p);
 
   // elements of log-likelihood (case-wise log_lik required for LOO-CV)
   for(i in 1:n_F){
