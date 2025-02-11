@@ -140,7 +140,8 @@ model_data <- function(
       week <= max(md$idx$t_name))
 
   md$y_N_tot <- as.integer(sum(md$N0) - weekly_avg$avg_value)
-
+  md$y_N_tot[1] <- sum(md$N0)
+  
   rm(weekly_avg)
 
 
