@@ -65,7 +65,7 @@ data {
 }
 parameters {
   // latent population process
-  vector[T * I] r; // population growth rates
+  vector<lower=0>[T * I] r; // population growth rates
   real alpha_r; // random intercept for population growth rates
   vector[K_r] beta_r; // covariate effects on growth rates
   real log_sigma_r; // variation in growth rates
@@ -86,7 +86,6 @@ parameters {
 transformed parameters {
   vector<lower=0>[T * I] N; // population estimates
   vector<lower=0>[T] N_tot; // total population at each time step
-  vector[T * I] mu_r; // expected growth rates
   vector<lower=0>[T * I] p_F;
   vector<lower=0>[T * I] p_G;
   vector[n_F + n_G] log_lik;
@@ -101,9 +100,6 @@ transformed parameters {
   for (t in 1 : T) {
     N_tot[t] = sum(N[t_slice(t, I)]);
   }
-  
-  // regression on population growth rates
-  mu_r = alpha_r + X_r * beta_r;
   
   // regression on detection rates
   p_F = exp(alpha_p + delta_p[tt] + gamma_p[ii] + X_p * beta_p);
@@ -130,7 +126,7 @@ model {
   N[ti_N1] ~ lognormal(log(N1), ci_N1 / 2);
   
   // population growth rates
-  r ~ lognormal(mu_r, exp(log_sigma_r));
+  r ~ lognormal(alpha_r + X_r * beta_r, exp(log_sigma_r));
   
   // random effects
   delta_p ~ normal(0, exp(log_sigma_delta_p));
