@@ -65,9 +65,9 @@ data {
 }
 parameters {
   // latent population process
-  array[T-1] vector[I-1] logit_pi_free;
-  real log_sigma_pi; // variation in proportions
-  real log_sigma_r; // variation in growth rates
+  array[T-1] vector[I-1] logit_pi_free; // free parameters from logit_pi vectors
+  real log_sigma_pi; // residual variation in population proportions
+  real log_sigma_r; // residual variation in population growth rates
 
   real alpha_r; // intercept for population proportions
   vector[K_r] beta_r; // covariate effects on population proportions
@@ -75,30 +75,32 @@ parameters {
   // observation models
   real alpha_p; // intercept for Facebook detection rates
   real phi_p; // intercept offset for Instagram detection rates
-  vector[K_p] beta_p; // covariate effects on Instagram detection rates
-  real log_sigma_F; // residual variation
-  real log_sigma_G; // residual variation
+  vector[K_p] beta_p; // covariate effects on detection rates
+  real log_sigma_F; // residual variation in Facebook audience
+  real log_sigma_G; // residual variation in Instagram audience
   
-  vector[T] delta_p;
-  real log_sigma_delta_p;
+  vector[T] delta_p; // time random effect on detection rates
+  real log_sigma_delta_p; // variation in time random effect
   
-  vector[I] gamma_p;
-  real log_sigma_gamma_p;
+  vector[I] gamma_p; // location random effect on detection rates
+  real log_sigma_gamma_p; // variation in location random effects
 }
 transformed parameters {
   vector<lower=0>[T * I] N; // population estimates
-  vector[T * I] r; // expected growth rates
-  array[T] simplex[I] pi;
-  array[T] vector[I-1] logit_pi;
-  vector<lower=0>[T * I] p_F;
-  vector<lower=0>[T * I] p_G;
-  vector[n_F + n_G] log_lik;
+  vector[T * I] r; // population growth rates
+  array[T] simplex[I] pi; // population proportions
+  array[T] vector[I-1] logit_pi; // logit population proportions
+  vector<lower=0>[T * I] p_F; // Facebook detection rates
+  vector<lower=0>[T * I] p_G; // Instagram detection rates
+  vector[n_F + n_G] log_lik; // case-wise log-likelihoods
 
-  // population process model
+  // population data for t = 1
   pi[1] = N0 / y_N_tot[1];
   r[ti_N0] = rep_vector(0, I);
   N[ti_N0] = y_N_tot[1] * pi[1]; 
   logit_pi[1] = log(pi[1,1:(I-1)] / (1-pi[1, I]));
+  
+  // population process model for t > 1
   for (t in 2 : T) {
     logit_pi[t] = logit_pi_free[t-1]; // t-1 because logit_pi_free does not include t=1
     pi[t] = softmax(append_row(logit_pi[t], 1));
@@ -106,20 +108,14 @@ transformed parameters {
     r[t_slice(t, I)] = log(N[t_slice(t, I)] ./ N[t_slice_lag(t, I)]);
   }
   
-  // ---- observation models ----// 
-  
   // regression on detection rates
   p_F = exp(alpha_p + delta_p[tt] + gamma_p[ii] + X_p * beta_p);
   p_G = exp(p_F + phi_p);
 
-  // likelihoods (case-wise log_lik required for LOO-CV)
-  
-  // y_F ~ lognormal(log(N[ti_F] .* p_F[ti_F]), exp(log_sigma_F));
+  // case-wise log-likelihoods (required for LOO-CV)
   for(i in 1:n_F){
     log_lik[i] = lognormal_lpdf(y_F[i] | log(N[ti_F[i]] .* p_F[ti_F[i]]), exp(log_sigma_F));
   }
-
-  // y_G ~ lognormal(log(N[ti_G] .* p_G[ti_G]), exp(log_sigma_G));
   for(i in 1:n_G){
     log_lik[i + n_F] = lognormal_lpdf(y_G[i] | log(N[ti_G[i]] .* p_G[ti_G[i]]), exp(log_sigma_G));
   }
@@ -136,18 +132,18 @@ model {
     logit_pi[t] ~ normal(logit_pi[t-1], exp(log_sigma_pi));
   }
 
+  // population growth rates
   r ~ normal(alpha_r + X_r * beta_r, exp(log_sigma_r)); 
   
-  // random effects
+  // random effects on detection rates
   delta_p ~ normal(0, exp(log_sigma_delta_p));
   gamma_p ~ normal(0, exp(log_sigma_gamma_p));
 }
 generated quantities {
-  // in-sample posterior predictive check
   array[n_F] real<lower=0> F_hat;
   array[n_G] real<lower=0> G_hat;
 
-  // observation models
+  // in-sample posterior predictive check
   F_hat = lognormal_rng(log(N[ti_F] .* p_F[ti_F]), exp(log_sigma_F));
   G_hat = lognormal_rng(log(N[ti_G] .* p_G[ti_G]), exp(log_sigma_G));    
 }
