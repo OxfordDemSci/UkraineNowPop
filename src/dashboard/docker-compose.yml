@@ -1,5 +1,3 @@
-version: "3.3"
-
 services:
 
   now_pop_nginx:
