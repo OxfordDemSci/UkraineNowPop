@@ -1,5 +1,6 @@
 library(dplyr)
 library(lubridate)
+library(tidyr)
 
 model_data <- function(
     idx, idx_F, idx_G,
@@ -89,25 +90,6 @@ model_data <- function(
   md$n_G <- length(md$y_G)
   md$ti_G <- md$idx_G$ti
 
-  # Facebook:Instagram ratio
-  md$ti_FG <- unique(md$ti_F[which(md$ti_F %in% md$ti_G)])
-  md$n_FG <- length(md$ti_FG)
-
-  md$y_FG_ratio <- c()
-  for (i in 1:length(md$ti_FG)) {
-    ti <- md$ti_FG[i]
-    G_ti <- mean(md$y_G[which(md$ti_G == ti)])
-    F_ti <- mean(md$y_F[which(md$ti_F == ti)])
-    md$y_FG_ratio[i] <- G_ti / F_ti
-  }
-
-  drop <- which(!is.finite(md$y_FG_ratio))
-  if (length(drop) > 0) {
-    md$y_FG_ratio <- md$y_FG_ratio[-drop]
-    md$ti_FG <- md$ti_FG[-drop]
-    md$n_FG <- md$n_FG - length(drop)
-  }
-
   ## population ##
 
   # baseline population
@@ -141,7 +123,7 @@ model_data <- function(
 
   md$y_N_tot <- as.integer(sum(md$N0) - weekly_avg$avg_value)
   md$y_N_tot[1] <- sum(md$N0)
-
+  
   rm(weekly_avg)
 
 
@@ -171,25 +153,47 @@ model_data <- function(
   rcov_select$time_std[is.na(rcov_select$time_std)] <- "none"
   rcov_select$space_std[is.na(rcov_select$space_std)] <- "none"
 
-  md$X_r <- md$idx
-  for (k in 1:nrow(rcov_select)) {
-    col_name <- paste0("x", k)
-    md$X_r <- md$X_r |>
+  # md$X_r <- md$idx
+  # for (k in 1:nrow(rcov_select)) {
+  #   col_name <- paste0("x", k)
+  #   md$X_r <- md$X_r |>
+  #     left_join(
+  #       covs |>
+  #         filter(
+  #           covariate == rcov_select$covariate[k] &
+  #             sum_stat == rcov_select$sum_stat[k] &
+  #             time_std == rcov_select$time_std[k] &
+  #             space_std == rcov_select$space_std[k]
+  #         ) |>
+  #         select(t, i, value_std) |>
+  #         rename(!!col_name := value_std)
+  #     )
+  # }
+  # md$X_r <- md$X_r |>
+  #   select(paste0("x", 1:k))
+  # md$K_r <- k
+
+  # transform covariates for pi
+  md$K_pi <- nrow(rcov_select)
+  md$X_pi <- array(NA, dim=c(md$T, md$I, md$K_pi))
+
+  for(k in 1:md$K_pi) {
+    md$X_pi[,,k] <- md$idx |> 
       left_join(
-        covs |>
+        covs |> 
           filter(
             covariate == rcov_select$covariate[k] &
-              sum_stat == rcov_select$sum_stat[k] &
-              time_std == rcov_select$time_std[k] &
-              space_std == rcov_select$space_std[k]
-          ) |>
-          select(t, i, value_std) |>
-          rename(!!col_name := value_std)
-      )
+            sum_stat == rcov_select$sum_stat[k] &
+            time_std == rcov_select$time_std[k] &
+            space_std == rcov_select$space_std[k]
+        ) |>
+        select(t, i, value_std) 
+      ) |> 
+      select(t, i, value_std) |>
+      pivot_wider(names_from = i, values_from = value_std) |>
+      select(-t) |>
+      as.matrix()
   }
-  md$X_r <- md$X_r |>
-    select(paste0("x", 1:k))
-  md$K_r <- k
 
   # on Facebook and Instagram detection rates
   pcov_select <- observation_cov_select |> filter(select == 1)
@@ -238,19 +242,19 @@ init_generator <- function(md = md, chain_id = 1) {
     }
   }
 
+  result[["N_tot"]] <- md$y_N_tot
   result[["N"]] <- reshape2::melt(N, varnames = c("T", "I"))$value
-  result[['log_sigma_pi']] <- rnorm(1,-3.05,0.05)
-  
-  result[['logit_pi']] <- 
-    matrix(
-      rnorm((md$T)*(md$I-1),
-            rep(log((md$N0/sum(md$N0))[1:(md$I-1)] / 
-                      (1-sum((md$N0/sum(md$N0))[1:(md$I-1)]))),times=md$T),
-            0.25),
-      nrow=md$T,ncol=md$I-1)  
-  
+  # result[["logit_pi"]] <- matrix(rnorm(md$T * md$I, 0, 0.1), nrow=md$I, ncol=md$T)
+  result[["mu_logit_pi"]] <- matrix(rnorm(md$T * md$I, 0, 0.1), nrow=md$I, ncol=md$T)
+  result[["log_sigma_pi"]] <- log(runif(1, 0, 0.5))
+  result[["alpha_pi"]] <- rnorm(1, 0, 3)
+  result[["beta_pi"]] <- rnorm(md$K_pi, 0, 1)
+
   result[["p_F"]] <- rlnorm(md$T * md$I, log(mean(md$y_F, na.rm = T) / mean(md$N0)), 0.5)
+  result[["mu_p_F"]] <- runif(md$T * md$I, -4, -2)
+
   result[["p_G"]] <- rlnorm(md$T * md$I, log(mean(md$y_G, na.rm = T) / mean(md$N0)), 0.5)
+  result[["mu_p_G"]] <- runif(md$T * md$I, -4, -2)
 
   result[["alpha_p"]] <- runif(1, -4, -2)
   result[["phi_p"]] <- rnorm(1, 0, 0.5)

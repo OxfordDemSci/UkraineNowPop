@@ -31,7 +31,7 @@ source(file.path(src_dir, "2_eval_fun.R"))
 
 
 #---- load data ----#
-model_name <- "3_covs_model"
+model_name <- "4_props_covs_model"
 
 fit <- readRDS(file.path(out_dir, model_name, "mcmc", paste0("fit_", model_name, ".rds")))
 md <- readRDS(file.path(out_dir, model_name, "mcmc", paste0("md_", model_name, ".rds")))
@@ -46,7 +46,7 @@ dir.create(file.path(out_dir, model_name, "eval", "trace_plots"), showWarnings =
 
 
 #---- check total population ----#
-if(!model_name %in% c('2_props_model')){
+if(!model_name %in% c('2_props_model', '4_props_covs_model')){
   plot_total_pop_fit(
     dat="y_N_tot", 
     hat="N_tot", 
@@ -73,7 +73,9 @@ plot_postpred_fit(
 plot_vars <- list(
   "1_base_model" = c("N", "r", "p_F", "p_G"),
   "2_props_model" = c("N", "pi", "p_F", "p_G"),
-  "3_covs_model" = c("N", "r", "p_F", "p_G")
+  "3_covs_model" = c("N", "r", "p_F", "p_G"),
+  # "4_props_covs_model" = c("N", "pi", "p_F", "p_G")
+  "4_props_covs_model" = c("N", "r", "p_F", "p_G")
 )
 
 plot_time_series(
@@ -92,14 +94,25 @@ pars <- list(
   "1_base_model" = c("sigma_p_F", "sigma_p_G"),
   "2_props_model" = c(
     "log_sigma_pi", 
-    "alpha_p", "phi_p" , "log_sigma_delta_p", "log_sigma_gamma_p", 
+    "alpha_p", "phi_p", "beta_p", "delta_p", "gamma_p" , "log_sigma_delta_p", "log_sigma_gamma_p", 
     "log_sigma_F", "log_sigma_G"
   ),
   "3_covs_model" = c(
     "alpha_r", "beta_r", "log_sigma_r",
-    "alpha_p", "phi_p" , "log_sigma_delta_p", "log_sigma_gamma_p", 
+    "alpha_p", "phi_p", "beta_p", "delta_p", "gamma_p" , "log_sigma_delta_p", "log_sigma_gamma_p", 
+    "log_sigma_F", "log_sigma_G"
+  ),
+  # "4_props_covs_model" = c(
+  #   "alpha_pi", "beta_pi", "log_sigma_pi", 
+  #   "alpha_p", "phi_p", "beta_p", "delta_p", "gamma_p" , "log_sigma_delta_p", "log_sigma_gamma_p", 
+  #   "log_sigma_F", "log_sigma_G"
+  # )
+  "4_props_covs_model" = c(
+    "alpha_r", "beta_r", "log_sigma_r", "log_sigma_pi", 
+    "alpha_p", "phi_p", "beta_p", "delta_p", "gamma_p" , "log_sigma_delta_p", "log_sigma_gamma_p", 
     "log_sigma_F", "log_sigma_G"
   )
+
 )
 
 plot_trace(
@@ -112,7 +125,8 @@ plot_trace(
 pars <- list(
   "1_base_model" = c("mu_p_G"),
   "2_props_model" = c("gamma_p"),
-  "3_covs_model" = c("gamma_p")
+  "3_covs_model" = c("gamma_p"),
+  "4_props_covs_model" = c("gamma_p")
 )
 
 for (i in 1:length(pars[[model_name]])) {
@@ -127,7 +141,8 @@ for (i in 1:length(pars[[model_name]])) {
 pars <- list(
   "1_base_model" = c("mu_p_F", "N_tot"),
   "2_props_model" = c("delta_p"),
-  "3_covs_model" = c("delta_p", "N_tot")
+  "3_covs_model" = c("delta_p", "N_tot"),
+  "4_props_covs_model" = c("delta_p")
 )
 
 for (i in 1:length(pars[[model_name]])) {
@@ -167,7 +182,8 @@ if(plot_all_trace){
   pars <- list(
     "1_base_model" = c("N", "r", "p_F", "p_G"),
     "2_props_model" = c("N", "pi", "p_F", "p_G"),
-    "3_covs_model" = c("N", "r", "p_F", "p_G")
+    "3_covs_model" = c("N", "r", "p_F", "p_G"),
+    "4_props_covs_model" = c("N", "pi", "p_F", "p_G")
   )
   
   for (i in 1:md$I) {
@@ -189,76 +205,3 @@ if(plot_all_trace){
     }
   }  
 }
-
-
-
-#---- old eval code ----#
-
-#---- check observation ratios ----#
-# jpeg(
-#   filename = file.path(out_dir, model_name, "eval", "observation_ratio.jpg"),
-#   height = 720, width = 720
-# )
-
-# names_FG_ratio <- paste0("FG_ratio[", 1:md$n_FG, "]")
-# FG_ratio <- apply(fit$draws(names_FG_ratio, format = "df"), 2, mean)
-
-# plot(
-#   x = md$y_FG_ratio,
-#   y = FG_ratio[names_FG_ratio],
-#   main = "Observation Ratio Check",
-#   xlab = "Observed",
-#   ylab = "Predicted"
-# )
-# abline(0, 1, col = "red")
-
-# dev.off()
-
-
-# # Check dependence of F to F:G, etc.
-# jpeg(
-#   filename = file.path(out_dir, model_name, "eval", "observation_ratio_dependency.jpg"),
-#   height = 1080, width = 720
-# )
-
-# layout(
-#   mat = matrix(1:2, ncol = 1, nrow = 2),
-#   heights = rep(1, 2)
-# )
-
-# x <- y <- c()
-
-# for (i in 1:md$n_F) {
-#   ti <- md$ti_F[i]
-#   if (ti %in% md$ti_FG) {
-#     y <- c(y, md$y_F[i])
-#     x <- c(x, md$y_FG_ratio[md$ti_FG == ti])
-#   }
-# }
-
-# plot(
-#   x, y,
-#   xlab = "G:F",
-#   ylab = "F",
-#   main = paste0("Facebook\n", paste("Spearman R =", round(cor(x, y, method = "spearman"), 2)))
-# )
-
-# x <- y <- c()
-
-# for (i in 1:md$n_G) {
-#   ti <- md$ti_G[i]
-#   if (ti %in% md$ti_FG) {
-#     y <- c(y, md$y_G[i])
-#     x <- c(x, md$y_FG_ratio[md$ti_FG == ti])
-#   }
-# }
-
-# plot(
-#   x, y,
-#   xlab = "G:F",
-#   ylab = "G",
-#   main = paste0("Instagram\n", paste("Spearman R =", round(cor(x, y, method = "spearman"), 2)))
-# )
-
-# dev.off()
-# rm(x, y, i, ti)
