@@ -30,7 +30,7 @@ agesex <- c(
 
 # date
 date_start <- "2022-02-25"
-date_end <- "2023-02-24"
+date_end <- "2024-05-14"
 
 country <- "UA"
 
