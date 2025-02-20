@@ -20,9 +20,16 @@ pkgs <- c(
   "sf",
   "here",
   "tidyverse",
+  "tidyquant",
   "jsonlite",
   "httr",
   "DBI",
-  "RPostgres"
+  "RPostgres",
+  "git2r",
+  "future.apply",
+  "paletteer",
+  "corrplot",
+  "kableExtra"
 )
-install.packages(pkgs)
+
+install_if_missing(pkgs)

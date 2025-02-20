@@ -1,0 +1,52 @@
+model {
+    ######################
+    # Observation model
+    ######################
+    # DAU - counts
+    for (j in 1:24) {        
+      for (t in 1:116) {
+          F[j, t] ~ dbin( nuF0[j], N[j, t])  }}   
+                  
+    for (j in 1:24) {        
+      for (t in 44:116) {
+          G1[j, t] ~ dbin( nuG0[j], N[j, t])   }}
+    
+         
+    #########################
+    # Population model
+    #########################
+    N_total[1] <- sum(N0_obs[1:24])
+    for (j in 1:24) {
+        N[j, 1] <- N0_obs[j]
+      for (t in 2:116) {
+        N[j, t] ~ dpois( N[j, t-1] * (1 + growth_rate[j, t]) )   
+        }}
+  
+      for (j in 1:24) {
+        for (t in 2:116) {
+            growth_rate[j, t] ~ dnorm(mu_growth[j, t], tau_r) 
+             mu_growth[j, t] <- phi * growth_rate[j, t-1]     }}
+
+      phi ~ dnorm(0, 0.1)
+      tau_r ~ dgamma(0.1, 0.1)   
+      
+    
+    for (t in 2:116) {
+        N_total[t] <- sum(N[1:24, t]) + pop_change[t]
+    }
+    
+
+    # Proportions
+    for (t in 2:116) {
+        prop[1:24, t] ~ ddirich(alpha_prop[1:24])  
+    }
+    
+    for (j in 1:24) {
+        alpha_prop[j] ~ dgamma(2, 1) 
+    }
+
+    
+    # Define tau_N
+    tau_N <- 1 / pow(sigma_N, 2)
+    sigma_N ~ dnorm(0, 3) T(0,)
+}
