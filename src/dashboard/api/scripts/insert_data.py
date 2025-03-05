@@ -14,6 +14,7 @@ import dask
 dask.config.set({'dataframe.query-planning': True})
 import dask.dataframe as dd
 import csv 
+import psutil
 
 BASE_DIR = Path(__file__).resolve().parent.parent  # API route
 sys.path.append(str(BASE_DIR))  # API route
