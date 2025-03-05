@@ -36,8 +36,10 @@ POSTGRES_USER = os.environ.get("POSTGRES_USER")
 POSTGRES_PASSWORD = os.environ.get("POSTGRES_PASSWORD")
 POSTGRES_DB = os.environ.get("POSTGRES_DB")
 TABLES_DIR = os.environ.get("DATABASE_TABLES_DIR")
-CHUNK_SIZE = 20000
-
+if psutil.virtual_memory().total / (1024**3) < 4:
+    CHUNK_SIZE = 2000
+else:
+    CHUNK_SIZE = 20000
 
 def timer_and_log(func):
     def wrapper(*args, **kwargs):
