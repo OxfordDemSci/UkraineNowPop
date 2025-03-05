@@ -216,7 +216,7 @@ def add_migration_data(overwrite_existing: bool = False):
     session.commit()
 
 @timer_and_log
-def add_pop_data(overwrite_existing: bool = False):
+def add_pop_data(overwrite_existing: bool = True):
     def parse_pop_posterior(s):
         parts = s.replace('[', '').replace(']', '').split(',')
         return [int(part) for part in parts]
@@ -231,7 +231,7 @@ def add_pop_data(overwrite_existing: bool = False):
     if not query or overwrite_existing:
         for chunk in pd.read_csv(dummy_pop, chunksize=CHUNK_SIZE):
             chunk["sex"] = chunk["sex"].replace({"male": 1, "female": 2})
-            chunk['day'] = pd.to_datetime(chunk['day'], dayfirst=True)
+            chunk['day'] = pd.to_datetime(chunk['day'], yearfirst=True)
             chunk = chunk.astype({
                 "country": "string",
                 "admin_level": "int8",
