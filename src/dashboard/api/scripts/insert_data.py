@@ -13,6 +13,7 @@ import fiona
 import dask
 dask.config.set({'dataframe.query-planning': True})
 import dask.dataframe as dd
+import csv 
 
 BASE_DIR = Path(__file__).resolve().parent.parent  # API route
 sys.path.append(str(BASE_DIR))  # API route
@@ -231,7 +232,7 @@ def add_pop_data(overwrite_existing: bool = True):
     if query and overwrite_existing:
         session.query(Population).delete(synchronize_session=False)
     if not query or overwrite_existing:
-        for chunk in pd.read_csv(dummy_pop, chunksize=CHUNK_SIZE):
+        for chunk in pd.read_csv(dummy_pop, chunksize=CHUNK_SIZE, encoding='utf-8', warn_bad_lines=True, quoting=csv.QUOTE_ALL, lineterminator='\n'):
             chunk["sex"] = chunk["sex"].replace({"male": 1, "female": 2})
             chunk['day'] = pd.to_datetime(chunk['day'], yearfirst=True)
             chunk = chunk.astype({
