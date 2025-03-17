@@ -57,4 +57,4 @@ convert_pop_1Darray_dashboard <- function(fit_object, master_index = master_inde
   )
 }
 
-convert_pop_1Darray_dashboard(fit_object)
+convert_pop_1Darray_dashboard(fit)
