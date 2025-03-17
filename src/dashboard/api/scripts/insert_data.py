@@ -7,12 +7,10 @@ from alembic.config import Config
 from sqlalchemy import create_engine, inspect
 import psycopg2
 import geopandas as gpd  # type: ignore
-from geoalchemy2 import Geometry, WKBElement
 import pandas as pd
 import fiona
 import dask
 dask.config.set({'dataframe.query-planning': True})
-import dask.dataframe as dd
 import csv 
 import psutil
 
