@@ -1,10 +1,10 @@
-version: "3.3"
-
 services:
 
   now_pop_nginx:
     container_name: now_pop_web
+    env_file: ../../.env
     image: nginx:latest
+    command: /bin/sh -c "/var/www/public_html/entrypoint.sh"
     volumes:
       - type: bind
         source: ./www/conf.d/nginx.conf
@@ -24,7 +24,7 @@ services:
 
   now_pop_flask:
     container_name: now_pop_api
-    env_file: .env
+    env_file: ../../.env
     build: ./api/
     command: >
       sh -c "find /app -type f -exec sed -i 's/\r$$//' {} + && gunicorn --config gunicorn.config.py --preload wsgi:app"
@@ -52,8 +52,7 @@ services:
     container_name: now_pop_db
     #image: postgis/postgis:15-3.4
     build: ./sql/
-    env_file: 
-      .env
+    env_file: ../../.env
     volumes:
       #- ./sql/init-scripts:/docker-entrypoint-initdb.d
       - now_pop_db_data:/var/lib/postgresql/data
