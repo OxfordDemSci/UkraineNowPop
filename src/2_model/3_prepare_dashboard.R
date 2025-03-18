@@ -32,6 +32,7 @@ master_index <- master_index |>
 # Convert fit object to dashboard input csv
 convert_pop_1Darray_dashboard <- function(fit_object, master_index = master_index) {
   pop_stocks <- fit_object$draws(variables = "N", format = "df")
+
   pop_dashboard <- pop_stocks |>
     select(-starts_with(".")) |>
     t() |>
@@ -47,7 +48,7 @@ convert_pop_1Darray_dashboard <- function(fit_object, master_index = master_inde
       pop_lower = rowQuantiles(as.matrix(pick(starts_with("V"))), probs = 0.025) |> as.integer(),
       pop_upper = rowQuantiles(as.matrix(pick(starts_with("V"))), probs = 0.975) |> as.integer(),
       across(starts_with("V"), ~ as.integer(round(.))),
-      pop_posterior = paste0("[", apply(pick(starts_with("V")), 1, function(x) paste(sort(x), collapse = ",")), "]")
+      pop_posterior = paste0("[", apply(pick(starts_with("V")), 1, function(x) paste(x, collapse = ",")), "]")
     ) |>
     select(-starts_with("V", ignore.case = FALSE))
 
@@ -55,6 +56,7 @@ convert_pop_1Darray_dashboard <- function(fit_object, master_index = master_inde
     file = file.path(env$repo_dir, "src", "dashboard", "api", "app", "data", "db-data", "pop.csv"),
     row.names = FALSE
   )
+  return(pop_dashboard)
 }
 
-convert_pop_1Darray_dashboard(fit)
+pop <- convert_pop_1Darray_dashboard(fit)
