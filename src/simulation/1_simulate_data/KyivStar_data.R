@@ -1,5 +1,6 @@
 library(tidyverse)
 library(ggplot2)
+library(matrixcalc)
 
 set.seed(123)
 
@@ -8,9 +9,16 @@ age_groups <- c("0-17", "18-24", "25-34", "35-44", "45-54", "55-64", "65+") # 7 
 sex <- c("Female", "Male") # 2 categories
 times <- seq(as.Date("2023-01-01"), by = "month", length.out = 12) # 12 time points
 
+check <- F
 
-# Baseline population ----------------------------------------------------
+# output directory
+source(file.path(here::here(), "R_helpers/generic.R"))
+out_dir <- file.path(out_dir, "simulation", "Kyivstar")
+dir.create(out_dir, showWarnings = F, recursive = T)
 
+#  True process model ----------------------------------------------------------
+
+## Baseline population ----------------------------------------------------
 
 baseline_pop <- expand.grid(
   time = as.Date("2023-01-01"),
@@ -22,7 +30,7 @@ baseline_pop <- expand.grid(
 
 
 baseline_pop$pop <- round(
-  rnorm(nrow(baseline_pop), mean = 300, sd = 50)
+  rnorm(nrow(baseline_pop), mean = 3000, sd = 50)
   *
     ifelse(baseline_pop$origin == "Kyiv", 1.2,
       ifelse(baseline_pop$origin == "Lviv", 0.9,
@@ -46,8 +54,9 @@ ggplot(
 
 
 
-# Transition probabilities -----------------------------------------------
+## Transition probabilities -----------------------------------------------
 
+# this create transition for one time step
 create_transition <- function(dim = length(locations)) {
   matrix_prob <- round(matrix(runif(dim * dim), nrow = dim, ncol = dim), 3)
   for (i in 1:dim) {
@@ -61,7 +70,6 @@ create_transition <- function(dim = length(locations)) {
   return(matrix_prob)
 }
 
-
 transition <- bind_rows(replicate(length(age_groups) * length(sex), create_transition() |> as_tibble(), simplify = FALSE))
 colnames(transition) <- sort(locations)
 
@@ -70,22 +78,13 @@ transition_data <- baseline_pop |>
   arrange(time, age, sex, destination) |>
   bind_cols(transition)
 
-matrix_power <- function(mat, exp) {
-  result <- mat
-  for (i in 2:exp) {
-    result <- result %*% mat
-  }
-  return(result)
-}
-
-
 pop_data <- transition_data |>
   group_by(age, sex) |>
   group_modify(~ {
     location_matrix <- as.matrix(.x[, locations, drop = FALSE])
     pop_vector <- .x$pop
-    for (i in 1:length(times[-1])) { # Assuming we want pop1 to pop4; change 4 to the desired upper bound
-      matrix_exp <- matrix_power(location_matrix, i)
+    for (i in 1:length(times[-1])) {
+      matrix_exp <- matrix.power(location_matrix, i)
       .x[[paste0("pop_", times[-1][i])]] <- matrix_exp %*% pop_vector |> as.vector()
     }
     return(.x)
@@ -108,5 +107,116 @@ ggplot(pop_data, aes(x = time, y = pop)) +
   geom_line(aes(color = destination)) +
   facet_grid(age ~ sex) +
   geom_line(data = totals, aes(color = "total")) +
-  theme_minimal() +
-  abline()
+  theme_minimal()
+
+
+## Flows ------------------------------------------------------------------
+
+flows <- transition_data |>
+  slice(rep(1:n(), time = length(times))) |>
+  mutate(time = rep(times, each = nrow(transition_data))) |>
+  arrange(time, age, sex, destination) |>
+  select(-pop) |>
+  left_join(
+    pop_data |>
+      group_by(time, age, sex) |>
+      # gather in one column all the population values
+      mutate(pop = paste(pop, collapse = ","))
+  ) |>
+  mutate(
+    # convert back the 'pop' column into a list
+    pop_values = str_split(pop, ",") %>% # Split the 'pop' column by commas
+      map(as.numeric), # Convert each element into numeric
+
+    # Multiply the values by the corresponding pop value for each row
+    Kharkiv = Kharkiv * map_dbl(pop_values, ~ .x[1]),
+    Kyiv = Kyiv * map_dbl(pop_values, ~ .x[2]),
+    Lviv = Lviv * map_dbl(pop_values, ~ .x[3]),
+    Odesa = Odesa * map_dbl(pop_values, ~ .x[4])
+  ) |>
+  select(-pop_values, -pop)
+
+
+### checks
+
+if (check) {
+  check <- pop_data |>
+    left_join(
+      transition_data |>
+        filter(destination == "Kharkiv") |>
+        select(-destination, -time, -pop) |>
+        pivot_longer(cols = all_of(locations), names_to = "destination", values_to = "prop_to_kharkiv")
+    ) |>
+    mutate(pop_from_kharkiv = pop * prop_to_kharkiv) |>
+    group_by(age, sex, time) |>
+    summarise(pop_from_kharkiv = sum(pop_from_kharkiv)) |>
+    left_join(pop_data |> filter(destination == "Kharkiv") |> select(-destination))
+
+  flows |>
+    group_by(time, age, sex) |>
+    summarise(across(locations, sum)) |>
+    pivot_longer(cols = all_of(locations), names_to = "destination", values_to = "pop_check") |>
+    left_join(pop_data)
+}
+
+
+# Observation model ------------------------------------------------------
+
+# Population
+# detection prob varying by age and sex but constant through time
+pop_detection_prob <- pop_data |>
+  distinct(age, sex) |>
+  rowwise() |>
+  mutate(
+    prop = runif(1, 0.7, 0.9)
+  )
+
+# add observation error
+pop_noise <- 5
+observed_pop <- pop_data |>
+  left_join(pop_detection_prob) |>
+  rowwise() |>
+  mutate(
+    pop_detected = pop * prop,
+    pop_observed = abs(rnorm(1, pop_detected, pop_noise))
+  )
+
+# Flows
+# detection prob varying by destination, age and sex but constant through time
+flow_detection_prob <- flows |>
+  distinct(age, sex, destination) |>
+  rowwise() |>
+  mutate(
+    prop = runif(1, 0.6, 0.8) # lower detection prob than pop
+  ) |>
+  group_by(age, sex) |>
+  summarise(prop = paste(prop, collapse = ","))
+
+# add observation error
+flow_noise <- 5
+observed_flows <- flows |>
+  left_join(flow_detection_prob) |>
+  # rowwise() |>
+  mutate(
+    prop_values = str_split(prop, ",") |> # Split the 'pop' column by commas
+      map(as.numeric), # Convert each element into numeric
+
+    # Multiply the values by the corresponding pop value for each row
+    Kharkiv = Kharkiv * map_dbl(prop_values, ~ .x[1]),
+    Kyiv = Kyiv * map_dbl(prop_values, ~ .x[2]),
+    Lviv = Lviv * map_dbl(prop_values, ~ .x[3]),
+    Odesa = Odesa * map_dbl(prop_values, ~ .x[4])
+  ) |>
+  select(-prop_values, -prop) |>
+  rowwise() |>
+  mutate(across(locations, ~ abs(rnorm(1, .x, flow_noise))))
+
+
+
+# write output -----------------------------------------------------------
+
+write_csv(observed_pop, file.path(out_dir, paste0("kyvstar_pop_observed.csv")))
+write_csv(observed_flows, file.path(out_dir, paste0("kyvstar_flows_observed.csv")))
+write_csv(flows, file.path(out_dir, paste0("kyvstar_flows.csv")))
+write_csv(pop_data, file.path(out_dir, paste0("kyvstar_pop.csv")))
+write_csv(transition_data, file.path(out_dir, paste0("kyvstar_transitions.csv")))
