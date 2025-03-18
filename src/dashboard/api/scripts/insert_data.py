@@ -27,7 +27,7 @@ import make_dummy_pop_migration as dummy
 
 logging.basicConfig(level=logging.INFO)
 
-ENV = BASE_DIR.parent.joinpath('.env')
+ENV = BASE_DIR.parent.parent.parent.joinpath('.env')
 GPKG = BASE_DIR.joinpath("app", "data", "db-data", "GEODATA.gpkg")
 DATA = BASE_DIR.parent.parent.parent.joinpath("data/dummy_tables")
 load_dotenv(ENV)
@@ -231,7 +231,7 @@ def add_pop_data(overwrite_existing: bool = True):
     if query and overwrite_existing:
         session.query(Population).delete(synchronize_session=False)
     if not query or overwrite_existing:
-        for chunk in pd.read_csv(dummy_pop, chunksize=CHUNK_SIZE, encoding='utf-8', quoting=csv.QUOTE_ALL, lineterminator='\n'):
+        for chunk in pd.read_csv(dummy_pop, chunksize=CHUNK_SIZE, encoding='utf-8', quoting=csv.QUOTE_ALL):
             chunk["sex"] = chunk["sex"].replace({"male": 1, "female": 2})
             chunk['day'] = pd.to_datetime(chunk['day'], yearfirst=True)
             chunk = chunk.astype({
