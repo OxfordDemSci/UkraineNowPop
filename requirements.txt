@@ -13,3 +13,8 @@ python-dotenv
 rasterstats
 requests
 sqlalchemy
+alembic
+geoalchemy2
+dask
+flask
+connexion

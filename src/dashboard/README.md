@@ -42,6 +42,7 @@ JWT_ACCESS_TOKEN_EXPIRES=2  # Hours before tokens expire
 
 
 ## Running API and UI together to view the dashboard
+- Set the environnement variable `NOWPOP_API_URL`in the .env file to the url of the API. It will be read at the start of the container thanks to the script /var/www/public_html/entrypoint.sh which creates a env.js file that stores the API url.
 - **NOTE** The environment variable for `ENV` should be set to `dev` or higher for this to work.
 The dashboard frontend and backend are all launched and linked together using Docker and docker-compose (you will need to install these on your computer for this to work). To run the full application, `cd` to the current location in your terminal and run `docker-compose up -d --build` (omit the `-d` to run the application log messages to the terminal). Any changes made to the code will not be reflected in the running app, and the app will need to be stopped and rebuilt for changes to take effect. 
 
