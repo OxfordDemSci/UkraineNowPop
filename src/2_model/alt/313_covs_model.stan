@@ -31,6 +31,8 @@ data {
   int<lower=0> K_r;       // number of covariates on population growth rates
   int<lower=0> K_p;       // number of covariates on detection rates
   
+  vector<lower=0>[T] y_N_tot; // total population among locations
+
   // Baseline population for each sex-age combination and location:
   array[C] vector<lower=0>[I] N0;
   array[I] int<lower=0> ti_N0;
@@ -48,7 +50,7 @@ data {
   // Instagram data
   int<lower=0> n_G;          
   vector<lower=0>[n_G] y_G;  
-  array[n_G] int<lower=1, upper=S> comb_G; 
+  array[n_G] int<lower=1, upper=C> comb_G; 
   array[n_G] int<lower=0> ti_G;
   
   // Indexing for time and location for the (T*I) grid:
@@ -78,6 +80,7 @@ parameters {
 }
 transformed parameters {
   array[C] vector<lower=0>[T * I] N;
+  vector<lower=0>[T] N_tot; 
   array[C] vector<lower=0>[T * I] p_F;
   array[C] vector<lower=0>[T * I] p_G;
   
@@ -90,6 +93,15 @@ transformed parameters {
     for (t in 2:T) {
       N[c][t_slice(t, I)] = N[c][t_slice_lag(t, I)] .* r[c][t_slice(t, I)];
     }}
+
+  for (t in 1:T) {
+    real total = 0;
+    for (c in 1:C) {
+      total += sum(N[c][t_slice(t, I)] );
+      }
+      N_tot[t] = total;
+      }
+  
 
   for (c in 1:C) {
    for (i in 1:(T * I)) {
@@ -125,6 +137,8 @@ model {
     delta_p[c] ~ normal(0, exp(log_sigma_delta_p));
     gamma_p[c] ~ normal(0, exp(log_sigma_gamma_p));
   }
+
+  N_tot ~ lognormal(log(y_N_tot), 0.01 / 2);
 }
 generated quantities {
 // Posterior predictive checks for Facebook and Instagram data.
