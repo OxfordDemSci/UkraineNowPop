@@ -201,6 +201,21 @@ observed_pop <- pop_data |>
   mutate(
     pop_detected = pop * prop,
     pop_observed = abs(rnorm(1, pop_detected, pop_noise))
+  ) |>
+  ungroup()
+
+# separate age and sex
+observed_pop <- bind_rows(
+  observed_pop |>
+    group_by(time, destination, age) |>
+    summarise(pop_observed = sum(pop_observed)),
+  observed_pop |>
+    group_by(time, destination, sex) |>
+    summarise(pop_observed = sum(pop_observed))
+) |>
+  mutate(
+    sex = ifelse(is.na(sex), "all", sex),
+    age = ifelse(is.na(age), "all", age)
   )
 
 # Flows
@@ -231,9 +246,22 @@ observed_flows <- flows |>
   ) |>
   select(-prop_values, -prop) |>
   rowwise() |>
-  mutate(across(locations, ~ abs(rnorm(1, .x, flow_noise))))
+  mutate(across(all_of(locations), ~ abs(rnorm(1, .x, flow_noise))))
 
-
+# separate age and sex
+observed_flows <- bind_rows(
+  observed_flows |>
+    group_by(time, destination, age) |>
+    summarise(across(all_of(locations), sum)),
+  observed_flows |>
+    group_by(time, destination, sex) |>
+    summarise(across(all_of(locations), sum))
+) |>
+  mutate(
+    sex = ifelse(is.na(sex), "all", sex),
+    age = as.character(age),
+    age = ifelse(is.na(age), "all", age)
+  )
 
 # write output -----------------------------------------------------------
 
