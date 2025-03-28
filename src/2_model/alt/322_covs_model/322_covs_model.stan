@@ -9,8 +9,7 @@ functions {
       result[i] = a + (i - 1);
     }
     return result;
-  }
-  
+  }  
   // Slice ti vector for specific previous year t-1
   array[] int t_slice_lag(int t, int I) {
     int a = 1 + t * I - 2 * I; 
