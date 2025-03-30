@@ -58,9 +58,9 @@ abline(0, 1, col = "red")
 # Posterior predictive check
 #####################################################
 plot_postpred_fit(
-  dat = "y_G", 
-  hat = "G_hat",
-  outfile = file.path(out_dir, model_name, "eval", paste0("postpredict_insamp_instagram", ".jpg")))
+  dat = "y_F", 
+  hat = "F_hat",
+  outfile = file.path(out_dir, model_name, "eval", paste0("postpredict_insamp_facebook", ".jpg")))
 
 
 dat <- "y_F"
