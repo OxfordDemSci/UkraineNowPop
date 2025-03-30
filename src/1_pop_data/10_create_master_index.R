@@ -11,7 +11,7 @@ source(file.path(here::here(), "R_helpers/data_querying.R"))
 
 # agesex demographic groups
 
-agagesex <- c(#"F_20_29", "F_30_39", "F_40_49", "F_50_59", 
+agesex <- c(#"F_20_29", "F_30_39", "F_40_49", "F_50_59", 
   #"F_20_24", "F_25_29", "F_30_34", "F_35_39", "F_40_44", "F_45_49", "F_50_54", "F_55_59", "F_60_64", "F_65Plus",
   "F_18Plus",
  #"F_60Plus", "M_20_29", "M_30_39", "M_40_49", "M_50_59", "M_60Plus",
