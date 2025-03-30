@@ -5,7 +5,7 @@ library(cmdstanr)
 library(posterior)
 library(dplyr)
 library(here)
-
+library(patchwork)
 # Load environment
 env <- new.env()
 source(here::here(".env"), local = env)
