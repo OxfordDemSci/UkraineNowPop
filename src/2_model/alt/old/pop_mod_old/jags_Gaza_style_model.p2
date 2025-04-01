@@ -1,0 +1,57 @@
+model {
+    ######################
+    # Observation model
+    ######################
+    # DAU - counts
+    for (j in 1:27) {        
+      for (t in 1:116) {
+           F[j,t] ~ dpois( N[j, t] * nuF[j, t] ) }}
+                  
+    for (j in 1:27) {        
+      for (t in 44:116) {
+            G1[j, t] ~ dpois( N[j, t] * nuG[j, t] ) }}
+    
+    
+    # Facebook penetration rate              
+    for (j in 1:27) {        
+       for (t in 2:116) {
+          nuF[j, t] ~ dnorm(nuF[j, t-1], tau_F)T(0,) }}
+  
+    
+  
+    # Instagram penetration rate              
+    for (j in 1:27) {
+      for (t in 44:116) {
+         GF_ratio1[j, t] ~ dlnorm( log(0.7), tau_G)T(0,)
+         
+         nuG[j, t] ~ dlnorm( log(GF_ratio1[j, t]) + log(nuF[j, t]), tau_G ) 
+             }}               
+                
+    # Priors
+    tau_F ~ dgamma(1.25, 1.25)
+    tau_G ~ dgamma(0.7, 0.9)
+    
+    #########################
+    # Population model
+    #########################
+    for (j in 1:27) {
+        N[j, 1] <- N0_obs[j]
+        
+      for (t in 2:116) {
+        N[j, t] <- prop[j, t] %*% ( sum( N[1:27, 1] ) + ref_in[t] - ref_out[t] )   }}
+  
+    
+    # Proportions
+    for (t in 2:116) {
+        prop[1:27, t] ~ ddirich(alpha_prop[1:27])  
+    }
+    
+    for (j in 1:27) {
+        alpha_prop[j] ~ dgamma(2, 1) 
+    }
+
+    
+    # Define tau_N
+    tau_N <- 1 / pow(sigma_N, 2)
+    sigma_N ~ dnorm(0, 2) T(0,)
+}

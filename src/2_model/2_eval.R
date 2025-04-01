@@ -8,6 +8,7 @@ library(posterior)
 library(bayesplot)
 library(dplyr)
 library(here)
+library(patchwork)
 
 # load environment
 env <- new.env()

@@ -11,33 +11,43 @@ source(file.path(here::here(), "R_helpers/data_querying.R"))
 
 # agesex demographic groups
 
-agesex <- c(
-  "F_20_29", "F_30_39", "F_40_49", "F_50_59", "F_60Plus",
-  "M_20_29", "M_30_39", "M_40_49", "M_50_59", "M_60Plus"
-)
-
-# agesex <- c("F_13Plus", "F_18Plus", "F_20Plus", "F_13_19", "F_15_49", "F_15_64", "F_18_34", "F_20_29", "F_30_39", "F_40_49", "F_50_59", "F_60Plus", "F_65Plus",
-#            "M_13Plus", "M_18Plus", "M_20Plus", "M_13_19", "M_15_49", "M_15_64", "M_18_34", "M_20_29", "M_30_39", "M_40_49", "M_50_59", "M_60Plus", "M_65Plus",
-#            "T_13Plus", "T_18Plus", "T_20Plus", "T_13_19", "T_15_49", "T_15_64", "T_18_34", "T_20_29", "T_30_39", "T_40_49", "T_50_59", "T_60Plus", "T_65Plus")
+agesex <- c(#"F_20_29", "F_30_39", "F_40_49", "F_50_59", 
+  #"F_20_24", "F_25_29", "F_30_34", "F_35_39", "F_40_44", "F_45_49", "F_50_54", "F_55_59", "F_60_64", "F_65Plus",
+  "F_18Plus",
+ #"F_60Plus", "M_20_29", "M_30_39", "M_40_49", "M_50_59", "M_60Plus",
+ #"M_20_24", "M_25_29", "M_30_34", "M_35_39", "M_40_44", "M_45_49", "M_50_54", "M_55_59", "M_60_64", "M_65Plus")
+ "M_18Plus")
 
 # Function to create regular age groupings
-# create_regular_group <- function(age_gap, gender = c("F", "M"), age_max=60) {
-#     age_group <- c(paste(seq(from = 20, to = age_max-age_gap, by = age_gap),
-#     seq(from = 20+age_gap-1, to = age_max, by = age_gap), sep = "_"), paste0(age_max, 'Plus'))
+# create_regular_group <- function(age_gap, gender = c("F", "M"), age_max = 60) {
+#   age_group <- c(paste(seq(from = 20, to = age_max - age_gap, by = age_gap),
+#     seq(from = 20 + age_gap - 1, to = age_max, by = age_gap),
+#     sep = "_"
+#   ), paste0(age_max, "Plus"))
 #   lapply(gender, function(g) paste(g, age_group, sep = "_")) |> unlist()
 # }
 # agesex <- create_regular_group(10)
 
-# date
+
+# Define the reporting period and country
 date_start <- "2022-02-25"
-date_end <- "2024-05-14"
+date_end   <- "2024-05-14"
+country    <- "UA"
 
-country <- "UA"
-
+# Read metadata and population baseline files
 meta_keys <- read_csv(file.path(env$repo_dir, "data", "meta", paste0(tolower(country), "_meta_keys.csv")))
-pcodes <- read_csv(file = file.path(env$repo_dir, "data", "cod-ps", "population_baseline.csv"))
+pcodes    <- read_csv(file = file.path(env$repo_dir, "data", "cod-ps", "population_baseline.csv"))
 
 output_label <- ""
+
+
+agesex <- c(#"F_20_29", "F_30_39", "F_40_49", "F_50_59", 
+  #"F_20_24", "F_25_29", "F_30_34", "F_35_39", "F_40_44", "F_45_49", "F_50_54", "F_55_59", "F_60_64", "F_65Plus",
+  "F_18Plus",
+ #"F_60Plus", "M_20_29", "M_30_39", "M_40_49", "M_50_59", "M_60Plus",
+ #"M_20_24", "M_25_29", "M_30_34", "M_35_39", "M_40_44", "M_45_49", "M_50_54", "M_55_59", "M_60_64", "M_65Plus")
+ "M_18Plus")
+
 
 # create master_index ----------------------------------------------------
 
@@ -47,36 +57,35 @@ geo_index <- meta_keys |>
   left_join(
     pcodes |>
       mutate(macroregion = case_when(
-        name == "Autonomous Republic of Crimea" ~ "Autonomous",
-        name == "Cherkasy Oblast" ~ "Center",
-        name == "Chernihiv Oblast" ~ "North",
-        name == "Chernivtsi Oblast" ~ "West",
-        name == "Dnipropetrovsk Oblast" ~ "East",
-        name == "Donetsk Oblast" ~ "East",
-        name == "Ivano-Frankivsk Oblast" ~ "West",
-        name == "Kharkiv Oblast" ~ "East",
-        name == "Kherson Oblast" ~ "South",
-        name == "Khmelnytskyi Oblast" ~ "West",
-        name == "Kyiv Oblast" ~ "North",
-        name == "Kirovohrad Oblast" ~ "Center",
-        name == "Kyiv" ~ "City",
-        name == "Luhansk Oblast" ~ "East",
-        name == "Lviv Oblast" ~ "West",
-        name == "Mykolaiv Oblast" ~ "South",
-        name == "Odessa Oblast" ~ "South",
-        name == "Poltava Oblast" ~ "Center",
-        name == "Rivne Oblast" ~ "West",
-        name == "Sevastopol" ~ "Autonomous",
-        name == "Sumy Oblast" ~ "North",
-        name == "Ternopil Oblast" ~ "West",
-        name == "Vinnytsia Oblast" ~ "Center",
-        name == "Volyn Oblast" ~ "West",
-        name == "Zakarpattia Oblast" ~ "West",
-        name == "Zaporizhia Oblast" ~ "East",
-        name == "Zhytomyr Oblast" ~ "North"
-      )) |>
+           name=="Autonomous Republic of Crimea" ~ "Autonomous",
+           name=="Cherkasy Oblast"                  ~ "Center",
+           name=="Chernihiv Oblast"                  ~ "North",
+           name=="Chernivtsi Oblast"                 ~ "West",
+           name=="Dnipropetrovsk Oblast"             ~ "East",
+           name=="Donetsk Oblast"                    ~ "East",
+           name=="Ivano-Frankivsk Oblast"            ~ "West",
+           name=="Kharkiv Oblast"                    ~ "East",
+           name=="Kherson Oblast"                    ~ "South",
+           name=="Khmelnytskyi Oblast"               ~ "West",
+           name=="Kyiv Oblast"                       ~ "North",
+           name=="Kirovohrad Oblast"                 ~ "Center",
+           name=="Kyiv"                              ~ "City",
+           name=="Luhansk Oblast"                    ~ "East",
+           name=="Lviv Oblast"                       ~ "West",
+           name=="Mykolaiv Oblast"                   ~ "South",
+           name=="Odessa Oblast"                     ~ "South",
+           name=="Poltava Oblast"                    ~ "Center",
+           name=="Rivne Oblast"                      ~ "West",
+           name=="Sevastopol"                        ~ "Autonomous",
+           name=="Sumy Oblast"                       ~ "North",
+           name=="Ternopil Oblast"                   ~ "West",
+           name=="Vinnytsia Oblast"                  ~ "Center",
+           name=="Volyn Oblast"                      ~ "West",
+           name=="Zakarpattia Oblast"                ~ "West",
+           name=="Zaporizhia Oblast"                 ~ "East",
+           name=="Zhytomyr Oblast"                   ~ "North")) |> 
       select(fb_key, ADM1_PCODE, ADM1_EN, macroregion) |>
-      rename(i_key = fb_key, i_name = ADM1_EN),
+      rename(i_key = fb_key, i_name = ADM1_EN)
   ) |>
   arrange(i_key) |>
   mutate(
@@ -89,8 +98,8 @@ time_index_expanded <- tibble(
 ) |>
   mutate(
     t_name = floor_date(as.Date(collection_date), "week", week_start = 1),
-    t_key = str_replace_all(as.character(t_name), "-", "") |> as.integer(),
-    t = t_name |> as.character() |> as_factor() |> as.integer()
+    t_key  = str_replace_all(as.character(t_name), "-", "") |> as.integer(),
+    t      = t_name |> as.character() |> as_factor() |> as.integer()
   )
 
 time_index <- time_index_expanded |>
@@ -105,17 +114,15 @@ agesex_index <- lapply(
   }
 ) |>
   bind_rows() |>
-  arrange(age_min, desc(agesex)) |>
   mutate(
     a_name = str_sub(agesex, 3),
-    a = as.integer(factor(paste0(age_min, age_max))),
-    a_key = paste0(age_min, str_pad(age_max, 3, pad = "0")) |> as.integer(),
+    a      = as.integer(factor(paste0(age_min, age_max))),
+    a_key  = paste0(age_min, str_pad(age_max, 3, pad = "0")) |> as.integer(),
     s_name = str_sub(agesex, 1, 1),
-    s = ifelse(s_name == "F", 2, 1), # Assign 2 for F and 1 for M
-    s_key = s
+    s      = ifelse(s_name == "F", 2, 1),  # 2 for F and 1 for M
+    s_key  = s
   ) |>
   select(-age_min, -age_max, -gender)
-
 
 master_index <- expand_grid(
   t = unique(time_index$t),
