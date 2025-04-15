@@ -20,11 +20,12 @@ admin_gis = gpd.read_file(admin_gis_path)
 master_index = pd.read_csv(out_dir / (country +'_master_index.csv'))
 master_index = master_index[[adminName_col, 't', 'i', 't_key', 'i_key', 't_name', 'i_name']].drop_duplicates()
 time_index = pd.read_csv(out_dir / (country +'_time_index.csv'))
+
 # Path to your directory containing .nc.tar.gz files
 graced_dir = in_dir / 'GRACED'
 
 # 2. Function to extract and read .nc file from .nc.tar.gz archive
-def read_nc_from_tar(tar_path):
+def compute_zonal_from_tar(tar_path):
     with tarfile.open(tar_path, 'r:gz') as tar:
         # Extract the .nc file from the tar
         nc_filename = [name for name in tar.getnames() if name.endswith('.nc')][0]
@@ -37,8 +38,6 @@ def read_nc_from_tar(tar_path):
     zonal_sum = pd.Series([d['sum'] for d  in zonal]).replace(np.nan, 0)
 
     return zonal_sum
-
-
 
 # 3. Process all the .nc.tar.gz files
 
@@ -55,9 +54,11 @@ def process_graced_type(graced_type):
 
             date_str = re.search(r'y(\d{4})_m(\d{2})', tar_path).groups()
             collection_date = str(datetime(year=int(date_str[0]), month=int(date_str[1]), day=1).date())
+            if collection_date == '2022-02-01': # to impute the first month
+                collection_date = min(time_index['collection_date'])
 
             # Read and extract values
-            zonal_sum = read_nc_from_tar(tar_path)
+            zonal_sum = compute_zonal_from_tar(tar_path)
             admin_sum[collection_date] = zonal_sum
 
     admin_sum = pd.DataFrame(admin_sum)
@@ -101,7 +102,6 @@ filtered_data = all_graced_data[all_graced_data['i_name'].isin(['Donetska', 'Luh
 
 (
     gg.ggplot(filtered_data, gg.aes(x='t_name', y='value', colour='i_name')) +
-    #plt.facet_grid(.~covariate)+
     gg.geom_point()+
     gg.theme_minimal()+
     gg.facet_grid('covariate', scales='free_y')+
