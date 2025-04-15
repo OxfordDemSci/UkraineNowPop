@@ -1,11 +1,9 @@
 import rasterstats
 from py_helpers.utils import *
-from pathlib import Path
-import xarray as xr
 import tarfile
-import rasterio
 from datetime import datetime
 import re
+import plotnine as gg
 
 # parameters
 country = 'ua'
@@ -95,17 +93,18 @@ all_graced_data.to_csv(out_dir / 'covariates' / 'raw'/ folder /output_name, inde
 
 
 # Visualise an example
-if False:
-    filtered_data = a[a['i'].isin([5, 7, 27, 14])]
 
-    plt.figure(figsize=(12, 6))
+all_graced_data = pd.read_csv(out_dir / 'covariates' / 'raw'/ folder /output_name)
+all_graced_data['t_name'] = pd.to_datetime(all_graced_data['t_name']) 
 
-    for i in filtered_data['i_name'].unique():
-        i_data = filtered_data[filtered_data['i_name'] == i]
-        i_key = i_data['i'].unique()[0]-4
-        plt.scatter(i_data['t'], i_data['value'], label=f'i={i} (t)', color=plt.cm.tab20(i_key))
+filtered_data = all_graced_data[all_graced_data['i_name'].isin(['Donetska', 'Luhanska', 'Kyiv', 'Lvivska','Zaporizka', 'Zakarpatska'])]
 
-    plt.xlabel('t')
-    plt.ylabel('graced')
-    plt.legend()
-    plt.show()
+(
+    gg.ggplot(filtered_data, gg.aes(x='t_name', y='value', colour='i_name')) +
+    #plt.facet_grid(.~covariate)+
+    gg.geom_point()+
+    gg.theme_minimal()+
+    gg.facet_grid('covariate', scales='free_y')+
+    gg.theme(plot_background=gg.element_rect(fill='white'))
+)
+
