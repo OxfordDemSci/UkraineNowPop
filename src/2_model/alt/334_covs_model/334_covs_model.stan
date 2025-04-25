@@ -1,8 +1,8 @@
 functions {
   // slice t×(I×A×S) vector for specific time t
   array[] int t_slice(int t, int I, int A, int S) {
-    int C = I * A * S;          // total combos per time t
-    int a = 1 + (t - 1) * C;    // start index for time t
+    int C = I * A * S;         
+    int a = 1 + (t - 1) * C;   
     array[C] int result;
     for (i in 1:C)
       result[i] = a + i - 1;
@@ -11,13 +11,14 @@ functions {
   // slice for previous time t-1
   array[] int t_slice_lag(int t, int I, int A, int S) {
     int C = I * A * S;
-    int a = 1 + (t - 2) * C;    // start index for time t−1
+    int a = 1 + (t - 2) * C;   
     array[C] int result;
     for (i in 1:C)
       result[i] = a + i - 1;
     return result;
   }
 }
+
 data {
   // Dimensions
   int<lower=1> T;            // number of time steps
@@ -41,12 +42,11 @@ data {
   array[n_F] real<lower=0> y_F;
   array[n_F] int<lower=0> tias_F;
   
-  // Instgram data
+  // Instagram data
   int<lower=0> n_G;
   array[n_G] real<lower=0> y_G;
   array[n_G] int<lower=0> tias_G;
   
-  // Indexing for time and location for the (T*I) grid:
   array[T * I * A * S] int<lower=1> tt;  // time
   array[T * I * A * S] int<lower=1> ii;  // location
   array[T * I * A * S] int<lower=1> aa;  // age‐group
@@ -69,12 +69,12 @@ parameters {
   vector[A] phi_p; 
   real<lower=0>    sigma_phi_p;
 
-  array[A, S] vector[K_p] beta_p;
+  vector[K_p] beta_p;
   vector[K_p] mu_beta_p;
   vector<lower=0>[K_p]    sigma_beta_p;
   
-  real     log_sigma_F;
-  real     log_sigma_G;
+  real  log_sigma_F;
+  real  log_sigma_G;
   
   // Random effects for detection rates (different across age-sex combinations)
   vector[T]    delta_p;
@@ -103,7 +103,7 @@ transformed parameters {
     N_tot[t] = sum(N[t_slice(t, I, A, S)]);
   }
   
-  vector<lower=0>[T * I * A * S] nu;
+  vector[T * I * A * S] nu;
   nu = alpha_p
      + delta_p[tt]
      + gamma_p_i[ii]
@@ -121,6 +121,7 @@ transformed parameters {
     log_lik[n_F+j] = lognormal_lpdf(y_G[j] | log(N[tias_G[j]] * p_G[tias_G[j]]), exp(log_sigma_G));
    }
 }
+
 model {
   // Overall likelihood:
   target += sum(log_lik);
