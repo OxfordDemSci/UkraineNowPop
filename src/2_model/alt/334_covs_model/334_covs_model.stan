@@ -103,34 +103,23 @@ transformed parameters {
     N_tot[t] = sum(N[t_slice(t, I, A, S)]);
   }
   
- vector[T * I * A * S] nu;
-  for (n in 1:(T * I * A * S)) {
-  nu[n] = alpha_p
-         + delta_p[tt[n]]
-         + gamma_p_i[ii[n]]
-         + gamma_p_a[aa[n]]
-         + gamma_p_s[ss[n]]
-         + dot_product( X_p[n] , beta_p[ aa[n], ss[n] ] );
-  }
-
+  vector<lower=0>[T * I * A * S] nu;
+  nu = alpha_p
+     + delta_p[tt]
+     + gamma_p_i[ii]
+     + gamma_p_a[aa]
+     + gamma_p_s[ss]
+     + X_p * beta_p;
+  
   p_F = exp(nu);
   p_G = exp(nu + phi_p[aa]); 
-  
+
   for (i in 1:n_F){
     log_lik[i] = lognormal_lpdf(y_F[i] | log(N[tias_F[i]] * p_F[tias_F[i]]), exp(log_sigma_F));
   }
   for (j in 1:n_G){
     log_lik[n_F+j] = lognormal_lpdf(y_G[j] | log(N[tias_G[j]] * p_G[tias_G[j]]), exp(log_sigma_G));
    }
-
-
-  // Computing log-likelihood for Facebook and Instagram
-  for (i in 1:n_F){
-    log_lik[i] = lognormal_lpdf(y_F[i] | log(N[tias_F[i]] * p_F[tias_F[i]]), exp(log_sigma_F));
-  }
-  for (j in 1:n_G){
-    log_lik[n_F+j] = lognormal_lpdf(y_G[j] | log(N[tias_G[j]] * p_G[tias_G[j]]), exp(log_sigma_G));
-  }
 }
 model {
   // Overall likelihood:
@@ -138,7 +127,7 @@ model {
   
   N_tot ~ lognormal(log(y_N_tot), 0.01 / 2);
 
-// Prior: growth rates per age-sex combination, allowing each combination having different covariates
+// Prior: growth rates per age-sex combination, allowing each combination to have different covariates
 vector[T * I * A * S] eta_r;
 for (n in 1:(T * I * A * S)) {
  eta_r[n] = alpha_r + dot_product( X_r[n], beta_r[aa[n], ss[n]] );
