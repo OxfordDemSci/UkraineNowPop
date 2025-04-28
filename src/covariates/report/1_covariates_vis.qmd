@@ -37,8 +37,8 @@ cov_processing |> distinct(scale_label,sum_stat, time_std, space_std) |>
             rename(
               "Std. method label<br>(sum_std, time_std, spatial_std)" = "scale_label",
               "Summary statistic" = "sum_stat",
-              "Time window <br> for centering" = "time_std",
-              "Spatial window<br>for centering" = "space_std"
+              "Time window <br> for standardising" = "time_std",
+              "Spatial window<br>for standardising" = "space_std"
 
             ) |> 
   kbl(escape=F, format = "html") |> 
@@ -71,3 +71,26 @@ for(cov in sort(unique(cov_df$covariate), decreasing = T)){
 ```
 
 
+# Covariate standardised distribution
+
+```{r}
+#| output: asis
+
+for(cov in sort(unique(cov_df$covariate), decreasing = T)){
+  cat(paste0("\n\n## ", cov, "\n\n"))
+  
+    # m= 'East'
+    g <- ggplot(cov_df |> filter(covariate==cov) , aes(x = value_std)) +
+      geom_histogram(bins=50) +
+      facet_wrap(~scale_label, scales = "free_x") +
+      labs(
+        title = paste(cov),
+        x = "Time",
+        y = "Standardised value",
+        color = "(Sum_stat, Time, Spatial)"
+      ) +
+      theme_minimal()
+    print(g)
+  
+}
+```
