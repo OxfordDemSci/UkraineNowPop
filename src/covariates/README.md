@@ -51,20 +51,13 @@ We implemented two processing levels:
 2.  on its standardisation: we implement a Z-score scaling ($X_{i,t} = \frac{x_{i,t} - \bar{x}}{sd(x)}$ ) with different time or spatial window for computing the centering $\bar{x}$ and scaling $sd(x)$.
 
 Four combinations are currently available:
-
-+-------------------+--------------------+----------------------+-------------------------+-------------------------------------------------------------------------------------------------------------------------------+
 | Combination       | Summary statistics | Time standardisation | Spatial standardisation | Meaning                                                                                                                       |
-|                   |                    |                      |                         |                                                                                                                               |
-|                   | `sum_stat`         | `time_std`           | `space_std`             |                                                                                                                               |
-+===================+====================+======================+=========================+===============================================================================================================================+
-| Extreme outliers  | `raw`              | `all`                | `country`               | This corresponds to the conventional Z-score across all i and t and should highlight singular outliers across time and space. |
-+-------------------+--------------------+----------------------+-------------------------+-------------------------------------------------------------------------------------------------------------------------------+
-| Duration          | `sum_xxweek`       | `NA`                 | `country`               | This should highlight the duration of events in comparison to other spatial unit                                              |
-+-------------------+--------------------+----------------------+-------------------------+-------------------------------------------------------------------------------------------------------------------------------+
-| Temporal outliers | `raw`              | `xxweek`             | `NA`                    | This should highlight intensification of events that is, outliers across time                                                 |
-+-------------------+--------------------+----------------------+-------------------------+-------------------------------------------------------------------------------------------------------------------------------+
-| Spatial outliers  | `raw`              | `NA`                 | `country`               | This should highlight hotspots of events, that is outliers across space.                                                      |
-+-------------------+--------------------+----------------------+-------------------------+-------------------------------------------------------------------------------------------------------------------------------+
+|-------------------|--------------------|----------------------|-------------------------|-------------------------------------------------------------------------------------------------------------------------------|
+| **Extreme outliers**  | `raw`              | `all`                | `country`               | This corresponds to the conventional Z-score across all i and t and should highlight singular outliers across time and space. |
+| **Duration**          | `sum_xxweek`       | `NA`                 | `country`               | This should highlight the duration of events in comparison to other spatial units.                                            |
+| **Temporal outliers** | `raw`              | `xxweek`             | `NA`                    | This should highlight intensification of events, i.e., outliers across time.                                                  |
+| **Spatial outliers**  | `raw`              | `NA`                 | `country`               | This should highlight hotspots of events, i.e., outliers across space.                                                       |
+
 
 There are three "hyperparameters" : (1) $t$ in the cumulative scaling that is the time window for the cumulative effect (2) $t$ in the temporal scaling that is the time window for the baseline comparison (3) $i$ in the geographical scaling that is the geographical window for the baseline comparison.
 
