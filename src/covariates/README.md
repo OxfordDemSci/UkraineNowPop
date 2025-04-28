@@ -54,7 +54,7 @@ Four combinations are currently available:
 | Combination       | Summary statistics | Time standardisation | Spatial standardisation | Meaning                                                                                                                       |
 |-------------------|--------------------|----------------------|-------------------------|-------------------------------------------------------------------------------------------------------------------------------|
 | **Extreme outliers**  | `raw`              | `all`                | `country`               | This corresponds to the conventional Z-score across all i and t and should highlight singular outliers across time and space. |
-| **Duration**          | `sum_xxweek`       | `NA`                 | `country`               | This should highlight the duration of events in comparison to other spatial units.                                            |
+| **Duration outliers**          | `sum_xxweek`       | `NA`                 | `country`               | This should highlight the unusual duration of events in comparison to other spatial units.                                    |
 | **Temporal outliers** | `raw`              | `xxweek`             | `NA`                    | This should highlight intensification of events, i.e., outliers across time.                                                  |
 | **Spatial outliers**  | `raw`              | `NA`                 | `country`               | This should highlight hotspots of events, i.e., outliers across space.                                                       |
 
@@ -73,15 +73,16 @@ In the output, the `time_std` and `space_std` columns explain how the `center_st
 
 ## Report on covariates
 
-The covariates visualisation is stored in src/covariates/report. I have organised it into three different reports, each consisting of a Quarto .qmd file and its rendered .html version.
+The covariates visualisation is stored in src/covariates/report. I have organised it into two different reports, each consisting of a Quarto .qmd file and its rendered .html version.
 
-The three reports are as follows:
+The two reports are as follows:
 
-1.  1_covariates_vis: *Visualise individual covariates*. This report contains scatterplots over time for each covariate along with their 31 + 2 × 3 related standardisations:
+1.  1_covariates_vis: *Visualise individual covariates*. This report contains scatterplots over time for each covariate (13) with their 3 + 3 + 1 + 1 related standardisations:
 
--   Raw values
--   Cumulative values (with three different time windows)
--   Time-scaled values (with three different time windows)
+-   Extreme outliers: raw, all, country
+-   Duration outliers (with three windows): sum_xxweek, NA, country
+-   Temporal outliers (with three windows): raw, xxweek, NA
+-   Spatial outliers: raw, NA, country
 
 2.  2_covariates_corr: *Correlation between covariates*. This report provides a correlation analysis split into three sections:
 
