@@ -61,7 +61,7 @@ Four combinations are currently available:
 
 There are three "hyperparameters" : (1) $t$ in the cumulative scaling that is the time window for the cumulative effect (2) $t$ in the temporal scaling that is the time window for the baseline comparison (3) $i$ in the geographical scaling that is the geographical window for the baseline comparison.
 
-Current hyperparameters are: (1) sum over 12 weeks, (2) centered and scaled over 12 weeks (3) centered and scaled over all oblasts.
+Current hyperparameters are: (1) sum over 6, 12 and 24 weeks, (2) centered and scaled over 6, 12 and 24 weeks (3) centered and scaled over all oblasts.
 
 The processing label `std_label` follows the following schema: `sum_stat, time_std, space_std`.
 
