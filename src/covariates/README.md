@@ -67,9 +67,7 @@ The processing label `std_label` follows the following schema: `sum_stat, time_s
 
 ### Output
 
-The final dataset stored under `covariate/final` and called `ua_covariates_oblast.csv` contains the raw value and the processed value. More specifically the column `sum_stat` describes the summary statistics applied to the raw data before any standardisation.
-
-In the output, the `time_std` and `space_std` columns explain how the `center_std` and `scale_std` have been computed to derive the `value_std` column.
+The final dataset stored under `covariate/final` and called `ua_covariates_oblast.csv` contains the raw value and the processed value. More specifically the column `sum_stat` describes the summary statistics applied to the raw data before any standardisation. In the output, the `time_std` and `space_std` columns explain how the `center_std` and `scale_std` have been computed to derive the `value_std` column.
 
 ## Report on covariates
 
