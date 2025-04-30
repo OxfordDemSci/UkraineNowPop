@@ -1,7 +1,7 @@
 functions {
   array[] int t_slice(int t, int I, int A, int S) {
-    int C = I * A * S;          // total combos per time t
-    int a = 1 + (t - 1) * C;    // start index for time t
+    int C = I * A * S;          
+    int a = 1 + (t - 1) * C;    
     array[C] int result;
     for (i in 1:C)
       result[i] = a + i - 1;
@@ -9,7 +9,7 @@ functions {
   }
   array[] int t_slice_lag(int t, int I, int A, int S) {
     int C = I * A * S;
-    int a = 1 + (t - 2) * C;    // start index for time t−1
+    int a = 1 + (t - 2) * C;    
     array[C] int result;
     for (i in 1:C)
       result[i] = a + i - 1;
@@ -28,7 +28,7 @@ data {
   int<lower=0> K_p;  
 
   vector<lower=0>[T] y_N_tot;     
-  vector<lower=0>[C] N0;        // initial pop per (i,a,s)
+  vector<lower=0>[C] N0;        
 
   matrix[T * C, K_r] X_r;
   matrix[T * C, K_p] X_p; 
