@@ -7,7 +7,7 @@ functions {
       result[i] = a + i - 1;
     return result;
   }
-  array[] int t_slice_lag(int t, int I, int A, int S) {
+  array[] int t_slice_lag(int t, int I, int A, int S) { 
     int C = I * A * S;
     int a = 1 + (t - 2) * C;    
     array[C] int result;
