@@ -39,10 +39,11 @@ hromada_geo <- hromada |>
       TRUE ~ oblast_name_en
     ),
   ) |>
-  full_join(master_index |> distinct(i, i_key, ADM1_PCODE, i_name, macroregion), by = c("oblast_name_en" = "i_name")) |> 
+  full_join(master_index |> distinct(i, i_key, ADM1_PCODE, i_name, macroregion), by = c("oblast_name_en" = "i_name")) |>
   mutate(
-    hromada_code = ifelse(oblast_name_en =='Kyiv', 'Kyiv', hromada_code)
-  ) |> 
+    hromada_code = ifelse(oblast_name_en == "Kyiv", "Kyiv", hromada_code),
+    raion_code = ifelse(oblast_name_en == "Kyiv", "Kyiv", raion_code)
+  ) |>
   filter(!is.na(hromada_code))
 
 
@@ -112,13 +113,13 @@ baselineFlows <- read_csv2(file.path(in_dir, "Vodafone", "Baseline Flows.csv")) 
     s_name = ifelse(sex == "female", "F", "M"),
     a_name = str_replace(age, "-", "_"),
     a_name = str_replace(age, "\\+", "Plus")
-  ) |> 
+  ) |>
   rename(
     subscribers_baselineFlow = subscribers
   )
 
-baselineFlows <-  baselineFlows |> 
-  select(t, origin_hromada, origin_oblast, origin_macroregion, destination_hromada, destination_oblast, destination_macroregion, s_name, a_name, subscribers_baselineFlow) 
+baselineFlows <- baselineFlows |>
+  select(t, origin_hromada, origin_oblast, origin_macroregion, destination_hromada, destination_oblast, destination_macroregion, s_name, a_name, subscribers_baselineFlow)
 write_csv(baselineFlows, file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_baselineFlows.csv"))
 
 
@@ -152,7 +153,7 @@ hromada_list |>
 stocks |>
   group_by(t, oblast_name_en) |>
   summarise(n_hromada = n_distinct(hromada_code)) |>
-  left_join(hromada |>
+  left_join(hromada_geo |>
     group_by(oblast_name_en) |>
     summarise(n_hromada_true = n_distinct(hromada_code))) |>
   ggplot(aes(x = t, y = n_hromada)) +
@@ -160,6 +161,17 @@ stocks |>
   geom_line(aes(y = n_hromada_true), col = "red") +
   facet_wrap(oblast_name_en ~ ., scales = "free_y")
 
+# Raion through time
+stocks |>
+  group_by(t, oblast_name_en) |>
+  summarise(n_raion = n_distinct(raion_code)) |>
+  left_join(hromada_geo |>
+    group_by(oblast_name_en) |>
+    summarise(n_raion_true = n_distinct(raion_code))) |>
+  ggplot(aes(x = t, y = n_raion)) +
+  geom_line() +
+  geom_line(aes(y = n_raion_true), col = "red") +
+  facet_wrap(oblast_name_en ~ ., scales = "free_y")
 
 
 # User evolution
