@@ -42,7 +42,8 @@ hromada_geo <- hromada |>
   full_join(master_index |> distinct(i, i_key, ADM1_PCODE, i_name, macroregion), by = c("oblast_name_en" = "i_name")) |>
   mutate(
     hromada_code = ifelse(oblast_name_en == "Kyiv", "Kyiv", hromada_code),
-    raion_code = ifelse(oblast_name_en == "Kyiv", "Kyiv", raion_code)
+    raion_code = ifelse(oblast_name_en == "Kyiv", "Kyiv", raion_code),
+    raion_name = ifelse(oblast_name_en == "Kyiv", "Київ", raion_name)
   ) |>
   filter(!is.na(hromada_code))
 
