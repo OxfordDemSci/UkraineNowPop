@@ -11,13 +11,13 @@ hromada_geo <- st_make_valid(hromada_geo)
 hromada_geo <- bind_rows(
   hromada_geo,
   hromada_kyiv |>
-    select(ADM1_UA) |>
-    rename(ADMIN_1 = ADM1_UA)
+    mutate(COD_3 = "Kyiv") |>
+    select(COD_3)
 )
 
 # Standardise
 hromada_geo <- hromada_geo |>
-  filter(TYPE != "Державні території") |>
+  filter(TYPE != "Державні території" | is.na(TYPE)) |>
   rename(
     hromada_code = COD_3
   ) |>
@@ -30,7 +30,10 @@ hromada_geo <- hromada_geo |>
     across(
       c(hromada_name, raion_name, raion_code, oblast_name), ~ ifelse(ADMIN_1 == "Автономна Республіка Крим", "Автономна Республіка Крим", .x)
     ),
-    raion_name = ifelse(oblast_name_en == "Kyiv", "Київ", raion_name),
+    across(
+      c(hromada_name, raion_name, raion_code, oblast_name), ~ ifelse(hromada_code == "Kyiv", "Київ", .x)
+    ),
+    oblast_name_en = ifelse(hromada_code == "Kyiv", "Kyiv", oblast_name_en),
     raion_name = case_when(
       oblast_name == "Луганська" ~ "Luhanska",
       oblast_name == "Донецька" ~ "Donetska",
