@@ -65,7 +65,7 @@ stocks <- read_csv2(file.path(in_dir, "Vodafone", "Stocks.csv")) |>
   )
 
 stocks <- stocks |>
-  select(t, hromada_code, hromada_name, raion_code, raion_name, oblast_name_en, macroregion, s_name, a_name, subscribers_stock)
+  select(t, hromada_code, hromada_name, raion_code, raion_name, oblast_name_en, ADM1_PCODE, macroregion, s_name, a_name, subscribers_stock)
 write.csv(stocks, file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_stocks.csv"), row.names = F)
 
 # Baseline flows ---------------------------------------------------------
