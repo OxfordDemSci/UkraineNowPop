@@ -2,9 +2,7 @@ source(file.path(here::here(), "R_helpers/generic.R"))
 
 hromada_kyiv <- st_read(file.path(in_dir, "COD-AB", "ukr_admbnda_sspe_20230201_SHP", "ukr_admbnda_adm1_sspe_20230201.shp")) |>
   filter(ADM1_EN == "Kyiv")
-hromada_geo <- st_read(file.path(in_dir, "KSE-Loc-Data-Hub", "KSE-Loc-Data-Hub", "data", "derived", "geography.csv"))
 hromada_df <- read_csv(file.path(in_dir, "KSE-Loc-Data-Hub", "full_dataset.csv"))
-
 hromada_geo <- st_read(file.path(in_dir, "KSE-Loc-Data-Hub", "KSE-Loc-Data-Hub", "data", "derived", "shapefiles", "admin", "terhromad_fin.geojson"))
 
 # Add Kyiv
