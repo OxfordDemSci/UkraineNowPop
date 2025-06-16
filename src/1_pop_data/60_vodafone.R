@@ -1,11 +1,16 @@
 rm(list = ls())
 gc()
+library(tmap)
 
 # Load required helpers
 source(file.path(here::here(), "R_helpers/generic.R"))
 hromada <- read_csv(file.path(in_dir, "KSE-Loc-Data-Hub", "full_dataset.csv"))
 master_index <- read_csv(file.path(out_dir, "ua_master_index.csv"))
+hromada_geo <- st_read(file.path(out_dir, "ua_master_hromada.gpkg"))
 
+oblast_geo <- hromada_geo |>
+  group_by(oblast_name_en) |>
+  summarise(n = n())
 # Link Meta and Vodafone geolabelling
 hromada_geo <- hromada |>
   select(
@@ -150,6 +155,18 @@ hromada_list |>
 
 # Data consistency checks
 
+hromada_geo <- hromada_geo |>
+  left_join(stocks |>
+    filter(t == "2021-11-01") |>
+    distinct(hromada_code) |>
+    mutate(with_users = T))
+
+
+tm_shape(hromada_geo) + tm_polygons(fill = "with_users") +
+  tm_shape(oblast_geo) +
+  tm_borders(lwd = 3)
+
+
 # Hromada through time
 stocks |>
   group_by(t, oblast_name_en) |>
@@ -214,6 +231,36 @@ baselineFlows_hromada <- baselineFlows |>
 n_distinct(baselineFlows_hromada$origin)
 n_distinct(baselineFlows_hromada$destination)
 
+# Data availibility
+
+baselineFlows |>
+  group_by(t, origin_oblast) |>
+  summarise(n_hromada = n_distinct(origin_hromada)) |>
+  left_join(hromada_geo |>
+    st_drop_geometry() |>
+    group_by(oblast_name_en) |>
+    summarise(n_hromada_true = n_distinct(hromada_code)) |>
+    rename(origin_oblast = oblast_name_en)) |>
+  ggplot(aes(x = t, y = n_hromada)) +
+  geom_line() +
+  geom_line(aes(y = n_hromada_true), col = "red") +
+  facet_wrap(origin_oblast ~ ., scales = "free_y") +
+  labs(title = "Baseline flows origin")
+
+
+baselineFlows |>
+  group_by(t, destination_oblast) |>
+  summarise(n_hromada = n_distinct(destination_hromada)) |>
+  left_join(hromada_geo |>
+    st_drop_geometry() |>
+    group_by(oblast_name_en) |>
+    summarise(n_hromada_true = n_distinct(hromada_code)) |>
+    rename(destination_oblast = oblast_name_en)) |>
+  ggplot(aes(x = t, y = n_hromada)) +
+  geom_line() +
+  geom_line(aes(y = n_hromada_true), col = "red") +
+  facet_wrap(destination_oblast ~ ., scales = "free_y") +
+  labs(title = "Baseline flows destination")
 
 # Users evolution
 a <- baselineFlows |>
