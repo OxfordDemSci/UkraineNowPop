@@ -11,6 +11,7 @@ hromada_geo <- st_read(file.path(out_dir, "ua_master_hromada.gpkg"))
 oblast_geo <- hromada_geo |>
   group_by(oblast_name_en) |>
   summarise(n = n())
+
 # Link Meta and Vodafone geolabelling
 hromada_geo <- hromada |>
   select(
@@ -129,6 +130,61 @@ baselineFlows <- baselineFlows |>
 write_csv(baselineFlows, file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_baselineFlows.csv"))
 
 
+# Monthly flows ----------------------------------------------------------
+
+monthlyFlows <- read_csv2(file.path(in_dir, "Vodafone", "Monthly Flows.csv"))
+
+monthlyFlows <- monthlyFlows |>
+  rename(
+    destination_hromada = `Current home hromada`,
+    origin_hromada = `Home hromada last month`
+  ) |>
+  mutate(t = as.Date(month, "%d.%m.%y")) |>
+  left_join(hromada_geo |>
+    select(hromada_code, oblast_name_en, macroregion) |>
+    rename(
+      destination_oblast = oblast_name_en,
+      destination_hromada = hromada_code,
+      destination_macroregion = macroregion
+    )) |>
+  left_join(hromada_geo |>
+    select(hromada_code, oblast_name_en, macroregion) |>
+    rename(origin_oblast = oblast_name_en, origin_hromada = hromada_code, origin_macroregion = macroregion)) |>
+  mutate(
+    # Replace NAs in origin/destination
+    origin_hromada = if_else(is.na(origin_hromada), "Unknown", origin_hromada),
+    destination_hromada = if_else(is.na(destination_hromada), "Unknown", destination_hromada),
+    origin_oblast = case_when(
+      origin_hromada == "abroad" ~ "Abroad",
+      origin_hromada == "Unknown" ~ "Unknown",
+      TRUE ~ origin_oblast
+    ),
+    destination_oblast = case_when(
+      destination_hromada == "abroad" ~ "Abroad",
+      destination_hromada == "Unknown" ~ "Unknown",
+      TRUE ~ destination_oblast
+    ),
+    origin_macroregion = case_when(
+      origin_hromada == "abroad" ~ "Abroad",
+      origin_hromada == "Unknown" ~ "Unknown",
+      TRUE ~ origin_macroregion
+    ),
+    destination_macroregion = case_when(
+      destination_hromada == "abroad" ~ "Abroad",
+      destination_hromada == "Unknown" ~ "Unknown",
+      TRUE ~ destination_macroregion
+    ),
+    s_name = ifelse(sex == "female", "F", "M"),
+    a_name = str_replace(age, "-", "_"),
+    a_name = str_replace(age, "\\+", "Plus")
+  ) |>
+  rename(
+    subscribers_monthlyFlow = subscribers
+  )
+
+monthlyFlows <- monthlyFlows |>
+  select(t, origin_hromada, origin_oblast, origin_macroregion, destination_hromada, destination_oblast, destination_macroregion, s_name, a_name, subscribers_monthlyFlow)
+write_csv(monthlyFlows, file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_monthlyFlows.csv"))
 
 # Data assessment -------------------------------------------------------
 
@@ -233,6 +289,7 @@ n_distinct(baselineFlows_hromada$destination)
 
 # Data availibility
 
+# Origin
 baselineFlows |>
   group_by(t, origin_oblast) |>
   summarise(n_hromada = n_distinct(origin_hromada)) |>
@@ -247,7 +304,7 @@ baselineFlows |>
   facet_wrap(origin_oblast ~ ., scales = "free_y") +
   labs(title = "Baseline flows origin")
 
-
+# Destination
 baselineFlows |>
   group_by(t, destination_oblast) |>
   summarise(n_hromada = n_distinct(destination_hromada)) |>
@@ -263,26 +320,24 @@ baselineFlows |>
   labs(title = "Baseline flows destination")
 
 # Users evolution
-a <- baselineFlows |>
-  mutate(t = as.Date(month, "%d.%m.%y"))
-baselineFlows <- baselineFlows
+
 baselineFlows_hromada <- baselineFlows |>
-  group_by(t, origin_oblast, origin, destination_oblast, destination) |>
-  summarise(subscribers = sum(subscribers))
+  group_by(t, origin_oblast, origin_hromada, destination_oblast, destination_hromada) |>
+  summarise(subscribers_baselineFlow = sum(subscribers_baselineFlow))
 
 baselineFlows_oblast <- baselineFlows_hromada |>
   group_by(t, origin_oblast, destination_oblast) |>
-  summarise(subscribers = sum(subscribers))
+  summarise(subscribers_baselineFlow = sum(subscribers_baselineFlow))
 
 
 ggplot(baselineFlows_oblast |>
-  filter(origin_oblast == "Kyiv"), aes(x = t, y = subscribers)) +
+  filter(origin_oblast == "Kyiv"), aes(x = t, y = subscribers_baselineFlow)) +
   geom_line() +
   facet_wrap(origin_oblast ~ destination_oblast, scales = "free_y") +
   labs(title = "Kyiv -> other oblasts")
 
 ggplot(baselineFlows_oblast |>
-  filter(destination_oblast == "Kyiv"), aes(x = t, y = subscribers)) +
+  filter(destination_oblast == "Kyiv"), aes(x = t, y = subscribers_baselineFlow)) +
   geom_line() +
   facet_wrap(origin_oblast ~ destination_oblast, scales = "free_y") +
   labs(title = "Other oblasts -> Kyiv")
@@ -294,36 +349,70 @@ ggplot(baselineFlows_oblast |>
   facet_wrap(origin_oblast ~ destination_oblast, scales = "free_y")
 
 
-# Check coherence flow-stock
-baselineFlows_oblast_stocks <- baselineFlows_oblast |>
+# Monthly flows ----------------------------------------------------------
+
+# Data consistency checks
+
+# Origin
+monthlyFlows |>
+  group_by(t, origin_oblast) |>
+  summarise(n_hromada = n_distinct(origin_hromada)) |>
+  left_join(hromada_geo |>
+    st_drop_geometry() |>
+    group_by(oblast_name_en) |>
+    summarise(n_hromada_true = n_distinct(hromada_code)) |>
+    rename(origin_oblast = oblast_name_en)) |>
+  ggplot(aes(x = t, y = n_hromada)) +
+  geom_line() +
+  geom_line(aes(y = n_hromada_true), col = "red") +
+  facet_wrap(origin_oblast ~ ., scales = "free_y") +
+  labs(title = "Monthly flows origin")
+
+# Destination
+monthlyFlows |>
+  group_by(t, destination_oblast) |>
+  summarise(n_hromada = n_distinct(destination_hromada)) |>
+  left_join(hromada_geo |>
+    st_drop_geometry() |>
+    group_by(oblast_name_en) |>
+    summarise(n_hromada_true = n_distinct(hromada_code)) |>
+    rename(destination_oblast = oblast_name_en)) |>
+  ggplot(aes(x = t, y = n_hromada)) +
+  geom_line() +
+  geom_line(aes(y = n_hromada_true), col = "red") +
+  facet_wrap(destination_oblast ~ ., scales = "free_y") +
+  labs(title = "Monthly flows destination")
+
+
+
+
+# Check coherence stocks - baseline flows - monthly flows ----------------
+
+
+coherence_df <- baselineFlows_oblast |>
   ungroup() |>
   group_by(t, destination_oblast) |>
-  summarise(subscribers_flows = sum(subscribers)) |>
+  summarise(subscribers_baselineFlow = sum(subscribers_baselineFlow)) |>
   rename(oblast_name_en = destination_oblast) |>
   full_join(
     stocks |>
       ungroup() |>
       group_by(t, oblast_name_en) |>
-      summarise(subscribers_stock = sum(subscribers))
+      summarise(subscribers_stock = sum(subscribers_stock))
   ) |>
-  mutate(
-    diff = subscribers_flows - subscribers_stock
+  full_join(
+    monthlyFlows |>
+      ungroup() |>
+      group_by(t, destination_oblast) |>
+      rename(oblast_name_en = destination_oblast) |>
+      summarise(subscribers_monthlyFlow = sum(subscribers_monthlyFlow))
   )
 
-ggplot(
-  baselineFlows_oblast_stocks |> group_by(t) |>
-    summarise(subscribers = sum(subscribers_flows, na.rm = T)) |>
-    mutate(type = "subscribers_flows") |>
-    bind_rows(
-      stocks |> group_by(t) |>
-        summarise(subscribers = sum(subscribers)) |>
-        mutate(type = "subscribers_stock")
-    ), aes(x = t, y = subscribers, col = type)
-) +
+coherence_df |>
+  pivot_longer(starts_with("subscriber"), names_to = "type", values_to = "subscribers") |>
+  group_by(t, type) |>
+  summarise(subscribers = sum(subscribers)) |>
+  ggplot(aes(x = t, y = subscribers, col = type)) +
   geom_line() +
-  geom_hline(yintercept = 38676840 / 3, col = "red", lty = 2)
-
-ggplot(baselineFlows_oblast_stocks, aes(x = t, y = diff)) +
-  geom_line() +
-  facet_wrap(oblast_name_en ~ ., scales = "free_y") +
-  geom_hline(yintercept = 0, col = "red", lty = 2)
+  labs(title = "Coherence stocks - baseline flows - monthly flows") +
+  theme_minimal()
