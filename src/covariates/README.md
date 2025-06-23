@@ -6,6 +6,7 @@ The covariates code is divided in three: the scripts collecting the data, the on
 ├── collection
 │  ├── acled.py             # Script to access and process ACLED conflict data
 │  ├── deepstate.py         # Analysis of deep-state actors in conflicts
+│  ├── graced.py            # Monthlty gridded pollution per sector
 │  ├── pwtt.py              # Processing of PWTT covariate (building damage)
 │  ├── sirens.R             # Analysis of early warning siren data
 │  ├── warfires.R           # Fire incidents in war zones analysis
