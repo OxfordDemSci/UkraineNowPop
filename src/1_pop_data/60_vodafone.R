@@ -235,6 +235,20 @@ stocks |>
   geom_line(aes(y = n_hromada_true), col = "red") +
   facet_wrap(oblast_name_en ~ ., scales = "free_y")
 
+# Hromada through time by age and sex
+
+stocks |>
+  group_by(t, oblast_name_en, a_name, s_name) |>
+  summarise(n_hromada = n_distinct(hromada_code)) |>
+  left_join(hromada_geo |>
+    group_by(oblast_name_en) |>
+    summarise(n_hromada_true = n_distinct(hromada_code))) |>
+  ggplot(aes(x = t, y = n_hromada, col = a_name, linetype = s_name)) +
+  geom_line() +
+  geom_line(aes(y = n_hromada_true), col = "grey20") +
+  facet_wrap(oblast_name_en ~ ., scales = "free_y") +
+  theme_minimal()
+
 # Raion through time
 stocks |>
   group_by(t, oblast_name_en) |>
