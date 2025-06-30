@@ -13,6 +13,7 @@ hromada <- read_csv(file.path(in_dir, "KSE-Loc-Data-Hub", "full_dataset.csv"))
 hromada_geo <- st_read(file.path(out_dir, "ua_master_hromada.gpkg"))
 stocks <- read_csv(file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_stocks.csv"))
 baselineFlows <- read_csv(file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_baselineFlows.csv"))
+monthlyFlows <- read_csv(file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_monthlyFlows.csv"))
 borderCrossing <- read_csv(file.path(out_dir, "population_proxy", "crossing_borders", "dat_refugees.csv"))
 
 stocks |>
@@ -35,9 +36,9 @@ hromada_pop <- hromada |>
 
 
 
-# 1. Model ------------------------------------------------------------------
+# 1. Stocks induced Stocks ------------------------------------------------------------------
 
-# 1.1 compute penetration rate -----------------------------------------------
+# compute penetration rate -----------------------------------------------
 
 day1_pop <- stocks_total |>
   filter(t == as.Date("2021-11-01")) |>
@@ -53,22 +54,21 @@ day1_pop <- stocks_total |>
 sum(day1_pop |> select(total_popultaion_2022) |> pull())
 sum(day1_pop$subscribers_stock)
 
-# 1.2 apply penetration rate -------------------------------------------------
+# apply penetration rate -------------------------------------------------
 
 stocks_total <- stocks_total |>
   left_join(day1_pop |> select(hromada_code, p0)) |>
   group_by(oblast_name_en) |>
   mutate(
+    # Fill missing penetration rate
     p0_imputed = ifelse(is.na(p0), mean(p0, na.rm = T), p0),
     stock_hat = subscribers_stock / p0_imputed
   )
 
-# Fill missing penetration rate
 
-# 2. Evaluation -------------------------------------------------------------
+# 1.2 Stocks induced Evaluation -------------------------------------------------------------
 
-
-# 2.1 Evaluate penetration rate ----------------------------------------------
+# evaluate penetration rate ----------------------------------------------
 
 # Per oblast
 
@@ -120,7 +120,7 @@ day1_pop |>
   pull(p0) |>
   summary()
 
-# 2.2 Evaluate stocks-induced totals ---------------------------------------
+# evaluate stocks-induced totals ---------------------------------------
 national_pop <- borderCrossing |>
   mutate(t = date) |>
   filter(day(t) == 1) |>
@@ -168,7 +168,7 @@ ggplot(stocks_oblast, aes(x = t, y = stock_hat)) +
   theme(strip.text.y.right = element_text(angle = 0, vjust = 0.5, hjust = 1))
 
 
-# Baseline flows induced estimation --------------------------------------
+# 2. Baseline flows induced model --------------------------------------
 
 baselineFlows_totals <- baselineFlows |>
   left_join(hromada_geo |>
@@ -230,12 +230,9 @@ baselineFlows_stocks <- baselineFlows_estimated |>
   )
 
 
-
-
-# Evaluate ---------------------------------------------------------------
+# 2.2 Evaluate baseline flows induced model ---------------------------------------------------------------
 
 # Evaluate penetration rate
-
 
 # Distribution
 
@@ -279,6 +276,99 @@ gg_flows_national <- ggplot(
   geom_hline(data = tibble(type = c("baselineFlow_hat", "baselineFlow_hat_perc"), value = c(sum(day1_pop$total_popultaion_2022), 0)), aes(yintercept = value), color = "red", linetype = "dashed") +
   geom_line(data = national_pop |> mutate(type = "baselineFlow_hat"), aes(x = t, y = national_total), color = "red", linetype = "dashed") +
   labs(title = "Flows induced stocks: National level", ) +
+  facet_wrap(~type, scales = "free_y", labeller = labeller(type = type_label)) +
+  theme_minimal()
+gg_flows_national
+
+
+# 3. Monthly flows induced model ---------------------------------------
+
+monthlyFlows_totals <- monthlyFlows |>
+  left_join(hromada_geo |>
+    st_drop_geometry() |>
+    select(hromada_code) |>
+    rename(
+      origin_hromada = hromada_code
+    )) |>
+  left_join(hromada_geo |>
+    st_drop_geometry() |>
+    select(hromada_code) |>
+    rename(
+      destination_hromada = hromada_code
+    )) |>
+  group_by(t, origin_hromada, destination_hromada, origin_macroregion, destination_macroregion, origin_oblast, destination_oblast) |>
+  summarise(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)) |>
+  ungroup()
+
+
+penetration_rate <- list()
+penetration_rate[[1]] <- day1_pop |>
+  ungroup() |>
+  select(origin_hromada = hromada_code, origin_oblast = oblast_name_en, origin_macroregion = macroregion, origin_p = p0) |>
+  mutate(t = min(stocks$t) + months(1))
+
+monthlyFlows_totals <- monthlyFlows_totals |>
+  group_split(t)
+
+monthlyFlows_totals_hat <- list()
+
+for (idx in 1:n_distinct(monthlyFlows$t)) {
+  print(test[[idx]]$t[1])
+  monthlyFlows_totals_hat[[idx]] <- monthlyFlows_totals[[idx]] |>
+    left_join(penetration_rate[[idx]], by = c("t", "origin_hromada", "origin_oblast")) |>
+    mutate(
+      origin_p = ifelse(is.na(origin_p), median(origin_p, na.rm = T), origin_p),
+      monthlyFlow_hat = subscribers_monthlyFlow / origin_p
+    )
+
+  penetration_rate[[idx + 1]] <- monthlyFlows_totals_hat[[idx]] |>
+    group_by(t, origin_hromada = destination_hromada, origin_oblast = destination_oblast, origin_macroregion = destination_macroregion) |>
+    summarise(
+      origin_p = sum(subscribers_monthlyFlow) / sum(monthlyFlow_hat),
+      .groups = "drop"
+    ) |>
+    mutate(t = t + months(1))
+}
+
+penetration_rate <- bind_rows(penetration_rate)
+monthlyFlows_totals_hat <- bind_rows(monthlyFlows_totals_hat)
+
+# Evaluate
+# 3.2 evaluate monthly flows induced model -------------------------------
+
+# penetration rate
+
+penetration_rate |>
+  mutate(macroregion_oblast = paste0(origin_macroregion, " - ", origin_oblast)) |>
+  ggplot(aes(x = t, y = origin_p, col = origin_hromada)) +
+  geom_line() +
+  theme_minimal() +
+  facet_wrap(macroregion_oblast ~ .) +
+  theme(legend.position = "None") +
+  geom_hline(yintercept = 1, color = "grey20") +
+  labs(title = paste("Penetration rate at hromada level - Monthly flows"), x = "Time", y = "Subscribers/Pop at t0")
+
+# stocks total
+monthlyFlows_totals_hat_national <- monthlyFlows_totals_hat |>
+  filter(destination_hromada != "Abroad") |>
+  group_by(t) |>
+  summarise(
+    monthlyFlow_hat = sum(monthlyFlow_hat)
+  ) |>
+  left_join(national_pop) |>
+  mutate(
+    national_total = ifelse(t < min(national_pop$t), sum(day1_pop$total_popultaion_2022), national_total),
+    monthlyFlow_hat_perc = (monthlyFlow_hat - national_total) / national_total * 100
+  )
+
+gg_flows_national <- ggplot(
+  monthlyFlows_totals_hat_national |> select(-national_total) |> pivot_longer(c(monthlyFlow_hat, monthlyFlow_hat_perc), names_to = "type"),
+  aes(x = t, y = value)
+) +
+  geom_line() +
+  geom_hline(data = tibble(type = c("monthlyFlow_hat", "monthlyFlow_hat_perc"), value = c(sum(day1_pop$total_popultaion_2022), 0)), aes(yintercept = value), color = "red", linetype = "dashed") +
+  geom_line(data = national_pop |> mutate(type = "monthlyFlow_hat"), aes(x = t, y = national_total), color = "red", linetype = "dashed") +
+  labs(title = "Monthly flows induced stocks: National level", ) +
   facet_wrap(~type, scales = "free_y", labeller = labeller(type = type_label)) +
   theme_minimal()
 gg_flows_national
