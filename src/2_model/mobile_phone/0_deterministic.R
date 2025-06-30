@@ -6,6 +6,7 @@ library(dtplyr)
 
 tmap_options(component.autoscale = F)
 options(scipen = 999)
+
 # Load required helpers
 source(file.path(here::here(), "R_helpers/generic.R"))
 hromada <- read_csv(file.path(in_dir, "KSE-Loc-Data-Hub", "full_dataset.csv"))
@@ -18,59 +19,19 @@ stocks |>
   filter(t == as.Date("2021-11-01") & hromada_code != "abroad") |>
   summarise(sum(subscribers_stock))
 
-# Create custom_geo based on which spatial information is complete on day 1 for each oblast
-day1_infoHromada <- c(
-  "Kirovohradska", "Kyiv", "Lvivska", "Odeska", "Poltavska"
-)
-
-day1_infoRaion <- c(
-  "Cherkaska", "Chernihivska", "Chernivetska", "Dnipropetrovska",
-  "Ivano-Frankivska", "Kyivska",
-  "Khmelnytska", "Mykolaivska", "Rivnenska", "Sumska", "Ternopilska",
-  "Volynska", "Vinnytska", "Zakarpatska", "Zhytomyrska"
-)
-
-day1_infoOblast <- c(
-  "Kharkivska", "Khersonska", "Zaporizka"
-)
-
-hromada_geo <- hromada_geo |>
-  mutate(
-    custom_geo = case_when(
-      oblast_name_en %in% day1_infoHromada ~ hromada_code,
-      oblast_name_en %in% day1_infoRaion ~ raion_code,
-      oblast_name_en %in% day1_infoOblast ~ oblast_name_en,
-      TRUE ~ NA
-    ),
-    custom_geo_source = case_when(
-      oblast_name_en %in% day1_infoHromada ~ "hromada_code",
-      oblast_name_en %in% day1_infoRaion ~ "raion_code",
-      oblast_name_en %in% day1_infoOblast ~ "oblast_name_en",
-      TRUE ~ NA
-    )
-  )
-
-custom_geo <- hromada_geo |>
-  group_by(custom_geo) |>
-  summarise()
-
-tm_shape(custom_geo) +
-  tm_borders()
 
 stocks_total <- stocks |>
   select(hromada_code, s_name, a_name, subscribers_stock, t, ADM1_PCODE, macroregion) |>
   filter(hromada_code != "abroad") |>
   left_join(hromada_geo |> st_drop_geometry()) |>
-  group_by(t, hromada_code, custom_geo, custom_geo_source, oblast_name_en, ADM1_PCODE, macroregion) |>
+  group_by(t, hromada_code, oblast_name_en, ADM1_PCODE, macroregion) |>
   summarise(subscribers_stock = sum(subscribers_stock))
 
 hromada_pop <- hromada |>
   select(hromada_code, total_popultaion_2022) |>
   full_join(hromada_geo |> st_drop_geometry()) |>
   mutate(total_popultaion_2022 = ifelse(hromada_code == "Kyiv", 2952301, total_popultaion_2022)) |>
-  filter(oblast_name_en != "Autonomous Republic of Crimea") |>
-  group_by(custom_geo) |>
-  summarise(total_popultaion_2022 = sum(total_popultaion_2022))
+  filter(oblast_name_en != "Autonomous Republic of Crimea")
 
 
 
@@ -80,7 +41,7 @@ hromada_pop <- hromada |>
 
 day1_pop <- stocks_total |>
   filter(t == as.Date("2021-11-01")) |>
-  group_by(custom_geo, custom_geo_source, oblast_name_en, ADM1_PCODE, macroregion) |>
+  group_by(hromada_code, oblast_name_en, ADM1_PCODE, macroregion) |>
   summarise(
     subscribers_stock = sum(subscribers_stock)
   ) |>
@@ -89,16 +50,20 @@ day1_pop <- stocks_total |>
     p0 = subscribers_stock / total_popultaion_2022,
   )
 
-sum(day1_pop$total_popultaion_2022)
+sum(day1_pop |> select(total_popultaion_2022) |> pull())
 sum(day1_pop$subscribers_stock)
 
 # 1.2 apply penetration rate -------------------------------------------------
 
 stocks_total <- stocks_total |>
-  left_join(day1_pop |> select(custom_geo, p0)) |>
-  mutate(stock_hat = subscribers_stock / p0)
+  left_join(day1_pop |> select(hromada_code, p0)) |>
+  group_by(oblast_name_en) |>
+  mutate(
+    p0_imputed = ifelse(is.na(p0), mean(p0, na.rm = T), p0),
+    stock_hat = subscribers_stock / p0_imputed
+  )
 
-
+# Fill missing penetration rate
 
 # 2. Evaluation -------------------------------------------------------------
 
@@ -124,14 +89,24 @@ gg_penRate_oblast <- ggplot(day1_pop_oblast, aes(y = oblast_name_en, x = p0)) +
   labs(title = paste("Penetration rate"), x = "Pop/Users at t0")
 gg_penRate_oblast
 
+
+ggplot(day1_pop, aes(y = oblast_name_en, x = p0)) +
+  geom_boxplot(col = "grey50", outlier.shape = NA) +
+  geom_point(col = "grey20") +
+  geom_vline(xintercept = 1, color = "orange", linetype = "dashed") +
+  theme_minimal() +
+  facet_grid(macroregion ~ ., scales = "free_y", space = "free_y") +
+  labs(title = paste("Penetration rate at hromada level"), x = "Subscribers/Pop at t0", y = "")
+
+
 # Map
-day1_pop_geo <- custom_geo |>
+day1_pop_geo <- hromada_geo |>
   left_join(day1_pop)
 
 tm_shape(day1_pop_geo) +
   tm_polygons(
     fill = "p0",
-    fill.scale = tm_scale_intervals(n = 5, style = "quantile")
+    fill.scale = tm_scale_intervals(n = 5, breaks = c(0, 0.1, 0.4, 0.6, 1, 2.5))
   )
 
 # Distribution
@@ -198,31 +173,17 @@ ggplot(stocks_oblast, aes(x = t, y = stock_hat)) +
 baselineFlows_totals <- baselineFlows |>
   left_join(hromada_geo |>
     st_drop_geometry() |>
-    select(hromada_code, custom_geo) |>
+    select(hromada_code) |>
     rename(
-      origin_hromada = hromada_code,
-      origin_custom_geo = custom_geo
+      origin_hromada = hromada_code
     )) |>
   left_join(hromada_geo |>
     st_drop_geometry() |>
-    select(hromada_code, custom_geo) |>
+    select(hromada_code) |>
     rename(
-      destination_hromada = hromada_code,
-      destination_custom_geo = custom_geo
+      destination_hromada = hromada_code
     )) |>
-  mutate(
-    origin_custom_geo = case_when(
-      origin_hromada == "abroad" ~ "Abroad",
-      origin_hromada == "Unknown" ~ "Unknown",
-      TRUE ~ origin_custom_geo
-    ),
-    destination_custom_geo = case_when(
-      destination_hromada == "abroad" ~ "Abroad",
-      destination_hromada == "Unknown" ~ "Unknown",
-      TRUE ~ destination_custom_geo
-    )
-  ) |>
-  group_by(t, origin_custom_geo, destination_custom_geo, origin_macroregion, destination_macroregion) |>
+  group_by(t, origin_hromada, destination_hromada, origin_macroregion, destination_macroregion, origin_oblast, destination_oblast) |>
   summarise(subscribers_baselineFlow = sum(subscribers_baselineFlow))
 
 baselineFlows_totals <- lazy_dt(baselineFlows_totals)
@@ -232,21 +193,22 @@ baselineFlows_day1 <- baselineFlows_totals |>
   as_tibble()
 
 baselineFlows_day1 <- baselineFlows_day1 |>
-  group_by(origin_custom_geo) |>
+  group_by(origin_hromada, origin_oblast, origin_macroregion) |>
   summarise(
     subscribers_baselineFlow = sum(subscribers_baselineFlow)
   ) |>
   left_join(
     hromada_pop |>
-      group_by(custom_geo) |>
+      group_by(hromada_code) |>
       summarise(total_popultaion_2022 = sum(total_popultaion_2022)) |>
       rename(
-        origin_custom_geo = custom_geo
+        origin_hromada = hromada_code
       )
   ) |>
+  ungroup() |>
   mutate(
     p0 = subscribers_baselineFlow / total_popultaion_2022,
-    p0 = case_when(
+    p0_imputed = case_when(
       is.na(p0) ~ median(p0, na.rm = T),
       TRUE ~ p0
     )
@@ -254,14 +216,15 @@ baselineFlows_day1 <- baselineFlows_day1 |>
 
 baselineFlows_estimated <- baselineFlows_totals |>
   left_join(baselineFlows_day1 |>
-    select(origin_custom_geo, p0)) |>
+    select(origin_hromada, p0_imputed)) |>
+  group_by(origin_oblast) |>
   mutate(
-    baselineFlow_hat = subscribers_baselineFlow / p0
+    baselineFlow_hat = subscribers_baselineFlow / p0_imputed
   ) |>
   as_tibble()
 
 baselineFlows_stocks <- baselineFlows_estimated |>
-  group_by(t, destination_custom_geo) |>
+  group_by(t, destination_hromada) |>
   summarise(
     baselineFlow_hat = sum(baselineFlow_hat)
   )
@@ -277,7 +240,6 @@ baselineFlows_stocks <- baselineFlows_estimated |>
 # Distribution
 
 baselineFlows_day1 |>
-  filter(origin_custom_geo != "Khersonska") |>
   ggplot(aes(x = p0)) +
   geom_histogram(bins = 100) +
   theme_minimal()
@@ -286,10 +248,19 @@ baselineFlows_day1 |>
   pull(p0) |>
   summary()
 
+ggplot(baselineFlows_day1, aes(y = origin_oblast, x = p0_imputed)) +
+  geom_boxplot(col = "grey50", outlier.shape = NA) +
+  geom_point(col = "grey20") +
+  geom_vline(xintercept = 1, color = "orange", linetype = "dashed") +
+  theme_minimal() +
+  facet_grid(origin_macroregion ~ ., scales = "free_y", space = "free_y") +
+  labs(title = paste("Penetration rate at hromada level - Baseline flows"), x = "Subscribers/Pop at t0", y = "")
+
+
 # Evaluate flows-induced totals
 
 baselineFlows_flows_national <- baselineFlows_stocks |>
-  filter(destination_custom_geo != "Abroad") |>
+  filter(destination_hromada != "Abroad") |>
   group_by(t) |>
   summarise(
     baselineFlow_hat = sum(baselineFlow_hat)
@@ -301,7 +272,7 @@ baselineFlows_flows_national <- baselineFlows_stocks |>
   )
 
 gg_flows_national <- ggplot(
-  baselineFlows_stocks_national |> select(-national_total) |> pivot_longer(c(baselineFlow_hat, baselineFlow_hat_perc), names_to = "type"),
+  baselineFlows_flows_national |> select(-national_total) |> pivot_longer(c(baselineFlow_hat, baselineFlow_hat_perc), names_to = "type"),
   aes(x = t, y = value)
 ) +
   geom_line() +
