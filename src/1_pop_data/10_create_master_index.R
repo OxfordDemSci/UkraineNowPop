@@ -11,12 +11,14 @@ source(file.path(here::here(), "R_helpers/data_querying.R"))
 
 # agesex demographic groups
 
-agesex <- c(#"F_20_29", "F_30_39", "F_40_49", "F_50_59", 
+agesex <- c(#"F_18Plus",
+  "F_20_29", "F_30_39", "F_40_49", "F_50_59", "F_60Plus",
   #"F_20_24", "F_25_29", "F_30_34", "F_35_39", "F_40_44", "F_45_49", "F_50_54", "F_55_59", "F_60_64", "F_65Plus",
-  "F_18Plus",
- #"F_60Plus", "M_20_29", "M_30_39", "M_40_49", "M_50_59", "M_60Plus",
+ 
+  #"M_18Plus" 
+  "M_20_29", "M_30_39", "M_40_49", "M_50_59", "M_60Plus"
  #"M_20_24", "M_25_29", "M_30_34", "M_35_39", "M_40_44", "M_45_49", "M_50_54", "M_55_59", "M_60_64", "M_65Plus")
- "M_18Plus")
+)
 
 # Function to create regular age groupings
 # create_regular_group <- function(age_gap, gender = c("F", "M"), age_max = 60) {
@@ -39,14 +41,6 @@ meta_keys <- read_csv(file.path(env$repo_dir, "data", "meta", paste0(tolower(cou
 pcodes    <- read_csv(file = file.path(env$repo_dir, "data", "cod-ps", "population_baseline.csv"))
 
 output_label <- ""
-
-
-agesex <- c(#"F_20_29", "F_30_39", "F_40_49", "F_50_59", 
-  #"F_20_24", "F_25_29", "F_30_34", "F_35_39", "F_40_44", "F_45_49", "F_50_54", "F_55_59", "F_60_64", "F_65Plus",
-  "F_18Plus",
- #"F_60Plus", "M_20_29", "M_30_39", "M_40_49", "M_50_59", "M_60Plus",
- #"M_20_24", "M_25_29", "M_30_34", "M_35_39", "M_40_44", "M_45_49", "M_50_54", "M_55_59", "M_60_64", "M_65Plus")
- "M_18Plus")
 
 
 # create master_index ----------------------------------------------------
@@ -83,8 +77,22 @@ geo_index <- meta_keys |>
            name=="Volyn Oblast"                      ~ "West",
            name=="Zakarpattia Oblast"                ~ "West",
            name=="Zaporizhia Oblast"                 ~ "East",
-           name=="Zhytomyr Oblast"                   ~ "North")) |> 
-      select(fb_key, ADM1_PCODE, ADM1_EN, macroregion) |>
+           name=="Zhytomyr Oblast"                   ~ "North"),
+          e_name = case_when(
+            macroregion=="Autonomous" ~ "Autonomous & East",
+            macroregion=="East" ~ "Autonomous & East",
+            macroregion=="Center" ~ "Center", 
+            macroregion=="City" ~ "City",
+            macroregion=="North" ~ "North", 
+            macroregion=="South" ~ "South",
+            macroregion=="West" ~ "West"),
+          e = case_when(e_name=="Autonomous & East" ~ 6,
+                        e_name=="Center" ~ 2, 
+                        e_name=="City" ~ 1,
+                        e_name=="North" ~ 5, 
+                        e_name=="South" ~ 4,
+                        e_name=="West" ~ 3) %>% as.integer()) |> 
+      select(fb_key, ADM1_PCODE, ADM1_EN, macroregion, e_name, e) |>
       rename(i_key = fb_key, i_name = ADM1_EN)
   ) |>
   arrange(i_key) |>
@@ -134,10 +142,12 @@ master_index <- expand_grid(
   left_join(geo_index, by = "i") |>
   left_join(agesex_index, by = c("a", "s")) |>
   mutate(parameter = row_number()) |>
-  arrange(t, i, a, s)
+  arrange(t, i, a, s) |>
+  mutate(tias = row_number())
 
 
 # Write output -----------------------------------------------------------
 
 write_csv(master_index, file.path(out_dir, paste0(tolower(country), "_master_index", output_label, ".csv")))
 write_csv(time_index_expanded, file.path(out_dir, paste0(tolower(country), "_time_index", output_label, ".csv")))
+
