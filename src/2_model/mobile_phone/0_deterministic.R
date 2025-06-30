@@ -17,16 +17,14 @@ monthlyFlows <- read_csv(file.path(out_dir, "population_proxy", "mobile_phone", 
 borderCrossing <- read_csv(file.path(out_dir, "population_proxy", "crossing_borders", "dat_refugees.csv"))
 
 stocks |>
-  filter(t == as.Date("2021-11-01") & hromada_code != "abroad") |>
+  filter(t == as.Date("2021-11-01")) |>
   summarise(sum(subscribers_stock))
 
 
 stocks_total <- stocks |>
-  select(hromada_code, s_name, a_name, subscribers_stock, t, ADM1_PCODE, macroregion) |>
-  filter(hromada_code != "abroad") |>
-  left_join(hromada_geo |> st_drop_geometry()) |>
   group_by(t, hromada_code, oblast_name_en, ADM1_PCODE, macroregion) |>
-  summarise(subscribers_stock = sum(subscribers_stock))
+  summarise(subscribers_stock = sum(subscribers_stock)) |>
+  ungroup()
 
 hromada_pop <- hromada |>
   select(hromada_code, total_popultaion_2022) |>
@@ -41,7 +39,7 @@ hromada_pop <- hromada |>
 # compute penetration rate -----------------------------------------------
 
 day1_pop <- stocks_total |>
-  filter(t == as.Date("2021-11-01")) |>
+  filter(t == as.Date("2021-11-01") & hromada_code != "abroad") |>
   group_by(hromada_code, oblast_name_en, ADM1_PCODE, macroregion) |>
   summarise(
     subscribers_stock = sum(subscribers_stock)
@@ -49,7 +47,8 @@ day1_pop <- stocks_total |>
   left_join(hromada_pop) |>
   mutate(
     p0 = subscribers_stock / total_popultaion_2022,
-  )
+  ) |>
+  ungroup()
 
 sum(day1_pop |> select(total_popultaion_2022) |> pull())
 sum(day1_pop$subscribers_stock)
@@ -58,10 +57,9 @@ sum(day1_pop$subscribers_stock)
 
 stocks_total <- stocks_total |>
   left_join(day1_pop |> select(hromada_code, p0)) |>
-  group_by(oblast_name_en) |>
   mutate(
     # Fill missing penetration rate
-    p0_imputed = ifelse(is.na(p0), mean(p0, na.rm = T), p0),
+    p0_imputed = ifelse(is.na(p0), median(p0, na.rm = T), p0),
     stock_hat = subscribers_stock / p0_imputed
   )
 
@@ -129,6 +127,7 @@ national_pop <- borderCrossing |>
   )
 
 stocks_national <- stocks_total |>
+  filter(hromada_code != "abroad") |>
   group_by(t) |>
   summarise(
     subscribers_stock = sum(subscribers_stock),
@@ -300,22 +299,40 @@ monthlyFlows_totals <- monthlyFlows |>
   summarise(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)) |>
   ungroup()
 
-
-penetration_rate <- list()
-penetration_rate[[1]] <- day1_pop |>
-  ungroup() |>
-  select(origin_hromada = hromada_code, origin_oblast = oblast_name_en, origin_macroregion = macroregion, origin_p = p0) |>
-  mutate(t = min(stocks$t) + months(1))
-
 monthlyFlows_totals <- monthlyFlows_totals |>
   group_split(t)
+
+penetration_rate <- list()
+penetration_rate[[1]] <- monthlyFlows_totals[[1]] |>
+  group_by(origin_hromada, origin_oblast, origin_macroregion) |>
+  summarise(
+    subscribers_monthlyFlow = sum(subscribers_monthlyFlow)
+  ) |>
+  left_join(
+    hromada_pop |>
+      group_by(hromada_code) |>
+      summarise(total_popultaion_2022 = sum(total_popultaion_2022)) |>
+      rename(
+        origin_hromada = hromada_code
+      )
+  ) |>
+  ungroup() |>
+  mutate(
+    p0 = subscribers_monthlyFlow / total_popultaion_2022,
+    p0_imputed = case_when(
+      is.na(p0) ~ median(p0, na.rm = T),
+      TRUE ~ p0
+    )
+  ) |>
+  select(origin_hromada, origin_oblast, origin_macroregion, origin_p = p0) |>
+  mutate(t = min(stocks$t) + months(1))
 
 monthlyFlows_totals_hat <- list()
 
 for (idx in 1:n_distinct(monthlyFlows$t)) {
-  print(test[[idx]]$t[1])
+  print(monthlyFlows_totals[[idx]]$t[1])
   monthlyFlows_totals_hat[[idx]] <- monthlyFlows_totals[[idx]] |>
-    left_join(penetration_rate[[idx]], by = c("t", "origin_hromada", "origin_oblast")) |>
+    full_join(penetration_rate[[idx]], by = c("t", "origin_hromada", "origin_oblast", "origin_macroregion")) |>
     mutate(
       origin_p = ifelse(is.na(origin_p), median(origin_p, na.rm = T), origin_p),
       monthlyFlow_hat = subscribers_monthlyFlow / origin_p
@@ -346,11 +363,11 @@ penetration_rate |>
   facet_wrap(macroregion_oblast ~ .) +
   theme(legend.position = "None") +
   geom_hline(yintercept = 1, color = "grey20") +
-  labs(title = paste("Penetration rate at hromada level - Monthly flows"), x = "Time", y = "Subscribers/Pop at t0")
+  labs(title = paste("Penetration rate at hromada level - Monthly flows"), x = "Time", y = "Subscribers/Pop")
 
 # stocks total
 monthlyFlows_totals_hat_national <- monthlyFlows_totals_hat |>
-  filter(destination_hromada != "Abroad") |>
+  filter(destination_hromada != "abroad") |>
   group_by(t) |>
   summarise(
     monthlyFlow_hat = sum(monthlyFlow_hat)
@@ -372,3 +389,82 @@ gg_flows_national <- ggplot(
   facet_wrap(~type, scales = "free_y", labeller = labeller(type = type_label)) +
   theme_minimal()
 gg_flows_national
+
+
+monthlyFlows_totals_oblast <- monthlyFlows_totals_hat |>
+  # filter(destination_hromada != "Abroad") |>
+  group_by(t, destination_oblast) |>
+  summarise(
+    monthlyFlow_hat = sum(monthlyFlow_hat)
+  )
+
+ggplot(monthlyFlows_totals_oblast |>
+  filter(destination_oblast != "Abroad"), aes(x = t, y = monthlyFlow_hat, col = destination_oblast)) +
+  geom_line() +
+  theme_minimal() +
+  labs(title = "Monthly flows induced stocks: Oblast level", x = "Time", y = "Subscribers/Pop at t0")
+
+
+# Comparison of oblast level estimation
+
+oblast_pop_hat <- stocks_total |>
+  group_by(t, oblast_name_en, macroregion) |>
+  summarise(
+    stock_hat = sum(stock_hat)
+  ) |>
+  rename(
+    destination_oblast = oblast_name_en,
+    destination_macroregion = macroregion
+  ) |>
+  full_join(
+    baselineFlows_estimated |>
+      group_by(t, destination_oblast, destination_macroregion) |>
+      summarise(
+        baselineFlow_hat = sum(baselineFlow_hat)
+      )
+  ) |>
+  full_join(
+    monthlyFlows_totals_hat |>
+      group_by(t, destination_oblast, destination_macroregion) |>
+      summarise(
+        monthlyFlow_hat = sum(monthlyFlow_hat)
+      )
+  ) |>
+  pivot_longer(c(stock_hat, baselineFlow_hat, monthlyFlow_hat), names_to = "method")
+
+ggplot(
+  oblast_pop_hat |>
+    filter(destination_oblast != "Abroad"),
+  aes(x = t, y = value, col = method)
+) +
+  geom_line() +
+  theme_minimal() +
+  facet_wrap(destination_oblast ~ ., scales = "free_y") +
+  labs(title = "Comparison of oblast level estimated stocks", x = "Time", y = "Subscribers/Pop at t0")
+
+ggplot(
+  oblast_pop_hat |>
+    filter(destination_oblast == "Abroad"),
+  aes(x = t, y = value, col = method)
+) +
+  geom_line() +
+  geom_line(data = national_pop, aes(x = date, y = individuals), color = "black") +
+  theme_minimal()
+
+
+# Comparison of penetration rate
+
+penetration_rate_comp <- bind_rows(
+  penetration_rate |>
+    select(t, origin_hromada, origin_p) |>
+    rename(p0 = origin_p) |>
+    mutate(source = "Monthly flows"),
+  day1_pop |>
+    select(hromada_code, p0_imputed) |>
+    rename(p0 = p0_imputed, ) |>
+    mutate(source = "Stocks"),
+  baselineFlows_day1 |>
+    select(origin_hromada, p0_imputed) |>
+    rename(p0 = p0_imputed) |>
+    mutate(source = "Baseline flows")
+)
