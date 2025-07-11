@@ -451,3 +451,39 @@ stocks |>
   ungroup() |>
   group_by(a_name, s_name) |>
   summarise(complete = sum(n == 40) / n() * 100)
+
+# Focus on missing hromada
+
+hromada_missing <- stocks |>
+  group_by(hromada_code) |>
+  mutate(n_t = 40 - n_distinct(t)) |>
+  distinct(hromada_code, n_t) |>
+  ungroup()
+
+ggplot(stocks |>
+  right_join(
+    hromada_missing |>
+      filter(n_t > 0) |>
+      mutate(n_t_label = fct_reorder(paste("Missing timestep:", n_t), n_t)) |>
+      arrange(n_t)
+  ) |>
+  group_by(t, hromada_code, n_t, n_t_label) |>
+  summarise(n_subscribers = sum(subscribers_stock)), aes(x = t, y = n_subscribers, col = hromada_code)) +
+  geom_line() +
+  theme_minimal() +
+  facet_wrap(n_t_label ~ ., scales = "free_y") +
+  theme(legend.position = "None") +
+  labs(title = "Number of subscribers per hromada that have missing data through time")
+
+
+hromada_geo_missing <- hromada_geo |>
+  left_join(
+    hromada_missing
+  )
+
+tm_shape(hromada_geo_missing) +
+  tm_fill(
+    fill = "n_t",
+    fill.scale = tm_scale_intervals(4, breaks = c(0, 1, 10, 20, 38), values = c("grey95", "yellowgreen", "gold1", "red4"), labels = c("0", "1-10", "11-20", "21-38")),
+    fill.legend = tm_legend(title = "Number of timesteps missing")
+  )
