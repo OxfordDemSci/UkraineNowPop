@@ -12,8 +12,17 @@ source(file.path(here::here(), "R_helpers/generic.R"))
 hromada <- read_csv(file.path(in_dir, "KSE-Loc-Data-Hub", "full_dataset.csv"))
 hromada_geo <- st_read(file.path(out_dir, "ua_master_hromada.gpkg"))
 monthlyFlows <- read_csv(file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_monthlyFlows.csv"))
+agesex <- read_csv(file.path(in_dir, "COD-PS", "ukr_admpop_adm1_2022.csv"))
 borderCrossing <- read_csv(file.path(out_dir, "population_proxy", "crossing_borders", "dat_refugees.csv"))
 refugee_agesex <- read_csv(file.path(out_dir, "population_proxy", "refugee", "eurostat_refugee_agesex.csv"))
+
+borderCrossing_in <- read.csv(file.path(out_dir, "population_proxy", "crossing_borders", "refugees_in_daily.csv"),
+  stringsAsFactors = F,
+  skip = 1,
+  skipNul = T,
+  sep = ";"
+)
+returnee_sex <- read_csv(file.path(out_dir, "population_proxy", "returnee", "dtm_returnees.csv"))
 
 day1 <- monthlyFlows |> filter(t == "2021-12-01")
 
@@ -127,7 +136,7 @@ monthlyFlows <- monthlyFlows |>
 
 # Prepare age and sex reference data -------------------------------------
 
-agesex <- read_csv(file.path(in_dir, "COD-PS", "ukr_admpop_adm1_2022.csv")) |>
+agesex <- agesex |>
   select(admin1Name_en, starts_with("F"), starts_with("M"), -ends_with("TL")) |>
   pivot_longer(c(starts_with("F"), starts_with("M")), names_to = "agesex_label", values_to = "pop") |>
   rowwise() |>
@@ -192,19 +201,16 @@ agesex_national_d0 <- hromada_agesex |>
   )
 
 borderCrossing_monthly <- borderCrossing |>
-  rename(
-    outflows = individuals
-  ) |>
   mutate(
     t = ceiling_date(date, unit = "month")
   ) |>
   group_by(t) |>
   summarise(
-    outflows = mean(outflows)
+    netflows = mean(individuals)
   ) |>
   ungroup()
 
-refugee_agesex_ <- bind_rows(
+refugee_agesex <- bind_rows(
   refugee_agesex |>
     filter(t <= max(monthlyFlows$t)),
   refugee_agesex |>
@@ -214,37 +220,99 @@ refugee_agesex_ <- bind_rows(
     )
 )
 
-refugee_agesex_ <- refugee_agesex_ |>
+refugee_agesex <- refugee_agesex |>
   mutate(pi_hat = percentage / 100) |>
   select(-refugee, -percentage) |>
   full_join(
     borderCrossing_monthly
   ) |>
   mutate(
-    outflows = ifelse(is.na(outflows), 0, outflows),
-    outflows = outflows * pi_hat
+    netflows = ifelse(is.na(netflows), 0, netflows),
+    netflows = netflows * pi_hat,
   ) |>
   filter(a_name %in% agesex_geoCombination_full$a_name & s_name %in% agesex_geoCombination_full$s_name)
 
 
+# compute population totals by age and sex through time ------------------
+
 national_pop <- bind_rows(
   agesex_national_d0 |>
     full_join(
-      refugee_agesex_ |>
-        select(t, a_name, s_name, outflows)
+      refugee_agesex |>
+        select(t, a_name, s_name, netflows)
     ),
   bind_rows(
-    lapply(seq(as.Date("2021-11-01"), min(refugee_agesex_$t) - months(1), by = "month"), function(t) {
+    lapply(seq(as.Date("2021-11-01"), min(refugee_agesex$t) - months(1), by = "month"), function(t) {
       agesex_national_d0 |>
         mutate(t = t)
     })
   )
 ) |>
   mutate(
-    outflows = ifelse(is.na(outflows), 0, outflows),
-    pop_updated = pop - outflows
+    netflows = ifelse(is.na(netflows), 0, netflows),
+    pop_updated = pop - netflows
   ) |>
   ungroup()
+
+
+# compute inflows by age and sex -----------------------------------------
+
+borderCrossing_in_monthly <- borderCrossing_in |>
+  filter(!is.na(individuals)) |>
+  as_tibble() |>
+  mutate(
+    t = as.Date(data_date, format = "%Y-%m-%d"),
+    t = ceiling_date(t, unit = "month")
+  ) |>
+  filter(t <= max(monthlyFlows$t)) |>
+  group_by(t) |>
+  summarise(
+    inflows_cumulative = mean(individuals),
+    .groups = "drop"
+  ) |>
+  arrange(t) |>
+  mutate(
+    inflows = lead(inflows_cumulative) - inflows_cumulative,
+    inflows = ifelse(is.na(inflows), lag(inflows), inflows)
+  ) |>
+  select(-inflows_cumulative)
+
+returnee_agesex <- returnee_sex |>
+  group_by(t) |>
+  mutate(
+    pi_s = count / sum(count)
+  ) |>
+  ungroup() |>
+  filter(a == "18-59") |>
+  complete(t = seq(min(borderCrossing_in_monthly$t, na.rm = T), max(monthlyFlows$t), by = "1 month"), nesting(s_name, a)) %>%
+  arrange(s_name, a, t) %>%
+  group_by(s_name, a) %>%
+  fill(pi_s, .direction = "down") |>
+  fill(pi_s, .direction = "up") |>
+  ungroup() |>
+  left_join(
+    refugee_agesex |>
+      select(t, s_name, a_name, netflows) |>
+      group_by(t, s_name) |>
+      mutate(pi_a = netflows / sum(netflows)) |>
+      select(-netflows)
+  ) |>
+  mutate(
+    pi = pi_s * pi_a
+  )
+
+
+borderCrossing_in_monthly_agesex <- borderCrossing_in_monthly |>
+  left_join(
+    returnee_agesex |>
+      select(t, s_name, a_name, pi)
+  ) |>
+  rename(inflows_total = inflows) |>
+  mutate(
+    inflows = inflows_total * pi
+  )
+
+
 
 # Monthly flows induced model ---------------------------------------
 
@@ -339,7 +407,7 @@ for (idx in 1:n_distinct(monthlyFlows$t)) {
       p_ = case_when(
         origin_hromada == "Unknown" & destination_hromada == "abroad" ~ mean(origin_p, na.rm = T),
         origin_hromada == "Unknown" ~ destination_p,
-        origin_hromada == "abroad" ~ mean(origin_p, na.rm = T),
+        origin_hromada == "abroad" & is.na(origin_p) ~ mean(origin_p, na.rm = T),
         T ~ origin_p
       )
     ) |>
@@ -370,7 +438,7 @@ for (idx in 1:n_distinct(monthlyFlows$t)) {
       p = case_when(
         origin_macroregion == "Unknown" & destination_macroregion == "Abroad" ~ mean(origin_p, na.rm = T),
         origin_macroregion == "Unknown" ~ destination_p,
-        origin_macroregion == "Abroad" ~ mean(origin_p, na.rm = T),
+        origin_macroregion == "Abroad" & is.na(origin_p) ~ mean(origin_p, na.rm = T),
         T ~ origin_p
       )
     ) |>
@@ -379,20 +447,6 @@ for (idx in 1:n_distinct(monthlyFlows$t)) {
       monthlyFlow_hat = subscribers_monthlyFlow / p
     ) |>
     select(-origin_p, -destination_p)
-
-  agesexMacroregion_proportion[[idx]] <- monthlyFlows_agesex_hat[[idx]] |>
-    group_by(t, s_name, a_name, origin_macroregion, destination_macroregion) |>
-    mutate(
-      monthlyFlow_hat_total = sum(monthlyFlow_hat),
-      subscribers_monthlyFlow_total = sum(subscribers_monthlyFlow),
-    ) |>
-    ungroup() |>
-    group_by(t, origin_macroregion, destination_macroregion) |>
-    mutate(
-      pi_hat = monthlyFlow_hat_total / sum(monthlyFlow_hat_total)
-    ) |>
-    ungroup()
-
 
   # Apply updated pyramid to monthly flows
 
@@ -418,9 +472,6 @@ for (idx in 1:n_distinct(monthlyFlows$t)) {
     ) |>
     select(-monthlyFlow_hat)
 
-  print("Monthly flows before national rescaling by age and sex")
-  print(sum(monthlyFlows_agesex_hat[[idx]]$monthlyFlow_hat_agesex))
-  print(sum(monthlyFlows_totals_hat[[idx]]$monthlyFlow_hat))
 
   # Re-scale to national population
   monthlyFlows_agesex_domestic_hat[[idx]] <- monthlyFlows_agesex_hat[[idx]] |>
@@ -439,21 +490,9 @@ for (idx in 1:n_distinct(monthlyFlows$t)) {
     ungroup() |>
     select(-pop_updated)
 
-  print("Monthly flows before national rescaling by age and sex (domestic)")
-  print(sum(monthlyFlows_agesex_domestic_hat[[idx]]$monthlyFlow_hat_agesex))
-  print(monthlyFlows_agesex_hat[[idx]] |>
-    filter(destination_macroregion != "Abroad") |>
-    summarise(s = sum(monthlyFlow_hat_agesex)) |>
-    pull(s))
-
-  print("Monthly flows after national rescaling by age and sex (domestic)")
-  print(sum(monthlyFlows_agesex_domestic_hat[[idx]]$monthlyFlow_hat_calibrated))
-  print(national_pop |>
-    filter(t == monthlyFlows_agesex[[idx]]$t[1]) |>
-    summarise(s = sum(pop_updated)) |>
-    pull(s))
-
   # Update penetration rate
+
+
   penetration_rate_agesexMacroregion[[idx + 1]] <- monthlyFlows_agesex_domestic_hat[[idx]] |>
     left_join(
       monthlyFlows_agesex[[idx]],
@@ -489,6 +528,53 @@ for (idx in 1:n_distinct(monthlyFlows$t)) {
     ) |>
     mutate(t = t + months(1)) |>
     select(-subscribers_monthlyFlow, -monthlyFlow_hat_calibrated)
+
+  # Account for border crossing specific penetration rate from abroad
+
+  if (monthlyFlows_totals[[idx]]$t[1] >= as.Date("2022-02-01")) {
+    penetration_rate_agesexMacroregion_abroad <- monthlyFlows_agesex[[idx]] |>
+      filter(origin_macroregion == "Abroad" & destination_macroregion != "Abroad") |>
+      group_by(t, origin_macroregion, s_name, a_name) |>
+      summarise(
+        subscribers_monthlyFlow = sum(subscribers_monthlyFlow),
+        .groups = "drop"
+      ) |>
+      mutate(
+        t = t + months(1)
+      ) |>
+      left_join(
+        borderCrossing_in_monthly_agesex |>
+          select(t, a_name, s_name, inflows),
+        by = c("t", "a_name", "s_name")
+      ) |>
+      mutate(
+        origin_p = subscribers_monthlyFlow / inflows
+      )
+    penetration_rate_abroad <- penetration_rate_agesexMacroregion_abroad |>
+      group_by(t, origin_macroregion) |>
+      summarise(
+        origin_p = sum(subscribers_monthlyFlow) / sum(inflows),
+        .groups = "drop"
+      )
+
+    penetration_rate_agesexMacroregion_abroad <- penetration_rate_agesexMacroregion_abroad |>
+      select(-subscribers_monthlyFlow, -inflows)
+
+    penetration_rate_agesexMacroregion[[idx + 1]] <- bind_rows(
+      penetration_rate_agesexMacroregion[[idx + 1]],
+      penetration_rate_agesexMacroregion_abroad
+    )
+
+    penetration_rate[[idx + 1]] <- bind_rows(
+      penetration_rate[[idx + 1]],
+      penetration_rate_abroad |>
+        mutate(
+          origin_hromada = "abroad",
+          origin_raion = "Abroad",
+          origin_oblast = "Abroad",
+        )
+    )
+  }
 }
 
 # create df for monthly total flows
@@ -497,9 +583,7 @@ penetration_rate_df <- bind_rows(penetration_rate)
 monthlyFlows_totals_hat_df <- bind_rows(monthlyFlows_totals_hat)
 
 penetration_rate_agesexMacroregion_df <- bind_rows(penetration_rate_agesexMacroregion)
-# monthlyFlows_agesex_hat_df <- bind_rows(monthlyFlows_agesex_hat)
 monthlyFlows_agesex_domestic_hat_df <- bind_rows(monthlyFlows_agesex_domestic_hat)
-
 monthlyFlows_agesex_df <- bind_rows(monthlyFlows_agesex)
 
 # Compute estimated stocks
@@ -542,6 +626,43 @@ monthlyFlows_agesex_df |>
   theme_minimal() +
   facet_wrap(s_name ~ .) +
   labs(title = paste("Raw domestic subscribers"), x = "Time", y = "Subscribers")
+
+
+monthlyFlows_agesex_df |>
+  filter(destination_hromada != "abroad" & des) |>
+  group_by(t, a_name, s_name, destination_oblast) |>
+  summarise(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)) |>
+  ggplot(aes(x = t, y = subscribers_monthlyFlow, col = a_name, linetype = s_name)) +
+  geom_line() +
+  theme_minimal() +
+  facet_wrap(destination_oblast ~ ., scales = "free_y") +
+  labs(title = paste("Raw domestic subscribers"), x = "Time", y = "Subscribers")
+
+monthlyFlows_agesex_df |>
+  filter(origin_hromada == "abroad" & destination_hromada != "abroad") |>
+  group_by(t, a_name, s_name) |>
+  summarise(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)) |>
+  ggplot(aes(x = t, y = subscribers_monthlyFlow, col = a_name, linetype = s_name)) +
+  geom_line() +
+  theme_minimal() +
+  labs(title = paste("Raw flows from abroad"), x = "Time", y = "Subscribers")
+
+
+# Visualise inflows
+ggplot(returnee_sex, aes(x = t, y = count, col = a, linetype = s_name)) +
+  geom_line() +
+  theme_minimal() +
+  labs(title = paste("Inflows"), x = "Time", y = "People")
+
+ggplot(borderCrossing_in_monthly_agesex, aes(x = t, y = inflows, col = a_name, linetype = s_name)) +
+  geom_line() +
+  theme_minimal() +
+  labs(title = paste("Inflows"), x = "Time", y = "People")
+
+ggplot(borderCrossing_in_monthly, aes(x = t, y = inflows)) +
+  geom_line() +
+  theme_minimal() +
+  labs(title = paste("Border crossings inflows"), x = "Time", y = "People")
 
 # visualise penetration rate for totals
 
@@ -606,6 +727,45 @@ penetration_rate_agesexMacroregion_df |>
   labs(
     title = paste("Penetration rate by age and sex at macroregion - Monthly flows"),
     x = "Time", y = "Subscribers/Pop"
+  )
+
+# visualise flows from abroad penetration rate
+p_abroad_mean <- monthlyFlows_agesex_domestic_hat_df |> 
+  filter(origin_macroregion!='Abroad'&destination_macroregion!='Abroad')|> 
+  left_join(
+    monthlyFlows_agesex_df |>
+      filter(origin_macroregion!='Abroad'&destination_macroregion!='Abroad')
+  ) |>
+  group_by(t, a_name, s_name) |>
+  summarise(
+    monthlyFlow_hat_calibrated = sum(monthlyFlow_hat_calibrated, na.rm = T),
+    subscribers_monthlyFlow = sum(subscribers_monthlyFlow,na.rm = T),
+    .groups = "drop"
+  ) |>
+  mutate(
+    origin_p = subscribers_monthlyFlow / monthlyFlow_hat_calibrated
+  )
+
+
+  p_abroad_mean |>
+  ggplot(aes(x = t, y = origin_p, col = a_name, linetype = s_name)) +
+  geom_line() +
+  theme_minimal() +
+  geom_hline(yintercept = 1, color = "grey20") +
+  labs(
+    title = paste("Penetration rate by age and sex of abroad as mean of domestic"),
+    x = "Time", y = "mean(Subscribers/Pop)"
+  )
+
+penetration_rate_agesexMacroregion_df |>
+  filter(origin_macroregion == "Abroad" ) |>
+  ggplot(aes(x = t, y = origin_p, col = a_name, linetype = s_name)) +
+  geom_line() +
+  theme_minimal() +
+  geom_hline(yintercept = 1, color = "grey20") +
+  labs(
+    title = paste("Penetration rate by age and sex of abroad as calibrated to border crossing"),
+    x = "Time", y = "Subscribers/Border crossing"
   )
 
 ## visualise interim monthly flows
@@ -683,10 +843,22 @@ monthlyFlows_agesex_domestic_hat_df |>
 # Viualise final estimates
 
 ggplot(
-  monthlyFlows_agesex_hat_df_stocks_oblast,
+  monthlyFlows_agesex_hat_df_stocks_oblast |> 
+    filter,
   aes(x = t, y = monthlyFlow_hat_calibrated, col = a_name, linetype = s_name)
 ) +
   geom_line() +
   theme_minimal() +
   facet_wrap(~destination_oblast, scales = "free_y") +
-  labs(title = "Monthly flows induced stocks: Oblast level", x = "Time", y = "Nationally-rescaled population")
+  labs(title = "Estimated population per oblast", x = "Time", y = "Nationally-rescaled population")
+
+ggplot(
+  monthlyFlows_agesex_domestic_hat_df |> 
+    filter(destination_macroregion != "Abroad"&origin_macroregion == "Abroad") |> 
+    group_by(t, a_name, s_name) |>
+    summarise(monthlyFlow_hat_calibrated = sum(monthlyFlow_hat_calibrated), .groups = "drop"),
+  aes(x = t, y = monthlyFlow_hat_calibrated, col = a_name, linetype = s_name)
+) +
+  geom_line() +
+  theme_minimal() +
+  labs(title = "Estimated population flows from abroad", x = "Time", y = "Nationally-rescaled population")
