@@ -3,15 +3,9 @@ services:
   now_pop_nginx:
     container_name: now_pop_web
     env_file: ../../.env
-    image: nginx:latest
-    command: /bin/sh -c "/var/www/public_html/entrypoint.sh"
-    volumes:
-      - type: bind
-        source: ./www/conf.d/nginx.conf
-        target: /etc/nginx/conf.d/nginx.conf
-      - type: bind
-        source: ./www/public_html/
-        target: /var/www/public_html/
+    build: 
+      context: ./www/
+      dockerfile: Dockerfile
     ports:
       - "80:80"
       - "443:443"
