@@ -7,7 +7,7 @@ import * as _init from './init.js?version=0.24'
 import * as _utils from './utils.js?version=0.72'
 import * as _quartile from './quartile.js?version=1'
 import * as _popMap from './population_map.js?version=0.98'
-import * as _popPyramid from './population_pyramid.js?version=0.34'
+import * as _popPyramid from './population_pyramid.js?version=0.35'
 import * as _migrationProb from './migration_probabilities.js?version=2.06'
 import * as _popPprobabilities from './pop_probabilities.js?version=0.22'
 
@@ -90,7 +90,7 @@ console.log(age_ranges_available);
 
 var age_min_selected = initialData.age_ranges[0]["age_min"];
 var age_max_selected = initialData.age_ranges[initialData.age_ranges.length - 1]["age_max"];
-
+var age_max_label = age_max_selected === 999 ? initialData.age_ranges[initialData.age_ranges.length - 2]['age_min'] : age_max_selected;
 
 var dates_available = _utils.getDates(initialData.dates_pop);
 var dates_available_string = _utils.getDates(initialData.dates_pop);
@@ -294,7 +294,7 @@ $(".slider_age_selections")
         values: [0, age_ranges_available[0].length - 1]
     })
     .slider("pips", {
-        labels: { first: "0", last: age_ranges_available[0][age_ranges_available[0].length - 1] + "+" }
+        labels: { first: age_ranges_available[0][0], last: age_max_label }
     }).on("slide", function (e, ui) {
 
         if (ui.values[1] < ui.values[0]) {
@@ -306,7 +306,7 @@ $(".slider_age_selections")
         //            if (ui.values[1] < 1) {
         //                return false;
         //            }  
-        _utils.update_Age_Range_labele(ui.values[0], ui.values[1], age_ranges_available);
+        _utils.update_Age_Range_labele(ui.values[0], ui.values[1], age_ranges_available, age_max_label);
 
     }).on("slidestop", function (e, ui) {
         if (e.originalEvent) {
@@ -413,7 +413,7 @@ $("#fSignin").on("click", function () {
         document.getElementById("idMdLoginFormHeader").style.display = "none";
         $('#idSuccessfullyloggedin').show();
 
-        _utils.resetSlider_age_selections(age_ranges_available);
+        _utils.resetSlider_age_selections(age_ranges_available, age_max_label);
         _utils.resetDate_slider(dates_available);
     }
 });
@@ -550,7 +550,7 @@ L.DomEvent.disableScrollPropagation(controlPanel_BottomleftID);
 L.DomEvent.disableClickPropagation(controlPanel_DateTimeID);
 L.DomEvent.disableScrollPropagation(controlPanel_DateTimeID);
 
-_utils.update_Age_Range_labele(0, age_ranges_available[0].length - 1, age_ranges_available);
+_utils.update_Age_Range_labele(0, age_ranges_available[0].length - 1, age_ranges_available, age_max_label);
 
 $('#SwitchAnimationMigrationPlot_LG').change(function () {
     if ($(this).prop('checked')) {
@@ -579,7 +579,7 @@ $("#btnResetAllSettingsSelected").on("click", function () {
     document.getElementById('controlPanel_InfoBoxCode').style.visibility = 'hidden';
     document.getElementById('controlPanel_BottomleftID').style.height = '160px';
     admin_pcode = null;
-    _utils.resetSlider_age_selections(age_ranges_available);
+    _utils.resetSlider_age_selections(age_ranges_available, age_max_label);
     _utils.resetDate_slider(dates_available);
     document.getElementById("idSelectSex").selectedIndex = 0;
     document.getElementById("idSelectGeoLevel").selectedIndex = 0;
@@ -601,7 +601,7 @@ $('#idSelectGeoLevel').change(function () {
     document.getElementById('adminNameLabel').innerHTML = "";
     document.getElementById('controlPanel_InfoBoxCode').style.visibility = 'hidden';
     document.getElementById('controlPanel_BottomleftID').style.height = '160px';
-    _utils.resetSlider_age_selections(age_ranges_available);
+    _utils.resetSlider_age_selections(age_ranges_available, age_max_label);
     _utils.resetDate_slider(dates_available);
     document.getElementById("idSelectSex").selectedIndex = 0;
     admin_pcode = null;

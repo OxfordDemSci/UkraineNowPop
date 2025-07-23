@@ -142,6 +142,7 @@ export function updatePopulationPyramid(root, data, initial_age_ranges, _denomin
 
         let age_min = initial_age_ranges[i]["age_min"];
         let age_max = initial_age_ranges[i]["age_max"];
+        let age_max_final = initial_age_ranges[initial_age_ranges.length - 1]["age_max"] === 999 ? '+' : '-' + initial_age_ranges[initial_age_ranges.length - 1]["age_max"];
 
         var male_population_entry = [];
         var female_population_entry = [];
@@ -185,7 +186,7 @@ export function updatePopulationPyramid(root, data, initial_age_ranges, _denomin
         if (i === (initial_age_ranges.length-1)){
             values_pyramid.push(
                 {
-                    age: age_min + " +",
+                    age: age_min + age_max_final,
                     male: (male_population_entry.length > 0) ? male_population_entry[0] : 0,
                     female: (female_population_entry.length > 0) ? female_population_entry[0] : 0
                 }
