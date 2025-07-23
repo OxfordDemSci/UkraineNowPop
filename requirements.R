@@ -29,7 +29,8 @@ pkgs <- c(
   "future.apply",
   "paletteer",
   "corrplot",
-  "kableExtra"
+  "kableExtra",
+  "tidyquant"
 )
 
 install_if_missing(pkgs)
