@@ -16,8 +16,6 @@ library(kableExtra)
 source("../../../R_helpers/generic.R")
 cov_df <- read_csv(file.path(out_dir, "covariates", "final",  "ua_covariates_oblast.csv")) %>%
   mutate(
-         covariate = str_replace(covariate, 'disorder', "dis"),
-         covariate = str_replace(covariate, 'Demonstration', "Dem"),
     scale_label = paste0(sum_stat, ", ", time_std, ", ", space_std),
     cov_process = paste0(covariate, ",", scale_label)
     )
