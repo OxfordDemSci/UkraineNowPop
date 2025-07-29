@@ -42,8 +42,8 @@ geo_linkADM3 <- readxl::read_excel(file.path(data_dir, "COD-PS", "2022", "ukr_ga
   dplyr::select(ADM1_PCODE,	ADM2_PCODE,	ADM3_PCODE,	Minrehion_CODE) %>%
   rename(ADM3_Minrehion_CODE=Minrehion_CODE)
 
-geo_linkADM2 <- readxl::read_excel(file.path(data_dir, "COD-PS", "2022", "ukr_gazetteer_v01.xlsx"), sheet = "ukr_admgz_adm3") %>%
-  dplyr::select(ADM1_PCODE,	ADM2_PCODE,	ADM3_PCODE,	Minrehion_CODE) %>%
+geo_linkADM2 <- readxl::read_excel(file.path(data_dir, "COD-PS", "2022", "ukr_gazetteer_v01.xlsx"), sheet = "ukr_admgz_adm2") %>%
+  dplyr::select(ADM1_PCODE,	ADM2_PCODE,	Minrehion_CODE) %>%
   rename(ADM2_Minrehion_CODE=Minrehion_CODE)
 
 
