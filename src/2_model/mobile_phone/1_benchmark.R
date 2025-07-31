@@ -77,27 +77,6 @@ time_index <- time_index_expanded |>
                     arrange(t)
 
 
-codps22 <- read.csv(file.path(data_dir, "COD-PS", "2022", "population_baseline22.csv")) %>%
-  transmute(ADM1_PCODE = ADM1_PCODE,
-         #F_18_24 = 0.4*F_15_19 + F_20_24,    
-         #M_18_24 = M_15_19 + M_20_24,
-         F_25_34 = F_25_29 + F_30_34,    
-         M_25_34 = M_25_29 + M_30_34,
-         F_35_44 = F_35_39 + F_40_44,    
-         M_35_44 = M_35_39 + M_40_44,
-         F_45_54 = F_45_49 + F_50_54,    
-         M_45_54 = M_45_49 + M_50_54,
-         F_55_64 = F_55_59 + F_60_64,    
-         M_55_64 = M_55_59 + M_60_64) %>%
-  pivot_longer(
-    cols      = 2:9,
-    names_to  = "demog",
-    values_to = "pop0") %>%
- separate(demog, into = c("s_name", "age_min", "age_max"), sep = "_") %>%
- mutate(a_name = paste0(age_min, "-",age_max)) %>%
- dplyr::select(ADM1_PCODE, s_name, a_name, pop0)
-
-
 codps23 <- read.csv(file.path(in_dir, "COD-PS", "2023", "DO_NOT_SHARE_UKR_ADM2_POP_2023.csv")) %>%
   rename(ADM1_EN=ADM1_NAME, ADM2_EN=ADM2_NAME) %>%
   transmute(ADM1_PCODE=ADM1_PCODE, ADM1_EN = ADM1_EN,
@@ -192,20 +171,6 @@ raions_complete <- raion_coverage %>%
     filter(full_coverage) %>% 
     arrange(ADM2_EN) %>% 
     select(ADM2_PCODE, ADM2_EN, total_hromadas)    
-
-
-
-comparison22 <- stocks_hromada_agesex %>% 
-    select(-raion, -oblast) %>% 
-    left_join(geo) %>% 
-    filter(t == as.Date("2022-01-01"),     
-           ADM1_PCODE %in% oblasts_complete$ADM1_PCODE,
-          a_name!="18_24") %>% 
-    group_by(ADM1_PCODE, ADM1_EN, a_name, s_name) %>% 
-    summarise(pop_estimated = sum(pop_estimated), .groups = "drop") %>%
-    left_join(codps22) %>%
-    filter(a_name != "18_24" & a_name != "18-24")
-
 
 
 
