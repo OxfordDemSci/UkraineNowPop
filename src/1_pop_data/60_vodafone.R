@@ -8,12 +8,16 @@ hromada <- read_csv(file.path(in_dir, "KSE-Loc-Data-Hub", "full_dataset.csv"))
 master_index <- read_csv(file.path(out_dir, "ua_master_index.csv"))
 hromada_geo <- st_read(file.path(out_dir, "ua_master_hromada.gpkg"))
 
+# create output directories
+dir.create(file.path(out_dir, "population_proxy", "mobile_phone"), recursive=T, showWarnings=F)
+
+# prepare inputs
 oblast_geo <- hromada_geo |>
   group_by(oblast_name_en) |>
   summarise(n = n())
 
 # Link Meta and Vodafone geolabelling
-hromada_geo <- hromada |>
+hromada_geo_names <- hromada |>
   select(
     hromada_name, raion_name, raion_code,
     oblast_name, oblast_code, oblast_name_en,
@@ -58,7 +62,7 @@ hromada_geo <- hromada |>
 
 stocks <- read_csv2(file.path(in_dir, "Vodafone", "Stocks.csv")) |>
   rename(hromada_code = "Hromada") |>
-  left_join(hromada_geo) |>
+  left_join(hromada_geo_names) |>
   mutate(t = as.Date(month, "%d.%m.%y")) |>
   mutate(
     oblast_name_en = ifelse(hromada_code == "abroad", "Abroad", oblast_name_en),
@@ -73,6 +77,7 @@ stocks <- read_csv2(file.path(in_dir, "Vodafone", "Stocks.csv")) |>
 
 stocks <- stocks |>
   select(t, hromada_code, hromada_name, raion_code, raion_name, oblast_name_en, ADM1_PCODE, macroregion, s_name, a_name, subscribers_stock)
+
 write.csv(stocks, file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_stocks.csv"), row.names = F)
 
 # Baseline flows ---------------------------------------------------------
@@ -83,14 +88,14 @@ baselineFlows <- read_csv2(file.path(in_dir, "Vodafone", "Baseline Flows.csv")) 
     origin_hromada = `Home hromada pre-invasion`
   ) |>
   mutate(t = as.Date(month, "%d.%m.%y")) |>
-  left_join(hromada_geo |>
+  left_join(hromada_geo_names |>
     select(hromada_code, oblast_name_en, macroregion) |>
     rename(
       destination_oblast = oblast_name_en,
       destination_hromada = hromada_code,
       destination_macroregion = macroregion
     )) |>
-  left_join(hromada_geo |>
+  left_join(hromada_geo_names |>
     select(hromada_code, oblast_name_en, macroregion) |>
     rename(origin_oblast = oblast_name_en, origin_hromada = hromada_code, origin_macroregion = macroregion)) |>
   mutate(
@@ -127,6 +132,7 @@ baselineFlows <- read_csv2(file.path(in_dir, "Vodafone", "Baseline Flows.csv")) 
 
 baselineFlows <- baselineFlows |>
   select(t, origin_hromada, origin_oblast, origin_macroregion, destination_hromada, destination_oblast, destination_macroregion, s_name, a_name, subscribers_baselineFlow)
+
 write_csv(baselineFlows, file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_baselineFlows.csv"))
 
 
@@ -140,14 +146,14 @@ monthlyFlows <- monthlyFlows |>
     origin_hromada = `Home hromada last month`
   ) |>
   mutate(t = as.Date(month, "%d.%m.%y")) |>
-  left_join(hromada_geo |>
+  left_join(hromada_geo_names |>
     select(hromada_code, oblast_name_en, macroregion) |>
     rename(
       destination_oblast = oblast_name_en,
       destination_hromada = hromada_code,
       destination_macroregion = macroregion
     )) |>
-  left_join(hromada_geo |>
+  left_join(hromada_geo_names |>
     select(hromada_code, oblast_name_en, macroregion) |>
     rename(origin_oblast = oblast_name_en, origin_hromada = hromada_code, origin_macroregion = macroregion)) |>
   mutate(
@@ -184,6 +190,7 @@ monthlyFlows <- monthlyFlows |>
 
 monthlyFlows <- monthlyFlows |>
   select(t, origin_hromada, origin_oblast, origin_macroregion, destination_hromada, destination_oblast, destination_macroregion, s_name, a_name, subscribers_monthlyFlow)
+
 write_csv(monthlyFlows, file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_monthlyFlows.csv"))
 
 # Data assessment -------------------------------------------------------
@@ -254,7 +261,7 @@ stocks |>
 
 stocks |>
   group_by(t, oblast_name_en) |>
-  summarise(n_users = sum(subscribers)) |>
+  summarise(n_users = sum(subscribers_stock)) |>
   ggplot(aes(x = t, y = n_users)) +
   geom_line() +
   facet_wrap(oblast_name_en ~ ., scales = "free_y")
@@ -262,19 +269,19 @@ stocks |>
 # subscribers evolution by age and sex
 
 stocks |>
-  filter(sex == "male") |>
-  group_by(t, oblast_name_en, age, sex) |>
-  summarise(n_users = sum(subscribers)) |>
-  ggplot(aes(x = t, y = n_users, col = age)) +
+  filter(s_name == "M") |>
+  group_by(t, oblast_name_en, a_name, s_name) |>
+  summarise(n_users = sum(subscribers_stock)) |>
+  ggplot(aes(x = t, y = n_users, col = a_name)) +
   geom_line() +
   facet_wrap(oblast_name_en ~ ., scales = "free_y") +
   labs(title = "Male subscribers")
 
 stocks |>
-  filter(sex == "female") |>
-  group_by(t, oblast_name_en, age, sex) |>
-  summarise(n_users = sum(subscribers)) |>
-  ggplot(aes(x = t, y = n_users, col = age)) +
+  filter(s_name == "F") |>
+  group_by(t, oblast_name_en, a_name, s_name) |>
+  summarise(n_users = sum(subscribers_stock)) |>
+  ggplot(aes(x = t, y = n_users, col = a_name)) +
   geom_line() +
   facet_wrap(oblast_name_en ~ ., scales = "free_y") +
   labs(title = "Female subscribers")
