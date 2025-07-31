@@ -1,5 +1,9 @@
 source(file.path(here::here(), "R_helpers/generic.R"))
 
+# create output directory
+dir.create(file.path(out_dir, "model", "deterministic", "deliverables", "202508 Deterministic Estimates"), recursive=T, showWarnings=F)
+
+
 flows_hromada_agesex <- data.table::fread(file.path(out_dir, "model", "deterministic", "mobilePhone_deterministic_agesex_domestic.csv"))
 
 flows_hromada_agesex <- flows_hromada_agesex |>
@@ -21,13 +25,11 @@ stocks_hromada_agesex <- flows_hromada_agesex |>
 # write output
 
 write_csv(stocks_hromada_agesex, file.path(
-  "K:/DemSci/projects/2023_WHO_Ukraine_Population/deliverables",
-  "202508 Deterministic Estimates",
+  out_dir, "model", "deterministic", "deliverables", "202508 Deterministic Estimates",
   paste0(tolower(country), "_stocks_hromada_agesex", output_label, ".csv")
 ))
 
 write_csv(flows_hromada_agesex, file.path(
-  "K:/DemSci/projects/2023_WHO_Ukraine_Population/deliverables",
-  "202508 Deterministic Estimates",
+  out_dir, "model", "deterministic", "deliverables", "202508 Deterministic Estimates",
   paste0(tolower(country), "_flows_hromada_agesex", output_label, ".csv")
 ))
