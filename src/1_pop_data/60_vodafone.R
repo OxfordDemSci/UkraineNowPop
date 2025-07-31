@@ -9,7 +9,7 @@ master_index <- read_csv(file.path(out_dir, "ua_master_index.csv"))
 hromada_geo <- st_read(file.path(out_dir, "ua_master_hromada.gpkg"))
 
 # create output directories
-dir.create(file.path(out_dir, "population_proxy", "mobile_phone"), recursive=T, showWarnings=F)
+dir.create(file.path(out_dir, "population_proxy", "mobile_phone"), recursive = T, showWarnings = F)
 
 # prepare inputs
 oblast_geo <- hromada_geo |>
@@ -53,7 +53,7 @@ hromada_geo_names <- hromada |>
   mutate(
     hromada_code = ifelse(oblast_name_en == "Kyiv", "Kyiv", hromada_code),
     raion_code = ifelse(oblast_name_en == "Kyiv", "Kyiv", raion_code),
-    raion_name = ifelse(oblast_name_en == "Kyiv", "Київ", raion_name)
+    raion_name = ifelse(oblast_name_en == "Kyiv", "Kyiv", raion_name)
   ) |>
   filter(!is.na(hromada_code))
 
@@ -63,7 +63,7 @@ hromada_geo_names <- hromada |>
 stocks <- read_csv2(file.path(in_dir, "Vodafone", "Stocks.csv")) |>
   rename(hromada_code = "Hromada") |>
   left_join(hromada_geo_names) |>
-  mutate(t = as.Date(month, "%d.%m.%y")) |>
+  mutate(t = as.Date(month, "%d.%m.%y") + months(3)) |>
   mutate(
     oblast_name_en = ifelse(hromada_code == "abroad", "Abroad", oblast_name_en),
     macroregion = ifelse(hromada_code == "abroad", "Abroad", macroregion),
@@ -87,7 +87,7 @@ baselineFlows <- read_csv2(file.path(in_dir, "Vodafone", "Baseline Flows.csv")) 
     destination_hromada = `Current home hromada`,
     origin_hromada = `Home hromada pre-invasion`
   ) |>
-  mutate(t = as.Date(month, "%d.%m.%y")) |>
+  mutate(t = as.Date(month, "%d.%m.%y") + months(3)) |>
   left_join(hromada_geo_names |>
     select(hromada_code, oblast_name_en, macroregion) |>
     rename(
@@ -145,7 +145,7 @@ monthlyFlows <- monthlyFlows |>
     destination_hromada = `Current home hromada`,
     origin_hromada = `Home hromada last month`
   ) |>
-  mutate(t = as.Date(month, "%d.%m.%y")) |>
+  mutate(t = as.Date(month, "%d.%m.%y") + months(3)) |>
   left_join(hromada_geo_names |>
     select(hromada_code, oblast_name_en, macroregion) |>
     rename(
@@ -206,29 +206,20 @@ hromada_list <- stocks |>
   mutate(source = "in_vodafone") |>
   full_join(hromada |> select(ends_with("_en"), ends_with("_name"), hromada_code))
 
-hromada_list |>
-  group_by(oblast_name, oblast_name_en) |>
-  summarise(
-    n_hromada = n(),
-    n_hromada_inVodafone = sum(source == "in_vodafone", na.rm = T),
-    n_hromada_missing = n_hromada - n_hromada_inVodafone
-  ) |>
-  filter(n_hromada_missing > 0) |>
-  View()
-
 # Data consistency checks
 
 hromada_geo <- hromada_geo |>
   left_join(stocks |>
-    filter(t == "2021-11-01") |>
+    filter(t == min(stocks$t)) |>
     distinct(hromada_code) |>
     mutate(with_users = T))
 
 
-tm_shape(hromada_geo) + tm_polygons(fill = "with_users") +
+map_missing <- tm_shape(hromada_geo) + tm_polygons(fill = "with_users") +
   tm_shape(oblast_geo) +
   tm_borders(lwd = 3)
 
+tmap_save(map_missing, "wd/pic/map_missing.png")
 
 # Hromada through time
 stocks |>
@@ -264,7 +255,8 @@ stocks |>
   summarise(n_users = sum(subscribers_stock)) |>
   ggplot(aes(x = t, y = n_users)) +
   geom_line() +
-  facet_wrap(oblast_name_en ~ ., scales = "free_y")
+  facet_wrap(oblast_name_en ~ ., scales = "free_y") +
+  labs(title = "Subscribers evolution")
 
 # subscribers evolution by age and sex
 
@@ -291,10 +283,10 @@ stocks |>
 
 
 baselineFlows_hromada <- baselineFlows |>
-  distinct(origin, destination)
+  distinct(origin_hromada, destination_hromada)
 
-n_distinct(baselineFlows_hromada$origin)
-n_distinct(baselineFlows_hromada$destination)
+n_distinct(baselineFlows_hromada$origin_hromada)
+n_distinct(baselineFlows_hromada$destination_hromada)
 
 # Data availibility
 
