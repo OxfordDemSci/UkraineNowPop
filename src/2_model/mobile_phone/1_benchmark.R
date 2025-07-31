@@ -47,7 +47,7 @@ geo_linkADM2 <- readxl::read_excel(file.path(data_dir, "COD-PS", "2022", "ukr_ga
   rename(ADM2_Minrehion_CODE=Minrehion_CODE)
 
 
-geo <- readxl::read_excel(file.path(data_dir, "COD-PS", "ukr_adminboundaries_tabulardata.xlsx"), sheet = "ADM3") %>%
+geo <- readxl::read_excel(file.path(data_dir, "COD-PS", "2022", "ukr_adminboundaries_tabulardata.xlsx"), sheet = "ADM3") %>%
   dplyr::select(ADM1_EN, ADM1_PCODE, ADM2_PCODE, ADM2_EN, ADM3_PCODE, ADM3_EN, AREA_SQKM) %>%
   rename(ADM3_AREA_SQKM=AREA_SQKM) %>%
   left_join(geo_linkADM3) %>%
@@ -98,7 +98,7 @@ codps22 <- read.csv(file.path(data_dir, "COD-PS", "2022", "population_baseline22
  dplyr::select(ADM1_PCODE, s_name, a_name, pop0)
 
 
-codps23 <- read.csv(file.path(data_dir, "COD-PS", "2023", "DO_NOT_SHARE_UKR_ADM2_POP_2023.csv")) %>%
+codps23 <- read.csv(file.path(in_dir, "COD-PS", "2023", "DO_NOT_SHARE_UKR_ADM2_POP_2023.csv")) %>%
   rename(ADM1_EN=ADM1_NAME, ADM2_EN=ADM2_NAME) %>%
   transmute(ADM1_PCODE=ADM1_PCODE, ADM1_EN = ADM1_EN,
          ADM2_PCODE = ADM2_PCODE, ADM2_EN = ADM2_EN,
@@ -122,7 +122,7 @@ codps23 <- read.csv(file.path(data_dir, "COD-PS", "2023", "DO_NOT_SHARE_UKR_ADM2
         ADM2_EN = ifelse(ADM1_PCODE=="UA01"|ADM1_PCODE=="UA85", ADM1_EN, ADM2_EN)) %>%
  dplyr::select(ADM1_PCODE, ADM1_EN, ADM2_PCODE, ADM2_EN, s_name, a_name, pop1)
 
-codps24 <- readxl::read_excel(file.path(data_dir, "COD-PS", "2024", "[restricted release] UKR_ADM2_POP_2024_Sept_27.xlsx"), sheet = 2) %>%
+codps24 <- readxl::read_excel(file.path(in_dir, "COD-PS", "2024", "[restricted release] UKR_ADM2_POP_2024_Sept_27.xlsx"), sheet = 2) %>%
   rename(ADM1_EN=ADM1_NAME, ADM2_EN=ADM2_NAME) %>%
   transmute(ADM1_PCODE=ADM1_PCODE, ADM1_EN = ADM1_EN,
             ADM2_PCODE = ADM2_PCODE, ADM2_EN = ADM2_EN,
