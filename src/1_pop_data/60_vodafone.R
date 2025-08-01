@@ -67,6 +67,7 @@ stocks <- read_csv2(file.path(in_dir, "Vodafone", "Stocks.csv")) |>
   mutate(
     oblast_name_en = ifelse(hromada_code == "abroad", "Abroad", oblast_name_en),
     macroregion = ifelse(hromada_code == "abroad", "Abroad", macroregion),
+    hromada_code = ifelse(hromada_code == "abroad", "Abroad", hromada_code),
     s_name = ifelse(sex == "female", "F", "M"),
     a_name = str_replace(age, "-", "_"),
     a_name = str_replace(age, "\\+", "Plus")
@@ -122,6 +123,8 @@ baselineFlows <- read_csv2(file.path(in_dir, "Vodafone", "Baseline Flows.csv")) 
       destination_hromada == "Unknown" ~ "Unknown",
       TRUE ~ destination_macroregion
     ),
+    origin_hromada = if_else(origin_hromada == "abroad", "Abroad", origin_hromada),
+    destination_hromada = if_else(destination_hromada == "abroad", "Unknown", destination_hromada),
     s_name = ifelse(sex == "female", "F", "M"),
     a_name = str_replace(age, "-", "_"),
     a_name = str_replace(age, "\\+", "Plus")
@@ -180,6 +183,8 @@ monthlyFlows <- monthlyFlows |>
       destination_hromada == "Unknown" ~ "Unknown",
       TRUE ~ destination_macroregion
     ),
+    origin_hromada = if_else(origin_hromada == "abroad", "Abroad", origin_hromada),
+    destination_hromada = if_else(destination_hromada == "abroad", "Unknown", destination_hromada),
     s_name = ifelse(sex == "female", "F", "M"),
     a_name = str_replace(age, "-", "_"),
     a_name = str_replace(age, "\\+", "Plus")
