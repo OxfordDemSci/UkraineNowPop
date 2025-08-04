@@ -9,7 +9,7 @@ master_index <- read_csv(file.path(out_dir, "ua_master_index.csv"))
 hromada_geo <- st_read(file.path(out_dir, "ua_master_hromada.gpkg"))
 
 # create output directories
-dir.create(file.path(out_dir, "population_proxy", "mobile_phone"), recursive = T, showWarnings = F)
+dir.create(file.path(out_dir, "population_proxy", "mobile_phone", "figs"), recursive = T, showWarnings = F)
 
 # prepare inputs
 oblast_geo <- hromada_geo |>
@@ -224,7 +224,10 @@ map_missing <- tm_shape(hromada_geo) + tm_polygons(fill = "with_users") +
   tm_shape(oblast_geo) +
   tm_borders(lwd = 3)
 
-tmap_save(map_missing, "wd/pic/map_missing.png")
+tmap_save(
+  map_missing,
+  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "map_missing.png")
+)
 
 # Hromada through time
 stocks |>
@@ -238,7 +241,11 @@ stocks |>
   geom_line(aes(y = n_hromada_true), col = "red") +
   facet_wrap(oblast_name_en ~ ., scales = "free_y")
 
-
+ggsave(
+  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "hromada_through_time.png"),
+  width = 8,
+  height = 6
+)
 
 # Raion through time
 stocks |>
@@ -252,6 +259,12 @@ stocks |>
   geom_line(aes(y = n_raion_true), col = "red") +
   facet_wrap(oblast_name_en ~ ., scales = "free_y")
 
+ggsave(
+  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "raion_through_time.png"),
+  width = 8,
+  height = 6
+)
+
 
 # User evolution
 
@@ -262,6 +275,12 @@ stocks |>
   geom_line() +
   facet_wrap(oblast_name_en ~ ., scales = "free_y") +
   labs(title = "Subscribers evolution")
+
+ggsave(
+  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "subscribers_evolution.png"),
+  width = 8,
+  height = 6
+)
 
 # subscribers evolution by age and sex
 
@@ -274,6 +293,13 @@ stocks |>
   facet_wrap(oblast_name_en ~ ., scales = "free_y") +
   labs(title = "Male subscribers")
 
+ggsave(
+  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "subscribers_evolution_male_by_age.png"),
+  width = 8,
+  height = 6
+)
+
+
 stocks |>
   filter(s_name == "F") |>
   group_by(t, oblast_name_en, a_name, s_name) |>
@@ -282,6 +308,12 @@ stocks |>
   geom_line() +
   facet_wrap(oblast_name_en ~ ., scales = "free_y") +
   labs(title = "Female subscribers")
+
+ggsave(
+  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "subscribers_evolution_female_by_age.png"),
+  width = 8,
+  height = 6
+)
 
 
 # Baseline flows assessment -----------------------------------------------
@@ -310,6 +342,13 @@ baselineFlows |>
   facet_wrap(origin_oblast ~ ., scales = "free_y") +
   labs(title = "Baseline flows origin")
 
+ggsave(
+  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "baseline_flows_origin.png"),
+  width = 8,
+  height = 6
+)
+
+
 # Destination
 baselineFlows |>
   group_by(t, destination_oblast) |>
@@ -324,6 +363,12 @@ baselineFlows |>
   geom_line(aes(y = n_hromada_true), col = "red") +
   facet_wrap(destination_oblast ~ ., scales = "free_y") +
   labs(title = "Baseline flows destination")
+
+ggsave(
+  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "baseline_flows_destination.png"),
+  width = 8,
+  height = 6
+)
 
 # Users evolution
 
@@ -342,17 +387,36 @@ ggplot(baselineFlows_oblast |>
   facet_wrap(origin_oblast ~ destination_oblast, scales = "free_y") +
   labs(title = "Kyiv -> other oblasts")
 
+ggsave(
+  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "baseline_flows_from_kyiv.png"),
+  width = 8,
+  height = 6
+)
+
+
 ggplot(baselineFlows_oblast |>
   filter(destination_oblast == "Kyiv"), aes(x = t, y = subscribers_baselineFlow)) +
   geom_line() +
   facet_wrap(origin_oblast ~ destination_oblast, scales = "free_y") +
   labs(title = "Other oblasts -> Kyiv")
 
+ggsave(
+  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "baseline_flows_to_kyiv.png"),
+  width = 8,
+  height = 6
+)
+
 
 ggplot(baselineFlows_oblast |>
-  filter(origin_oblast == "Unknown"), aes(x = t, y = subscribers)) +
+  filter(origin_oblast == "Unknown"), aes(x = t, y = subscribers_baselineFlow)) +
   geom_line() +
   facet_wrap(origin_oblast ~ destination_oblast, scales = "free_y")
+
+ggsave(
+  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "baseline_flows_from_unknown.png"),
+  width = 8,
+  height = 6
+)
 
 
 # Monthly flows ----------------------------------------------------------
@@ -374,6 +438,13 @@ monthlyFlows |>
   facet_wrap(origin_oblast ~ ., scales = "free_y") +
   labs(title = "Monthly flows origin")
 
+ggsave(
+  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "monthly_flows_origin.png"),
+  width = 8,
+  height = 6
+)
+
+
 # Destination
 monthlyFlows |>
   group_by(t, destination_oblast) |>
@@ -389,6 +460,11 @@ monthlyFlows |>
   facet_wrap(destination_oblast ~ ., scales = "free_y") +
   labs(title = "Monthly flows destination")
 
+ggsave(
+  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "monthly_flows_destination.png"),
+  width = 8,
+  height = 6
+)
 
 
 
@@ -423,6 +499,11 @@ coherence_df |>
   labs(title = "Coherence stocks - baseline flows - monthly flows") +
   theme_minimal()
 
+ggsave(
+  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "coherence_stocks_flows.png"),
+  width = 8,
+  height = 6
+)
 
 
 # Age and sex missingness ------------------------------------------------
@@ -439,6 +520,13 @@ stocks |>
   geom_line(aes(y = n_hromada_true), col = "grey20") +
   facet_wrap(oblast_name_en ~ ., scales = "free_y") +
   theme_minimal()
+
+ggsave(
+  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "hromada_through_time_by_agesex.png"),
+  width = 8,
+  height = 6
+)
+
 
 # At hromada level
 stocks |>
@@ -479,15 +567,27 @@ ggplot(stocks |>
   theme(legend.position = "None") +
   labs(title = "Number of subscribers per hromada that have missing data through time")
 
+ggsave(
+  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "missing_data_hromada_through_time.png"),
+  width = 8,
+  height = 6
+)
+
 
 hromada_geo_missing <- hromada_geo |>
   left_join(
     hromada_missing
   )
 
-tm_shape(hromada_geo_missing) +
+map_hromada_geo_missing <- tm_shape(hromada_geo_missing) +
   tm_fill(
     fill = "n_t",
     fill.scale = tm_scale_intervals(4, breaks = c(0, 1, 10, 20, 38), values = c("grey95", "yellowgreen", "gold1", "red4"), labels = c("0", "1-10", "11-20", "21-38")),
     fill.legend = tm_legend(title = "Number of timesteps missing")
   )
+
+tmap_save(
+  map_hromada_geo_missing,
+  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "map_hromada_geo_missing.png")
+)
+  
