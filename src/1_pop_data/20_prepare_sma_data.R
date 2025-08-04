@@ -78,4 +78,3 @@ sma_instagram_processed <- process_sma_data(sma_instagram)
 # Write processed data to CSV files
 write_csv(sma_facebook_processed, file.path(out_dir_pop, paste0(tolower(country), "_facebook_audience", output_label, ".csv")))
 write_csv(sma_instagram_processed, file.path(out_dir_pop, paste0(tolower(country), "_instagram_audience", output_label, ".csv")))
-
