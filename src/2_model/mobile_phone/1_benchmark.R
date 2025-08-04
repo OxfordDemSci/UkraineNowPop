@@ -1,5 +1,12 @@
+# libraries
+library(formattable)
+library(ggforce)
+
 source(file.path(here::here(), "R_helpers/generic.R"))
 source(here::here(".env"), local = env)
+
+# create output directories
+dir.create(file.path(out_dir, "model", "deterministic", "comparison"), showWarnings=F, recursive=T)
 dir.create(file.path(here::here(), "wd"), showWarnings = FALSE, recursive = TRUE)
 setwd(file.path(here::here(), "wd"))
 
@@ -23,6 +30,11 @@ stocks_hromada_agesex <- flows_hromada_agesex |>
   group_by(t, a_name, s_name, hromada = destination_hromada, oblast = destination_oblast, raion = destination_raion) |>
   summarise(
     pop_estimated = sum(monthlyFlow_hat_calibrated),
+    .groups = "drop" ) %>% ungroup() %>%
+  rename(ADM3_Minrehion_CODE=hromada)
+  
+
+key <- c("ADM3_Minrehion_CODE") 
     .groups = "drop"
   ) %>%
   ungroup() %>%
@@ -273,6 +285,7 @@ ggplot(plot_nal, aes(x = a_name)) +
   ) +
   theme_minimal(base_size = 14) +
   theme(legend.position = "bottom")
+
 ggsave(file.path(out_dir, "model", "deterministic", "comparison", "vodafone_vs_codps_2023_pop_pyr_nal.jpeg"), # K:\DemSci\projects\2023_WHO_Ukraine_Population\output\model\deterministic\comparison
   plot = last_plot(), width = 25, height = 20, units = "cm", dpi = 300
 )
@@ -395,6 +408,9 @@ ggsave(file.path(out_dir, "model", "deterministic", "comparison", "vodafone_vs_c
   plot = last_plot(), width = 35, height = 25, units = "cm", dpi = 300
 )
 
+base_pyr + ggforce::facet_wrap_paginate(~ ADM1_EN*ADM2_EN, ncol = n_col, nrow = n_row, page = 2)
+ggsave(file.path(out_dir, "model", "deterministic", "comparison", "vodafone_vs_codps_2023_pop_pyr_raion2.jpeg"),  #K:\DemSci\projects\2023_WHO_Ukraine_Population\output\model\deterministic\comparison
+  plot   = last_plot(), width  = 35, height = 25, units = "cm", dpi = 300)
 base_pyr + ggforce::facet_wrap_paginate(~ ADM1_EN * ADM2_EN, ncol = n_col, nrow = n_row, page = 2)
 ggsave(file.path(out_dir, "model", "deterministic", "comparison", "vodafone_vs_codps_2023_pop_pyr_raion2.jpeg"), # K:\DemSci\projects\2023_WHO_Ukraine_Population\output\model\deterministic\comparison
   plot = last_plot(), width = 35, height = 25, units = "cm", dpi = 300
@@ -655,11 +671,9 @@ ggsave(file.path(out_dir, "model", "deterministic", "comparison", "vodafone_vs_c
 #######################################
 # SMD estimates vs Vodafone estimates
 #######################################
-# 2023_WHO_Ukraine_Population\deliverables\20240305 Deterministic Estimates
-parent_dir <- file.path(
-  out_dir, "20240305 Deterministic Estimates/extract",
-  "Ukraine_population_estimates_2203", "Ukraine_population_estimates_2023", "oblast_daily_population/model"
-)
+#2023_WHO_Ukraine_Population\deliverables\20240305 Deterministic Estimates
+parent_dir <- file.path(in_dir, "20240305 Deterministic Estimates/extract",
+  "Ukraine_population_estimates_2203", "Ukraine_population_estimates_2023", "oblast_daily_population/model")
 
 all_subdirs <- list.dirs(parent_dir, full.names = TRUE, recursive = FALSE)
 date_pattern <- "^\\d{4}-\\d{2}-\\d{2}$"
@@ -678,11 +692,9 @@ for (s in seq_along(filtered_subdirs)) {
   fp <- file.path(filtered_subdirs[s], target_filename)
   if (file.exists(fp)) {
     population_data_list[[s]] <- read_csv(fp,
-      show_col_types = FALSE
-    ) %>%
-      mutate(date = as.Date(basename(filtered_subdirs[s])))
-  }
-}
+                        show_col_types = FALSE) %>%
+    mutate(date = as.Date(basename(filtered_subdirs[s])))
+}}
 
 combined_population_data_2023 <- bind_rows(population_data_list) %>%
   rename(t = date) %>%
@@ -754,11 +766,10 @@ ggplot(comparison_long, aes(x = t, y = value, color = source)) +
     axis.text.x = element_text(angle = 45, hjust = 1),
     strip.background = element_rect(fill = "grey95", color = NA),
     panel.grid.minor = element_blank(),
-    legend.position = "bottom"
-  )
-ggsave(file.path(out_dir, "model", "deterministic", "comparison", "vodafone_vs_facebookDL2023_time_series_obl.jpeg"), # K:\DemSci\projects\2024_WHO_Ukraine_Population\output\model\deterministic\comparison
-  plot = last_plot(), width = 35, height = 25, units = "cm", dpi = 300
-)
+  legend.position = "bottom")
+
+ggsave(file.path(out_dir, "model", "deterministic", "comparison", "vodafone_vs_facebookDL2023_time_series_obl.jpeg"),  #K:\DemSci\projects\2024_WHO_Ukraine_Population\output\model\deterministic\comparison
+  plot   = last_plot(), width  = 35, height = 25, units = "cm", dpi = 300)
 
 
 pyramid_df <- comparison %>%

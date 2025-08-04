@@ -6,6 +6,8 @@ plan(multisession)
 # param
 plot_show <- TRUE # show example plots
 dir.create(file.path(out_dir, "covariates", "final"), showWarnings = FALSE, recursive = TRUE)
+timeWindow_cumulative <- c(6, 12, 24) # in weeks ex. c(4, 12, 24)
+timeWindow_standardisation <- c(6, 12, 24) # in weeks ex. c(4, 12, 24)
 
 # Load data --------------------------------------------------------------
 master_index <- read_csv(file.path(out_dir, paste0(tolower(country), "_master_index", output_label, ".csv")))
@@ -18,30 +20,27 @@ cov_df <- cov_list %>%
 
 # Support functions -----------------------------------------------------
 
-compute_rollMetric <- function(df, fun, window, col_name = "") {
+compute_rollMetric <- function(df, fun, window, var = raw, col_name = "") {
   fun_name <- as.character(substitute(fun))
-  if (col_name == "") {
-    col_name <- paste0(fun_name, "_", window, "week")
-  }
+
   # if (fun_name == "mean") {
   #   fun <- function(x) mean(x[-window], na.rm = T) # remove current value
   # }
-  print(col_name)
-  var <- df |>
+  print(paste0("computing ", fun_name, " over ", window, " weeks... "))
+  df <- df |>
     group_by(covariate, i) |>
     arrange(covariate, i, t) |>
     tq_mutate(
-      select = raw,
+      select = var,
       mutate_fun = rollapply,
       width = window,
       FUN = fun,
       align = "right", # means lagging
       fill = "extend",
-      col_rename = col_name
+      col_rename = fun_name
     ) |>
-    ungroup() |>
-    select(last_col())
-  return(var)
+    mutate(window = paste0(window, "week"))
+  return(df)
 }
 
 # Run computation ---------------------------------------------------------
@@ -49,48 +48,85 @@ cov_df <- cov_df |>
   group_by(covariate, i) |>
   arrange(covariate, i, t)
 
-# compute cumulative covariate -------------------------------------------
+# compute duration processing -------------------------------------------
 # a bit long. ~5sec
-cov_df_sum <- bind_cols(
-  cov_df,
-  future_lapply(c(4, 12, 24), function(w) compute_rollMetric(cov_df, sum, w))
+cov_df_sum <- bind_rows(
+  future_lapply(timeWindow_cumulative, function(w) compute_rollMetric(cov_df, sum, w))
 )
+
 
 cov_df_sum <- cov_df_sum |>
-  pivot_longer(c(contains("week"), "raw"), names_to = "sum_stat", values_to = "value")
+  mutate(sum_stat = paste("sum", window, sep = "_")) |>
+  rename(value = sum) |>
+  select(-raw, -window)
 
-# compute time scaling  -------------------------------------------
-# a bit long. ~5sec
-cov_df_mean <- bind_cols(
-  cov_df,
-  future_lapply(c(4, 12, 24), function(w) compute_rollMetric(cov_df, mean, w))
-)
 
-cov_df_mean <- cov_df_mean |>
-  pivot_longer(contains("week"), names_to = "method", values_to = "center_std") |>
-  mutate(value = raw) |>
-  separate(method, into = c("drop", "time_std"), sep = "_", fill = "right") |>
-  select(-raw, -drop) |>
-  mutate(sum_stat = "raw")
-
-# compute spatial scaling  -------------------------------------------
-# TODO
-
-# bind scaling together -------------------------------------------
-cov_df_scaled <- bind_rows(cov_df_sum, cov_df_mean)
-
-cov_df_scaled <- cov_df_scaled |>
+cov_df_sum <- cov_df_sum |>
+  group_by(covariate, sum_stat, t) |>
   mutate(
-    space_std = NA
-  ) |>
-  group_by(covariate, sum_stat, time_std, space_std) |>
-  mutate(
-    center_std = ifelse(is.na(center_std), mean(value), center_std),
+    space_std = "country",
+    center_std = mean(value, na.rm = T),
     scale_std = sd(value, na.rm = T),
-    value_std = (value - center_std) / scale_std
   )
 
-cov_df_scaled <- cov_df_scaled |>
+# compute temporal outliers -------------------------------------------
+
+
+cov_df_mean <- bind_rows(
+  future_lapply(timeWindow_standardisation, function(w) compute_rollMetric(cov_df, mean, w))
+) |>
+  rename(center_std = mean, time_std = window)
+
+cov_df_sd <- bind_rows(
+  future_lapply(timeWindow_standardisation, function(w) compute_rollMetric(cov_df, sd, w))
+) |>
+  rename(scale_std = sd, time_std = window)
+
+cov_df_time <- full_join(cov_df_mean, cov_df_sd) |>
+  rename(value = raw) |>
+  mutate(sum_stat = "raw")
+
+
+# compute spatial outliers -----------------------------------------------
+
+cov_df_space <- cov_df |>
+  rename(value = raw) |>
+  group_by(covariate, t) |>
+  mutate(
+    space_std = "country",
+    sum_stat = "raw",
+    center_std = mean(value, na.rm = T),
+    scale_std = sd(value, na.rm = T)
+  )
+
+
+# extreme outliers -------------------------------------------------------
+
+cov_df_extreme <- cov_df |>
+  rename(value = raw) |>
+  group_by(covariate) |>
+  mutate(
+    space_std = "country",
+    sum_stat = "raw",
+    time_std = "all",
+    center_std = mean(value, na.rm = T),
+    scale_std = sd(value, na.rm = T)
+  )
+
+
+# bind scaling together -------------------------------------------
+
+
+cov_df_scaled <- bind_rows(cov_df_sum, cov_df_time, cov_df_space, cov_df_extreme) |>
+  group_by(covariate, sum_stat, time_std, space_std) |>
+  mutate(
+    scale_std = ifelse(scale_std == 0, NA, scale_std),
+    scale_std = ifelse(is.na(scale_std), min(scale_std, na.rm = T), scale_std)
+  ) |>
+  ungroup() |>
+  mutate(
+    value_std = (value - center_std) / scale_std
+  ) |>
   select(
     i, t, starts_with("i"), ADM1_PCODE, starts_with("t_"),
     covariate, sum_stat, time_std, space_std, center_std, scale_std,
