@@ -1,8 +1,10 @@
 # Covariates
 
 ## Folder structure
+
 The covariates code is divided in three: the scripts collecting the data, the one applying the same processing to all the gathered data and the ones creating the report on covariates.
-```
+
+```         
 ├── collection
 │  ├── acled.py             # Script to access and process ACLED conflict data
 │  ├── deepstate.py         # Analysis of deep-state actors in conflicts
@@ -17,78 +19,72 @@ The covariates code is divided in three: the scripts collecting the data, the on
 ```
 
 ## Covariates description
-| Label     | Name                                      | Provider                                           | Type       | Description                                                                 | Options                                                                                                                                   | Spatial coverage             | Temporal coverage | Script      | Data source           | Collection method | Link |
-|-----------|-------------------------------------------|----------------------------------------------------|------------|-----------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------|------------------------------|------------------|-------------|------------------------|------------------|------|
-| acled     | Conflict Location                        | Armed Conflict Location and Event Data Project    | Discrete   | Tracking a range of violent and non-violent actions by or affecting political agents. | withfatalities, disorderPolitical, disorderStrategic, disorderDemonstration, disorderPoliticalDemonstration, eventExplosion, eventBattle, eventStrategic, eventAgainstCivilians, eventProtest, eventRiot | all                          | daily            | acled.py    | API                    | Professional scraping | [Link](https://acleddata.com/) |
-| occupied  | Territory occupied by Russia            | Ukrainian Open-Source intelligence DeepState project | Continuous | Live map of Russian and Ukrainian military operations                        | Amount and proportion                                                                                                                   | all                          | daily            | deepstate.py | Web scraping           | Crowdsourced      | [Link](https://en.wikipedia.org/wiki/DeepStateMap.Live) |
-| sirens    | Air raid sirens                         | eTryvoga                                           | Discrete   | Air-raid sirens collected by volunteers from eTryvoga channel               |                                                                                                                                          | All except Crimea and Sevastopol | daily            | sirens.R    | Github repo            | Crowdsourced      | [Link](https://github.com/Vadimkin/ukrainian-air-raid-sirens-dataset) |
-| pwtt      | Building change (Pixel-wise T-Test)     | Ollie Ballinger                                    | Continuous | Building change detected by the Synthetic Aperture Radar imagery from the Sentinel-1 satellite. |                                                                                                           | all                          | monthly          | pwtt.py     | Google Earth Engine   | Satellite imagery | [Link](https://github.com/oballinger/PWTT) |
-| war_fires | War fires                               | The Economist                                      | Discrete   | War fire detected from temperature anomalies                                |                                                                                                                                          | all                          | daily            | warfires.R  | Github repo            | Satellite imagery | [Link](https://github.com/TheEconomist/the-economist-war-fire-model/) |
+
+| Label | Name | Provider | Type | Description | Options | Spatial coverage | Temporal coverage | Script | Data source | Collection method | Link |
+|------|------|------|------|------|------|------|------|------|------|------|------|
+| acled | Conflict Location | Armed Conflict Location and Event Data Project | Discrete | Tracking a range of violent and non-violent actions by or affecting political agents. | withfatalities, territoryUkraine, territoryRussia, eventExplosion (includes armed clash), all | all | daily | acled.py | API | Professional scraping | [Link](https://acleddata.com/) |
+| occupied | Territory occupied by Russia | Ukrainian Open-Source intelligence DeepState project | Continuous | Live map of Russian and Ukrainian military operations | Amount and proportion | all | daily | deepstate.py | Web scraping | Crowdsourced | [Link](https://en.wikipedia.org/wiki/DeepStateMap.Live) |
+| sirens | Air raid sirens | eTryvoga | Discrete | Air-raid sirens collected by volunteers from eTryvoga channel |  | All except Crimea and Sevastopol | daily | sirens.R | Github repo | Crowdsourced | [Link](https://github.com/Vadimkin/ukrainian-air-raid-sirens-dataset) |
+| pwtt | Building change (Pixel-wise T-Test) | Ollie Ballinger | Continuous | Building change detected by the Synthetic Aperture Radar imagery from the Sentinel-1 satellite. |  | all | monthly | pwtt.py | Google Earth Engine | Satellite imagery | [Link](https://github.com/oballinger/PWTT) |
+| war_fires | War fires | The Economist | Discrete | War fire detected from temperature anomalies |  | all | daily | warfires.R | Github repo | Satellite imagery | [Link](https://github.com/TheEconomist/the-economist-war-fire-model/) |
+| graced | CO2 emissions | GRACED | Continuous | Categorised emissions | Residential, Industry, GroundTransportation | all | monthly | graced.py | Online repo | Remote sensing | [Link](https://carbonmonitor-graced.com/datasets.html) |
 
 ## Covariates processing
 
 ### Missing values
-#### PWTT
-PWTT is collected every month. For the timestamp in between we replicate the previous value.
-#### Air siren
+
+#### PWTT & GRACED
+
+PWTT and GRACED are collected every month. For the timestamp in between we replicate the previous value.
+
+### Air sirens
+
 There are permanent sirens in Luhansk and Crimea that are not reported. We impute it by setting the value for those oblasts to the maximum value observed in the dataset.
 
 ### Standardisation
-We want to standardise covariates across time and location to pick up different forms of signal.
-The current methodology is, with $x_{i,t}$ the raw covariate and $X_{i,t}$ the standardised covariate:
-- Z-score scaling: 
-$X_{i,t} = \frac{x_{i,t} - \bar{x}}{sd(x)}$
-- Z-score cumulative scaling: 
-$y_{i,t}= \sum_{u=t-t_0}^{t}x_u$
-$X_{i,t} = \frac{y_{i,t} - \bar{y}}{sd(y)}$
-- Z-score temporal scaling:
-$y_{i,t}=  x_{i,t} - mean(x_{i,t}, \dotsc , x_{i,t-t0})= x_{i,t} - \frac{1}{t_0}\sum_{u=t-t_0}^{t}x_{i,u}  $
-$X_{i,t} = \frac{y_{i,t}}{sd(y)}$
-- Z-score geographical scaling:
-$y_{i,t}= x_{i,t} - mean(x_{i,t}, x_{j,t}, \dotsc , x_{l,t}$)
-$X_{i,t} = \frac{y_{i,t}}{sd(y)}$
 
-There are three "hyperparameters" :
-1. $t_0$ in the cumulative scaling that is the time window for the cumulative effect
-2. $t_0$ in the temporal scaling that is the time window for the baseline comparison
-3. $j, \dotsc , l$ in the geographical scaling that is the geographical window for the baseline comparison.
+We want to process the covariates across time and location to pick up different forms of signal.
 
-Current implementation are:
-1. sum over: 4 weeks, 12 weeks, 24 weeks
-2. centered over: 4 weeks, 12 weeks, 24 weeks
+We implemented two processing levels:
 
-### `ua_covariates_oblast.csv`
-The final dataset stored under `covariate/final` contains the raw value and the processed value. More specifically the column `sum_stat` describes the summary statistics applied to the raw data before any standardisation.
-The `time_std` and `space_std` columns explain how the `center_std` and `scale_std` have been computed to derive the `value_std` column.
+1.  on the covariate itself: we derive summary statistics from the raw value of the covariate
 
-Processing and standardisation combinations:
+2.  on its standardisation: we implement a Z-score scaling ($X_{i,t} = \frac{x_{i,t} - \bar{x}}{sd(x)}$ ) with different time or spatial window for computing the centering $\bar{x}$ and scaling $sd(x)$.
 
-![image](https://github.com/user-attachments/assets/495a5e58-a0bd-4a3f-9082-c4f3a9abab58)
+Four combinations are currently available:
+| Combination       | Summary statistics | Time standardisation | Spatial standardisation | Meaning                                                                                                                       |
+|-------------------|--------------------|----------------------|-------------------------|-------------------------------------------------------------------------------------------------------------------------------|
+| **Extreme outliers**  | `raw`              | `all`                | `country`               | This corresponds to the conventional Z-score across all i and t and should highlight singular outliers across time and space. |
+| **Duration outliers**          | `sum_xxweek`       | `NA`                 | `country`               | This should highlight the unusual duration of events in comparison to other spatial units.                                    |
+| **Temporal outliers** | `raw`              | `xxweek`             | `NA`                    | This should highlight intensification of events, i.e., outliers across time.                                                  |
+| **Spatial outliers**  | `raw`              | `NA`                 | `country`               | This should highlight hotspots of events, i.e., outliers across space.                                                       |
 
-Example of the output:
 
-![image](https://github.com/user-attachments/assets/08d47b9b-7e4e-4ed6-93a9-bb8d61bb9b6c)
+There are three "hyperparameters" : (1) $t$ in the cumulative scaling that is the time window for the cumulative effect (2) $t$ in the temporal scaling that is the time window for the baseline comparison (3) $i$ in the geographical scaling that is the geographical window for the baseline comparison.
 
+Current hyperparameters are: (1) sum over 6, 12 and 24 weeks, (2) centered and scaled over 6, 12 and 24 weeks (3) centered and scaled over all oblasts.
+
+The processing label `std_label` follows the following schema: `sum_stat, time_std, space_std`.
+
+### Output
+
+The final dataset stored under `covariate/final` and called `ua_covariates_oblast.csv` contains the raw value and the processed value. More specifically the column `sum_stat` describes the summary statistics applied to the raw data before any standardisation. In the output, the `time_std` and `space_std` columns explain how the `center_std` and `scale_std` have been computed to derive the `value_std` column.
 
 ## Report on covariates
-The covariates visualisation is stored in src/covariates/report.
-I have organised it into three different reports, each consisting of a Quarto .qmd file and its rendered .html version.
 
-The three reports are as follows:
+The covariates visualisation is stored in src/covariates/report. I have organised it into two different reports, each consisting of a Quarto .qmd file and its rendered .html version.
 
-1.  1_covariates_vis: _Visualise individual covariates_. This report contains scatterplots over time for each covariate along with their 31 + 2 × 3 related standardisations:
--  Raw values
--  Cumulative values (with three different time windows)
--  Time-scaled values (with three different time windows)
+The two reports are as follows:
 
-2. 2_covariates_corr: _Correlation between covariates_. This report provides a correlation analysis split into three sections:
--  Correlation between processing methods for each covariate
--  Correlation between covariates for each processing method
--  A full correlation table for further exploration
+1.  1_covariates_vis: *Visualise individual covariates*. This report contains scatterplots over time for each covariate (13) with their 3 + 3 + 1 + 1 related standardisations:
 
-3. 3_covariates_popChange: _Correlation with population change_. This is my favourite. It analyses the correlation between covariates and a proxy for population change (daily changes in deterministic population estimates). The analysis distinguishes between population increase and decrease, evaluating correlations based on:
--  Current value of the covariate
--  Lagged values (up to -5 weeks)
--  Lead values (up to +5 weeks)
+-   Extreme outliers: raw, all, country
+-   Duration outliers (with three windows): sum_xxweek, NA, country
+-   Temporal outliers (with three windows): raw, xxweek, NA
+-   Spatial outliers: raw, NA, country
 
+2.  2_covariates_corr: *Correlation between covariates*. This report provides a correlation analysis split into three sections:
 
+-   Correlation between processing methods for each covariate
+-   Correlation between covariates for each processing method
+-   A full correlation table for further exploration
