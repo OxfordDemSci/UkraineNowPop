@@ -124,7 +124,7 @@ baselineFlows <- read_csv2(file.path(in_dir, "Vodafone", "Baseline Flows.csv")) 
       TRUE ~ destination_macroregion
     ),
     origin_hromada = if_else(origin_hromada == "abroad", "Abroad", origin_hromada),
-    destination_hromada = if_else(destination_hromada == "abroad", "Unknown", destination_hromada),
+    destination_hromada = if_else(destination_hromada == "abroad", "Abroad", destination_hromada),
     s_name = ifelse(sex == "female", "F", "M"),
     a_name = str_replace(age, "-", "_"),
     a_name = str_replace(age, "\\+", "Plus")
@@ -184,7 +184,7 @@ monthlyFlows <- monthlyFlows |>
       TRUE ~ destination_macroregion
     ),
     origin_hromada = if_else(origin_hromada == "abroad", "Abroad", origin_hromada),
-    destination_hromada = if_else(destination_hromada == "abroad", "Unknown", destination_hromada),
+    destination_hromada = if_else(destination_hromada == "abroad", "Abroad", destination_hromada),
     s_name = ifelse(sex == "female", "F", "M"),
     a_name = str_replace(age, "-", "_"),
     a_name = str_replace(age, "\\+", "Plus")
@@ -590,4 +590,3 @@ tmap_save(
   map_hromada_geo_missing,
   filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "map_hromada_geo_missing.png")
 )
-  
