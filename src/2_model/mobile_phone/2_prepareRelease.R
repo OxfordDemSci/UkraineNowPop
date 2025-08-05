@@ -1,7 +1,7 @@
 source(file.path(here::here(), "R_helpers/generic.R"))
 
 # create output directory
-dir.create(file.path(out_dir, "model", "deterministic", "deliverables", "202508 Deterministic Estimates"), recursive=T, showWarnings=F)
+dir.create(file.path(out_dir, "model", "deterministic", "deliverables", "202508"), recursive = T, showWarnings = F)
 
 
 flows_hromada_agesex <- data.table::fread(file.path(out_dir, "model", "deterministic", "mobilePhone_deterministic_agesex_domestic.csv"))
@@ -9,8 +9,9 @@ flows_hromada_agesex <- data.table::fread(file.path(out_dir, "model", "determini
 flows_hromada_agesex <- flows_hromada_agesex |>
   filter(destination_oblast != "Abroad") |>
   mutate(
-    origin_raion = ifelse(origin_raion == "Київ", "Kyiv", origin_raion),
-    destination_raion = ifelse(destination_raion == "Київ", "Kyiv", destination_raion)
+    origin_raion = ifelse(origin_raion == "Київ", "UA8000", origin_raion),
+    destination_raion = ifelse(destination_raion == "Київ", "UA8000", destination_raion),
+    destination_admin2_Pcode = str_sub(destination_raion, 1, 6),
   )
 
 stocks_hromada_agesex <- flows_hromada_agesex |>
@@ -25,11 +26,11 @@ stocks_hromada_agesex <- flows_hromada_agesex |>
 # write output
 
 write_csv(stocks_hromada_agesex, file.path(
-  out_dir, "model", "deterministic", "deliverables", "202508 Deterministic Estimates",
+  out_dir, "model", "deterministic", "deliverables", "202508",
   paste0(tolower(country), "_stocks_hromada_agesex", output_label, ".csv")
 ))
 
 write_csv(flows_hromada_agesex, file.path(
-  out_dir, "model", "deterministic", "deliverables", "202508 Deterministic Estimates",
+  out_dir, "model", "deterministic", "deliverables", "202508",
   paste0(tolower(country), "_flows_hromada_agesex", output_label, ".csv")
 ))
