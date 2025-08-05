@@ -6,7 +6,9 @@ download_eurostat <- F
 monthlyFlows <- read_csv(file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_monthlyFlows.csv"))
 
 
-agesex_reference <- read_csv(file.path(in_dir, "COD-PS", "ukr_admpop_adm1_2022.csv")) |>
+agesex_reference <- read_csv(file.path(in_dir, "COD-PS", "ukr_admpop_adm1_2022.csv"))
+
+agesex_reference_processed <- agesex_reference |>
   select(admin1Name_en, starts_with("F"), starts_with("M"), -ends_with("TL")) |>
   pivot_longer(c(starts_with("F"), starts_with("M")), names_to = "agesex_label", values_to = "pop") |>
   rowwise() |>
@@ -35,7 +37,7 @@ agesex_reference <- read_csv(file.path(in_dir, "COD-PS", "ukr_admpop_adm1_2022.c
       a == 50 ~ "45-54",
       a == 55 ~ "55-59",
       a == 60 ~ "60-64",
-      a > 65 ~ "65Plus",
+      a >= 65 ~ "65Plus",
       T ~ NA
     ),
     a_unhcr = case_when(
@@ -59,7 +61,7 @@ agesex_reference <- read_csv(file.path(in_dir, "COD-PS", "ukr_admpop_adm1_2022.c
       T ~ NA
     )
   ) |>
-  filter(!is.na(a_ref)) |>
+  filter(a >= 18) |>
   group_by(a_unhcr, a_eurostat, a_ref, s_name) |>
   summarise(pop = sum(pop)) |>
   ungroup() |>
@@ -102,7 +104,7 @@ refugee_agesex <- refugee_agesex |>
     )
   ) |>
   left_join(
-    agesex_reference |>
+    agesex_reference_processed |>
       select(-pop)
   ) |>
   mutate(
@@ -148,7 +150,7 @@ if (download_eurostat) {
 
 eurostat_refugee <- read_csv(eurostat_refugee_file)
 
-eurostat_refugee <- eurostat_refugee |>
+eurostat_refugee_ <- eurostat_refugee |>
   select(sex, age, geo, TIME_PERIOD, OBS_VALUE) |>
   mutate(
     t = as.Date(paste(TIME_PERIOD, "-01", sep = "")) + months(1),
@@ -191,7 +193,7 @@ eurostat_refugee <- eurostat_refugee |>
     )
   ) |>
   left_join(
-    agesex_reference |>
+    agesex_reference_processed |>
       select(a_eurostat, a_ref, s_name, a_prop_eurostat)
   ) |>
   mutate(
@@ -231,6 +233,33 @@ monthlyFlows_national_agesex <- monthlyFlows |>
   )
 
 # Compare age-sex profile
+ggplot(agesex_reference |>
+  select(admin1Name_en, starts_with("F"), starts_with("M"), -ends_with("TL")) |>
+  pivot_longer(c(starts_with("F"), starts_with("M")), names_to = "agesex_label", values_to = "pop") |>
+  rowwise() |>
+  mutate(
+    s_name = ifelse(grepl("F", agesex_label), "F", "M"),
+    a = str_split(agesex_label, "_")[[1]][2],
+    a = as.integer(ifelse(a == "80Plus", 80, a)),
+    age_bin = cut(
+      a,
+      breaks = seq(0, 85, 5),
+      right = FALSE,
+      include.lowest = TRUE,
+      labels = paste(seq(0, 80, 5), seq(4, 84, 5), sep = "-")
+    )
+  ), aes(x = age_bin, y = if_else(s_name == "M", -pop, pop), fill = s_name)) +
+  geom_bar(stat = "identity") +
+  scale_y_continuous(labels = abs) +
+  coord_flip() +
+  labs(
+    x = "Age",
+    y = "Population",
+    fill = "Sex",
+    title = "Age-Sex Pyramid in the COD-PS"
+  ) +
+  theme_minimal()
+
 comp_agesex <- bind_rows(
   refugee_agesex |>
     mutate(
