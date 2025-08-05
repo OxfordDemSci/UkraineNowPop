@@ -206,21 +206,17 @@ write_csv(monthlyFlows, file.path(out_dir, "population_proxy", "mobile_phone", "
 n_distinct(stocks$hromada_code)
 n_distinct(hromada$hromada_code)
 
-hromada_list <- stocks |>
-  distinct(hromada_code) |>
-  mutate(source = "in_vodafone") |>
-  full_join(hromada |> select(ends_with("_en"), ends_with("_name"), hromada_code))
+hromada_list <- hromada_geo |>
+  full_join(
+    stocks |>
+      filter(hromada_code != "Abroad") |>
+      group_by(hromada_code) |>
+      filter(n_distinct(t) == n_distinct(stocks$t)) |>
+      distinct(hromada_code) |>
+      mutate(`Data availibility` = "in Vodafone")
+  )
 
-# Data consistency checks
-
-hromada_geo <- hromada_geo |>
-  left_join(stocks |>
-    filter(t == min(stocks$t)) |>
-    distinct(hromada_code) |>
-    mutate(with_users = T))
-
-
-map_missing <- tm_shape(hromada_geo) + tm_polygons(fill = "with_users") +
+map_missing <- tm_shape(hromada_list) + tm_polygons(fill = "Data availibility") +
   tm_shape(oblast_geo) +
   tm_borders(lwd = 3)
 
