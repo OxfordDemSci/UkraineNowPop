@@ -322,25 +322,37 @@ borderCrossing_in_monthly <- bind_rows(
 returnee_agesex <- returnee_sex |>
   group_by(t) |>
   mutate(
-    pi_s = count / sum(count)
+    pi_returnee = count / sum(count)
   ) |>
   ungroup() |>
-  filter(a == "18-59") |>
   complete(t = seq(min(borderCrossing_in_monthly$t, na.rm = T), max(monthlyFlows$t), by = "1 month"), nesting(s_name, a)) %>%
   arrange(s_name, a, t) %>%
   group_by(s_name, a) %>%
-  fill(pi_s, .direction = "down") |>
-  fill(pi_s, .direction = "up") |>
+  fill(pi_returnee, .direction = "down") |>
+  fill(pi_returnee, .direction = "up") |>
   ungroup() |>
+  mutate(
+    a_returnee = case_when(
+      a=='0-4'~'0-17',
+      a=='5-17'~'0-17',
+      a=='60Plus'~'65Plus',
+      T~a
+    )
+  ) |> 
   left_join(
     refugee_agesex |>
       select(t, s_name, a_name, refugee) |>
+      filter(a_name%in% c('18-24', '25-34', '35-44', '45-54', '55-64')) |> 
       group_by(t, s_name) |>
-      mutate(pi_a = refugee / sum(refugee)) |>
+      mutate(
+        pi_refugee = refugee / sum(refugee),
+        a_returnee="18-59"
+        ) |>
       select(-refugee)
   ) |>
   mutate(
-    pi = pi_s * pi_a
+    pi_refugee = ifelse(is.na(pi_refugee),1,pi_refugee),
+    pi = pi_returnee * pi_refugee
   )
 
 
@@ -383,36 +395,36 @@ agesex_national_d0 |>
   ) |>
   ungroup()
 
-national_pop_minusOutflows_plusInflows$pop_manual <- NA
+# national_pop_minusOutflows_plusInflows$pop_manual <- NA
 
-for(s in unique(national_pop_minusOutflows_plusInflows$s_name)){
-  for( a in unique(national_pop_minusOutflows_plusInflows$a_name)){
-    for(t_name in sort(unique(national_pop_minusOutflows_plusInflows$t))){
-      t_name <- as.Date(t_name)
+# for(s in unique(national_pop_minusOutflows_plusInflows$s_name)){
+#   for( a in unique(national_pop_minusOutflows_plusInflows$a_name)){
+#     for(t_name in sort(unique(national_pop_minusOutflows_plusInflows$t))){
+#       t_name <- as.Date(t_name)
       
-      df <- national_pop_minusOutflows_plusInflows |> 
-        filter(a_name==a&s_name==s&t==t_name)
-      df_before <- national_pop_minusOutflows_plusInflows |> 
-        filter(a_name==a&s_name==s&t==t_name-months(1))
+#       df <- national_pop_minusOutflows_plusInflows |> 
+#         filter(a_name==a&s_name==s&t==t_name)
+#       df_before <- national_pop_minusOutflows_plusInflows |> 
+#         filter(a_name==a&s_name==s&t==t_name-months(1))
       
-      if(t_name==min(national_pop_minusOutflows_plusInflows$t)){
-      national_pop_minusOutflows_plusInflows[
-        national_pop_minusOutflows_plusInflows$s_name==s&
-        national_pop_minusOutflows_plusInflows$a_name==a&
-          national_pop_minusOutflows_plusInflows$t==t_name, 
-        'pop_manual'     
-      ] = df$pop+ df$inflows - df$outflows
-    } else {
-      national_pop_minusOutflows_plusInflows[
-        national_pop_minusOutflows_plusInflows$s_name==s&
-        national_pop_minusOutflows_plusInflows$a_name==a&
-          national_pop_minusOutflows_plusInflows$t==t_name, 
-        'pop_manual'     
-      ] = df_before$pop_manual + df$inflows - df$outflows
-    }
-    }
-}
-}
+#       if(t_name==min(national_pop_minusOutflows_plusInflows$t)){
+#       national_pop_minusOutflows_plusInflows[
+#         national_pop_minusOutflows_plusInflows$s_name==s&
+#         national_pop_minusOutflows_plusInflows$a_name==a&
+#           national_pop_minusOutflows_plusInflows$t==t_name, 
+#         'pop_manual'     
+#       ] = df$pop+ df$inflows - df$outflows
+#     } else {
+#       national_pop_minusOutflows_plusInflows[
+#         national_pop_minusOutflows_plusInflows$s_name==s&
+#         national_pop_minusOutflows_plusInflows$a_name==a&
+#           national_pop_minusOutflows_plusInflows$t==t_name, 
+#         'pop_manual'     
+#       ] = df_before$pop_manual + df$inflows - df$outflows
+#     }
+#     }
+# }
+# }
 
 # Step 2: The model ---------------------------------------
 
