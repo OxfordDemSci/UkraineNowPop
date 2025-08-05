@@ -240,17 +240,17 @@ borderCrossing_out_monthly <- borderCrossing_out |>
     t = ceiling_date(t, unit = "month")
   )|>
   filter(t<'2025-02-01') |>
-  group_by(t) |>
-  summarise(
-    outflows_cumulative = mean(individuals),
-    .groups = "drop"
-  ) |>
   arrange(t) |>
   mutate(
-    outflows = lead(outflows_cumulative) - outflows_cumulative,
-    outflows = ifelse(is.na(outflows), lag(outflows), outflows)
+    outflows = individuals - lag(individuals),
+    outflows = ifelse(is.na(outflows), individuals, outflows)
   ) |>
-  select(-outflows_cumulative)
+  group_by(t) |>
+  summarise(
+    outflows = sum(outflows),
+    .groups = "drop"
+  ) 
+
 
 borderCrossing_out_monthly <- bind_rows(
   borderCrossing_out_monthly,
@@ -285,35 +285,6 @@ borderCrossing_out_monthly_agesex <- refugee_agesex |>
   filter(a_name %in% agesex_geoCombination_full$a_name & s_name %in% agesex_geoCombination_full$s_name)
 
 
-# compute population totals by age and sex through time 
-
-national_pop_minusOutflows_plusInflows <- bind_rows(
-  agesex_national_d0 |> 
-    full_join(
-      borderCrossing_out_monthly_agesex |>
-        select(t, a_name, s_name, outflows) |> 
-        full_join(
-    borderCrossing_in_monthly_agesex |>
-      select(t, a_name, s_name, inflows))
-),
-
-agesex_national_d0 |> 
-  mutate(
-    t=as.Date('2022-02-01')
-  )
-)|>
-  group_by(a_name, s_name) |> 
-  arrange(t) |> 
-  mutate(
-    inflows = ifelse(is.na(inflows), 0, inflows),
-    outflows = ifelse(is.na(outflows), 0, outflows),
-    inflows_cum = cumsum(inflows),
-    outflows_cum = cumsum(outflows),
-    pop_updated = pop - outflows + inflows
-  ) |>
-  ungroup()
-
-
 # Prepare border crossing inflows by age and sex
 
 borderCrossing_in_monthly <- borderCrossing_in |>
@@ -324,17 +295,16 @@ borderCrossing_in_monthly <- borderCrossing_in |>
     t = ceiling_date(t, unit = "month")
   ) |>
     filter(t<'2025-02-01') |>
-  group_by(t) |>
-  summarise(
-    inflows_cumulative = mean(individuals),
-    .groups = "drop"
-  ) |>
   arrange(t) |>
   mutate(
-    inflows = lead(inflows_cumulative) - inflows_cumulative,
-    inflows = ifelse(is.na(inflows), lag(inflows), inflows)
+    inflows = individuals - lag(individuals),,
+    inflows = ifelse(is.na(inflows), individuals, inflows)
   ) |>
-  select(-inflows_cumulative)
+    group_by(t) |>
+    summarise(
+      inflows = sum(inflows),
+      .groups = "drop"
+    ) 
 
 # Complete inflows post 2025
 
@@ -386,6 +356,63 @@ borderCrossing_in_monthly_agesex <- borderCrossing_in_monthly |>
     filter(a_name %in% agesex_geoCombination_full$a_name & s_name %in% agesex_geoCombination_full$s_name)
 
 
+# compute population totals by age and sex through time 
+
+national_pop_minusOutflows_plusInflows <- bind_rows(
+  agesex_national_d0 |> 
+    full_join(
+      borderCrossing_out_monthly_agesex |>
+        select(t, a_name, s_name, outflows) |> 
+        full_join(
+    borderCrossing_in_monthly_agesex |>
+      select(t, a_name, s_name, inflows))
+),
+agesex_national_d0 |> 
+  mutate(
+    t=as.Date('2022-02-01')
+  )
+)|>
+  group_by(a_name, s_name) |> 
+  arrange(t) |> 
+  mutate(
+    inflows = ifelse(is.na(inflows), 0, inflows),
+    outflows = ifelse(is.na(outflows), 0, outflows),
+    netoutflows = outflows-inflows,
+    pop_updated = pop - cumsum(outflows)+cumsum(inflows),
+    pop_minusOutflows = pop_updated - outflows
+  ) |>
+  ungroup()
+
+national_pop_minusOutflows_plusInflows$pop_manual <- NA
+
+for(s in unique(national_pop_minusOutflows_plusInflows$s_name)){
+  for( a in unique(national_pop_minusOutflows_plusInflows$a_name)){
+    for(t_name in sort(unique(national_pop_minusOutflows_plusInflows$t))){
+      t_name <- as.Date(t_name)
+      
+      df <- national_pop_minusOutflows_plusInflows |> 
+        filter(a_name==a&s_name==s&t==t_name)
+      df_before <- national_pop_minusOutflows_plusInflows |> 
+        filter(a_name==a&s_name==s&t==t_name-months(1))
+      
+      if(t_name==min(national_pop_minusOutflows_plusInflows$t)){
+      national_pop_minusOutflows_plusInflows[
+        national_pop_minusOutflows_plusInflows$s_name==s&
+        national_pop_minusOutflows_plusInflows$a_name==a&
+          national_pop_minusOutflows_plusInflows$t==t_name, 
+        'pop_manual'     
+      ] = df$pop+ df$inflows - df$outflows
+    } else {
+      national_pop_minusOutflows_plusInflows[
+        national_pop_minusOutflows_plusInflows$s_name==s&
+        national_pop_minusOutflows_plusInflows$a_name==a&
+          national_pop_minusOutflows_plusInflows$t==t_name, 
+        'pop_manual'     
+      ] = df_before$pop_manual + df$inflows - df$outflows
+    }
+    }
+}
+}
 
 # Step 2: The model ---------------------------------------
 
@@ -947,6 +974,18 @@ ggplot( national_pop_minusOutflows_plusInflows |>
   theme_minimal() +
   facet_grid(name~., scales='free_y')+
   labs(title = "National population", x = "")
+
+ggplot( national_pop_minusOutflows_plusInflows |>
+  mutate(outflows_prop= outflows/pop,
+          inflows_prop = inflows/pop) |> 
+  select(s_name, a_name, t, ends_with('prop')) |> 
+  pivot_longer(c(ends_with('prop'))) , 
+  aes(x = t, y =value, col = a_name, linetype = s_name)) +
+  geom_line() +
+  theme_minimal() +
+  facet_grid(name~., scales='free_y')+
+  labs(title = "Age sex profiles of flows", x = "")
+
 
 
 # Visualise scaling_factor
