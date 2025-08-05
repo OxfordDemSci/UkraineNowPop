@@ -230,8 +230,26 @@ params_lower <- apply(draws, 2, quantile, probs = prob_lower)
 params_upper <- apply(draws, 2, quantile, probs = prob_upper)
 
 
-selected_locations <- seq(1, 27, by = 1
+selected_locations <- seq(1, 27, by = 1#
+                      #c(1, #2
+                      #  #4, #6
+                      #  7, #6
+                      #  16, #4
+                      #  20, #5
+                      #  22, #2
+                      #  23, #3
+                        #25, #6
+                      #  27  #1
                         ) %>% as.integer()
+
+selected_locations_key <- 
+                          c(3788, 3800, 3801, 3781, 3782, 3804, 3802, 3803, 3783, 3790, 3787, 3791, 3792, 3793, 3794, 3795, 3796, 3798,
+                          3799, 3784, 3785, 3786, 3778, 3780, 3779, 4290, 3797)%>% as.integer()
+                          #c(3778, #3781, 
+                          #  3784, 
+                          #3794, 3798, 3800, 3801, #3803, 
+                          #4290) %>% as.integer()
+                        
 
 idx_master = read.csv(file.path(out_dir, paste0(tolower(country), "_master_index", ".csv")))
 
@@ -261,7 +279,7 @@ plot_df_adult <- tibble(
 ) |>
   mutate(param    = sub("\\[.*", "", parameter),
     tias_adult = sub(".*\\[([^]]+)]$", "\\1", parameter) |> as.integer()) %>%
-filter(param %in% c("N_adult", "r", "p_F", "p_G")) %>%
+filter(param == "N_adult"| param =="r" | param =="p_F"|param =="p_G") %>%
 left_join(idx %>% dplyr::select(tias_adult, tias, t, i_key, a, s)) %>%
 dplyr::select(-tias_adult) %>%
 mutate(a = a-1) %>%
