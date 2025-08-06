@@ -1057,14 +1057,29 @@ ggplot(abroad_profile, aes(x = t, y = pi_hat, col = a_name, linetype = s_name)) 
   labs(title = "Flows to Abroad", x = "", y = "Proportion")
 
 # Visualise national population with border crossing  by age and sex
-ggplot( national_pop_minusOutflows_plusInflows |>
+pop_names <- list(
+  'inflows'="Inflows from abroad\n(Borders+IOM DTM)",
+  'outflows'="Outflows to abroad\n(Borders+Eurostat)",
+  'pop_updated'="Updated population"
+)
+pop_labeller <- function(variable,value){
+  return(pop_names[value])
+}
+
+
+gg_national <- ggplot( national_pop_minusOutflows_plusInflows |>
   select(-pop, -ends_with('cum')) |> 
   pivot_longer(c(outflows,inflows, pop_updated)) , 
   aes(x = t, y =value, col = a_name, linetype = s_name)) +
   geom_line() +
   theme_minimal() +
-  facet_grid(name~., scales='free_y')+
-  labs(title = "National population", x = "")
+  facet_grid(name~., scales='free_y', labeller=pop_labeller)+
+  labs(title = "National totals by age and sex through time", x = "", linetype='Gender', col='Age group', y='')
+gg_national
+
+ggsave(file.path(out_dir, "model", "deterministic", "figs",'timeline_national_agesex.png'), gg_national,
+w= 8, height=6
+)
 
 ggplot( national_pop_minusOutflows_plusInflows |>
   mutate(outflows_prop= outflows/pop,
