@@ -16,6 +16,10 @@ flows_hromada_agesex <- flows_hromada_agesex |>
     destination_hromada_PCODE = ifelse(destination_hromada_PCODE != "Abroad", str_sub(destination_hromada_PCODE, 1, 9), destination_hromada_PCODE),
     destination_raion_PCODE = ifelse(destination_raion == "Kyiv", "UA8000", destination_raion),
     destination_raion_PCODE = ifelse(destination_hromada_PCODE != "Abroad", str_sub(destination_hromada_PCODE, 1, 6), destination_raion_PCODE),
+  ) |>
+  rename(pop_estimated = monthlyFlow_hat_calibrated) |>
+  select(
+    t, a_name, s_name, starts_with("origin"), ends_with("destination"), pop_estimated
   )
 
 
@@ -26,7 +30,7 @@ stocks_hromada_agesex <- flows_hromada_agesex |>
     hromada_PCODE = destination_hromada_PCODE, raion_PCODE = destination_raion_PCODE
   ) |>
   summarise(
-    pop_estimated = sum(monthlyFlow_hat_calibrated),
+    pop_estimated = sum(pop_estimated),
     .groups = "drop"
   )
 
