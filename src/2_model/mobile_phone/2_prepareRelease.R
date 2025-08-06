@@ -19,7 +19,7 @@ flows_hromada_agesex <- flows_hromada_agesex |>
   ) |>
   rename(pop_estimated = monthlyFlow_hat_calibrated) |>
   select(
-    t, a_name, s_name, starts_with("origin"), ends_with("destination"), pop_estimated
+    t, a_name, s_name, starts_with("origin"), starts_with("destination"), pop_estimated
   )
 
 
