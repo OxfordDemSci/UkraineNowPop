@@ -150,7 +150,7 @@ if (download_eurostat) {
 
 eurostat_refugee <- read_csv(eurostat_refugee_file)
 
-eurostat_refugee_ <- eurostat_refugee |>
+eurostat_refugee <- eurostat_refugee |>
   select(sex, age, geo, TIME_PERIOD, OBS_VALUE) |>
   mutate(
     t = as.Date(paste(TIME_PERIOD, "-01", sep = "")) + months(1),
