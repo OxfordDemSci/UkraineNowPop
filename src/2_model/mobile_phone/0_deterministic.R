@@ -86,49 +86,69 @@ monthlyFlows <- monthlyFlows |>
 
 
 # compute missing hromadas
-dropping_hromadas <- monthlyFlows |>
-  distinct(t, destination_hromada) |>
+missing_hromadas <- monthlyFlows |>
+  group_by(t, destination_hromada) |>
+  summarise(
+    subscribers_monthlyFlow = sum(subscribers_monthlyFlow),
+    .groups = "drop"
+  ) |>
   group_by(destination_hromada) |>
   summarise(n_timesteps = length(unique(monthlyFlows$t)) - n()) |>
   filter(n_timesteps > 0)
 
-# TODO: imputing missing hromadas
-# imputingHromada_names <- dropping_hromadas |>
-#   filter(n_timesteps<=2) |>
-#   pull(destination_hromada)
+dropping_hromadas <- missing_hromadas |>
+  filter(n_timesteps > 3)
 
-# dropping_hromadas <- dropping_hromadas |>
-#   filter(n_timesteps>2) |>
-#   pull(destination_hromada)
+# imputation
+# select hromadas with only three missing timesteps
+imputed_hromadas <- missing_hromadas |>
+  filter(n_timesteps <= 3)
 
+# check the minimum date without data
+date_to_impute_hromadas_df <- monthlyFlows |>
+  group_by(t, destination_hromada) |>
+  summarise(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)) |>
+  ungroup() |>
+  filter(destination_hromada %in% imputed_hromadas$destination_hromada) |>
+  complete(
+    t = seq(min(monthlyFlows$t, na.rm = T), max(monthlyFlows$t), by = "1 month"),
+    nesting(destination_hromada)
+  ) |>
+  filter(is.na(subscribers_monthlyFlow))
 
-# # Apply deterministic model
-# time_missing <- monthlyFlows_totals |>
-#   filter(destination_hromada %in% imputingHromada_names) |>
-#   complete(t, destination_hromada) |>
-#   filter(is.na(subscribers_monthlyFlow)) |>
-#   select(destination_hromada,t) |>
-#   mutate(t_plus1 = t+months(1),
-#         t_plus2 = t+months(2),
-#          t_minus2 = t-months(2),
-#          t_minus1 = t-months(1)) |>
-#   pivot_longer(cols = -destination_hromada, names_to = "type", values_to = "t")
+imputed_hromadas_df <- missing_hromadas |>
+  filter(n_timesteps < 4) |>
+  left_join(
+    date_to_impute_hromadas_df |>
+      group_by(destination_hromada) |>
+      summarise(t = min(t))
+  )
 
-# monthlyFlows_totals_imputed <- monthlyFlows_totals |>
-#   right_join(time_missing |>
-#     distinct(destination_hromada, t)) |>
-#   filter(!is.na(subscribers_monthlyFlow)) |>
-#   group_by(destination_hromada) |>
-#   complete(t, nesting(origin_hromada,  origin_macroregion, destination_macroregion, origin_oblast, destination_oblast), fill = list(subscribers_monthlyFlow = NA))
+# replicate last observed date
+imputed_hromadas_df <- imputed_hromadas_df |>
+  mutate(
+    t = t - months(1)
+  ) |>
+  left_join(
+    monthlyFlows
+  ) |>
+  uncount(n_timesteps, .id = "month") |>
+  mutate(
+    t = t + months(month)
+  ) |>
+  select(-month)
 
-
-# remove missing hromadas
-monthlyFlows <- monthlyFlows |>
+# combine imputed with available data
+monthlyFlows_imputed <- bind_rows(
+  monthlyFlows,
+  imputed_hromadas_df
+) |>
   filter(!origin_hromada %in% dropping_hromadas$destination_hromada) |>
   filter(!destination_hromada %in% dropping_hromadas$destination_hromada)
 
+
 # compute available age-sex combinations
-agesex_geoCombination <- monthlyFlows |>
+agesex_geoCombination <- monthlyFlows_imputed |>
   group_by(t, a_name, s_name) |>
   summarise(
     n_hromada = n_distinct(origin_hromada, destination_hromada),
@@ -137,7 +157,7 @@ agesex_geoCombination <- monthlyFlows |>
     n_macroregion = n_distinct(origin_macroregion, destination_macroregion),
     .groups = "drop"
   ) |>
-  bind_rows(monthlyFlows |>
+  bind_rows(monthlyFlows_imputed |>
     group_by(t) |>
     summarise(
       n_hromada = n_distinct(origin_hromada, destination_hromada),
@@ -160,7 +180,7 @@ agesex_geoCombination_full <- agesex_geoCombination |>
   filter(n_macroregion == 56 & a_name != "All" & s_name != "All")
 
 # remove missing age-sex combinations
-monthlyFlows <- monthlyFlows |>
+monthlyFlows_imputed <- monthlyFlows_imputed |>
   filter(a_name %in% agesex_geoCombination_full$a_name & s_name %in% agesex_geoCombination_full$s_name)
 
 
@@ -213,7 +233,7 @@ agesex <- agesex |>
 
 # Prepare reference data by age and sex
 hromada_agesex <- hromada_pop |>
-  filter(hromada_code %in% unique(monthlyFlows$destination_hromada)) |>
+  filter(hromada_code %in% unique(monthlyFlows_imputed$destination_hromada)) |>
   left_join(agesex |>
     select(oblast_name_en, s_name, a_name, pi_0), relationship = "many-to-many") |>
   mutate(
@@ -463,7 +483,7 @@ national_pop_minusOutflows_plusInflows <- bind_rows(
 
 # Step 2: The model ---------------------------------------
 
-monthlyFlows_totals <- monthlyFlows |>
+monthlyFlows_totals <- monthlyFlows_imputed |>
   group_by(t, origin_hromada, destination_hromada, origin_macroregion, destination_macroregion, origin_oblast, destination_oblast, origin_raion, destination_raion) |>
   summarise(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)) |>
   ungroup()
@@ -506,7 +526,7 @@ penetration_rate[[1]] <- monthlyFlows_totals[[1]] |>
 
 
 # Compute age and sex penetration rate on day 1
-monthlyFlows_agesex <- monthlyFlows |>
+monthlyFlows_agesex <- monthlyFlows_imputed |>
   group_split(t)
 
 penetration_rate_agesexMacroregion <- list()
@@ -885,9 +905,41 @@ if (print_check) {
 
 # Step 4: Evaluate and visualise model -------------------------------
 
-# visualise missing age-sex combination
+# visualise missing hromada
+missing_hromadas_df <- monthlyFlows |>
+  group_by(t, destination_hromada, destination_oblast, destination_macroregion) |>
+  summarise(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)) |>
+  filter(destination_hromada %in% missing_hromadas$destination_hromada) |>
+  ungroup() |>
+  complete(
+    t = seq(min(monthlyFlows$t, na.rm = T), max(monthlyFlows$t), by = "1 month"),
+    nesting(destination_hromada, destination_oblast, destination_macroregion)
+  ) |>
+  mutate(
+    missing = ifelse(is.na(subscribers_monthlyFlow), T, F),
+    subscribers_monthlyFlow = ifelse(is.na(subscribers_monthlyFlow), 0, subscribers_monthlyFlow)
+  ) |>
+  left_join(
+    missing_hromadas |>
+      mutate(missing_label = paste0("Timesteps missing:", n_timesteps))
+  )
 
-ggplot(agesex_geoCombination, aes(x = t, y = n_combinations, col = paste(a_name, s_name))) +
+gg_missing <- ggplot(missing_hromadas_df, aes(x = t, y = subscribers_monthlyFlow, col = destination_hromada, alpha = missing)) +
+  geom_point() +
+  facet_wrap(fct_reorder(missing_label, n_timesteps) ~ .) +
+  theme_minimal() +
+  theme(legend.position = "None") +
+  labs(title = "Timesteps missing for each hromada series", x = "")
+gg_missing
+
+ggsave(file.path(out_dir, "population_proxy", "mobile_phone", "figs", "monthly_flows_hromada_missing.png"), gg_missing,
+  w = 8, height = 6
+)
+
+map_3_missing <-
+  # visualise missing age-sex combination
+
+  ggplot(agesex_geoCombination, aes(x = t, y = n_combinations, col = paste(a_name, s_name))) +
   geom_line() +
   theme_minimal() +
   facet_wrap(. ~ geo_level, scales = "free_y") +
