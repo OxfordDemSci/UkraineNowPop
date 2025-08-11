@@ -211,18 +211,18 @@ tm_abroad_leavers_last <- tm_shape(hromada_geo_abroad_leavers) +
   tm_polygons(
     fill = "pop_estimated",
     fill.scale = tm_scale_intervals(
-      values = "brewer.reds", style = "fixed", breaks = c(0, 100, 500, 5000, max(abroad_arrivals_last$pop_estimated))
+      values = "brewer.reds", style = "fixed", breaks = c(0, 100, 500, 5000, max(abroad_leavers_last$pop_estimated))
     ),
     fill.legend = tm_legend(
-      title = "18-64 years old", position = tm_pos_in("right", "bottom"),
-      col = "white"
-    )
+      title = "18-64 years old", position = tm_pos_in("right", "bottom")
+      
+    ),
+    col = "white"
   ) +
   tm_layout(
     frame = FALSE, legend.frame = FALSE
   ) +
-  tm_title(paste("Leavers to abroad estimated on", stocks_hromada_totals_last$t[1]))
-
+  tm_title(paste("Monthly leavers to abroad estimated on", stocks_hromada_totals_last$t[1], " [", round(sum(abroad_leavers_last$pop_estimated)), " people]"))
 tm_abroad_leavers_last
 
 tmap_save(tm_abroad_leavers_last,
@@ -256,15 +256,14 @@ tm_leavers_last <- tm_shape(hromada_geo_leavers) +
       values = "brewer.reds", style = "fixed", breaks = c(0, 500, 1000, 10000, max(leavers_last$pop_estimated))
     ),
     fill.legend = tm_legend(
-      title = "18-64 years old", position = tm_pos_in("right", "bottom"),
-      col = "white"
-    )
+      title = "18-64 years old", position = tm_pos_in("right", "bottom")
+    ),
+    col = "white"
   ) +
   tm_layout(
     frame = FALSE, legend.frame = FALSE
-
   ) +
-  tm_title(paste0("Internal monthly leavers origin estimated on ", stocks_hromada_totals_last$t[1], " [", round(sum(leavers_last$pop_estimated)), " people]"))
+  tm_title(paste0("Origin of monthly leavers to domestic estimated on ", stocks_hromada_totals_last$t[1], " [", round(sum(leavers_last$pop_estimated)), " people]"))
 
 tm_leavers_last
 
@@ -299,14 +298,15 @@ tm_arrivers_last <- tm_shape(hromada_geo_arrivers) +
       values = "brewer.reds", style = "fixed", breaks = c(0, 500, 1000, 10000, max(arrivers_last$pop_estimated))
     ),
     fill.legend = tm_legend(
-      title = "18-64 years old", position = tm_pos_in("right", "bottom"),
-      col = "white"
-    )
+      title = "18-64 years old", position = tm_pos_in("right", "bottom")
+    ),
+    col = "white"
+
   ) +
   tm_layout(
     frame = FALSE, legend.frame = FALSE
   ) +
-  tm_title(paste0("Internal monthly arrivers destination estimated on ", stocks_hromada_totals_last$t[1], " [", round(sum(arrivers_last$pop_estimated)), " people]"))
+  tm_title(paste0("Destination of monthly arrivers from domestic estimated on ", stocks_hromada_totals_last$t[1], " [", round(sum(arrivers_last$pop_estimated)), " people]"))
 
 tm_arrivers_last
 
