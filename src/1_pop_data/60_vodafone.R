@@ -140,8 +140,10 @@ write_csv(baselineFlows, file.path(out_dir, "population_proxy", "mobile_phone", 
 
 
 # Monthly flows ----------------------------------------------------------
+monthlyFlows_list <- list.files(file.path(in_dir, "Vodafone"), pattern = "Monthly", full.names = T)
 
-monthlyFlows <- read_csv2(file.path(in_dir, "Vodafone", "Monthly Flows.csv"))
+monthlyFlows <- lapply(monthlyFlows_list, read_csv2) |>
+  bind_rows()
 
 monthlyFlows <- monthlyFlows |>
   rename(
@@ -272,11 +274,7 @@ stocks |>
   facet_wrap(oblast_name_en ~ ., scales = "free_y") +
   labs(title = "Subscribers evolution")
 
-ggsave(
-  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "subscribers_evolution.png"),
-  width = 8,
-  height = 6
-)
+
 
 # subscribers evolution by age and sex
 
@@ -442,6 +440,11 @@ ggsave(
 
 
 # Destination
+n_hromada_available <- monthlyFlows |>
+  group_by(destination_hromada) |>
+  filter(n_distinct(t) == n_distinct(monthlyFlows$t))
+n_hromada_available <- length(unique(n_hromada_available$destination_hromada))
+
 monthlyFlows |>
   group_by(t, destination_oblast) |>
   summarise(n_hromada = n_distinct(destination_hromada)) |>
@@ -454,15 +457,43 @@ monthlyFlows |>
   geom_line() +
   geom_line(aes(y = n_hromada_true), col = "red") +
   facet_wrap(destination_oblast ~ ., scales = "free_y") +
-  labs(title = "Monthly flows destination")
+  labs(title = paste0("Hromada availibility: ", n_hromada_available - 1, " present for the full period"))
 
 ggsave(
-  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "monthly_flows_destination.png"),
+  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "monthly_flows_hromada_available.png"),
   width = 8,
   height = 6
 )
 
+# users evolution
+monthlyFlows |>
+  group_by(t) |>
+  summarise(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)) |>
+  ggplot(aes(x = t, y = subscribers_monthlyFlow)) +
+  geom_line() +
+  theme_minimal() +
+  labs(title = "Evolution of subscribers across time")
 
+ggsave(
+  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "subscribers_evolution.png"),
+  width = 8,
+  height = 6
+)
+
+monthlyFlows |>
+  group_by(t, destination_oblast, destination_macroregion) |>
+  summarise(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)) |>
+  ggplot(aes(x = t, y = subscribers_monthlyFlow, col = destination_oblast)) +
+  geom_line() +
+  theme_minimal() +
+  facet_wrap(. ~ destination_macroregion, scales = "free") +
+  labs(title = "Evolution of subscribers by oblast across time")
+
+ggsave(
+  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "subscribers_evolution_oblast.png"),
+  width = 8,
+  height = 6
+)
 
 # Check coherence stocks - baseline flows - monthly flows ----------------
 
