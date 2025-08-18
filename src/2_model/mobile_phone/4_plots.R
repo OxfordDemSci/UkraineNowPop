@@ -5,6 +5,8 @@ flows_hromada_agesex <- data.table::fread(file.path(
   out_dir, "model", "deterministic", "deliverables", "202508",
   paste0(tolower(country), "_flows_hromada_agesex", output_label, ".csv")
 ))
+flows_hromada_agesex_raw <- data.table::fread(file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_monthlyFlows.csv"))
+
 pcodes <- read_csv(file.path(here::here("src/dashboard/api/app/data/db-data/global_pcodes.csv")))
 
 pcodes <- pcodes |>
@@ -51,6 +53,19 @@ stocks_hromada_totals <- stocks_hromada_agesex |>
   group_by(t, hromada, oblast, raion) |>
   summarise(pop_estimated = sum(pop_estimated))
 
+stocks_hromada_agesex_raw <- flows_hromada_agesex_raw |>
+  group_by(t, s_name, a_name, hromada = destination_hromada, ) |>
+  summarise(subscribers_monthlyFlow = sum(subscribers_monthlyFlow))
+
+stocks_hromada_agesex <- stocks_hromada_agesex |>
+  left_join(stocks_hromada_agesex_raw) |>
+  mutate(
+    penetration_rate = subscribers_monthlyFlow / pop_estimated
+  )
+
+# Assessment of data availibility ----------------------------------------
+# See scripts 1_pop_data/60_vodafone.R. Section Monthly flows data availability
+
 
 # Map of total population estimates at hromada level for most recent time
 hromada_geo_pop <- hromada_geo |>
@@ -81,8 +96,37 @@ tmap_save(tm_pop_last,
 # Time series of total pop and in/out flows abroad (by age-sex)
 # see 0_deterministic.R
 
-# Chord chart of biggest hromada-level flows (total pop)
-# Tricky with hromada name
+# Hromada population and penetration rate through time
+
+
+for (h in unique(stocks_hromada_agesex$hromada)) {
+  # h='UA05020010000053508'
+  df_hromada <- stocks_hromada_agesex |>
+    filter(hromada == h) |>
+    pivot_longer(cols = c(pop_estimated, penetration_rate))
+  ggplot(df_hromada |>
+    mutate(name = factor(name, levels = c("pop_estimated", "penetration_rate"))), aes(x = t, y = value, colour = a_name, linetype = name)) +
+    geom_line() +
+    facet_grid(name ~ s_name, scales = "free_y") +
+    theme_minimal() +
+    labs(
+      title = paste("Hromada population and penetration rate through time in\n", h, "in oblast", df_hromada$oblast[1]),
+      x = "Time", y = ""
+    )
+
+  dir.create(file.path(out_dir, "model", "deterministic", "figs", "Penetration rate", df_hromada$oblast[1], df_hromada$raion[1]), showWarnings = F, recursive = T)
+  ggsave(
+    file.path(
+      out_dir, "model", "deterministic", "figs", "Penetration rate", df_hromada$oblast[1], df_hromada$raion[1],
+      paste0("penRate_hromada_", h, ".png")
+    ),
+    width = 8,
+    height = 6
+  )
+}
+
+
+# Top migration corridors
 
 top_corridor_last <- flows_hromada_agesex |>
   as_tibble() |>
@@ -215,7 +259,6 @@ tm_abroad_leavers_last <- tm_shape(hromada_geo_abroad_leavers) +
     ),
     fill.legend = tm_legend(
       title = "18-64 years old", position = tm_pos_in("right", "bottom")
-      
     ),
     col = "white"
   ) +
@@ -301,7 +344,6 @@ tm_arrivers_last <- tm_shape(hromada_geo_arrivers) +
       title = "18-64 years old", position = tm_pos_in("right", "bottom")
     ),
     col = "white"
-
   ) +
   tm_layout(
     frame = FALSE, legend.frame = FALSE
