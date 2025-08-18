@@ -103,16 +103,17 @@ for (h in unique(stocks_hromada_agesex$hromada)) {
   # h='UA05020010000053508'
   df_hromada <- stocks_hromada_agesex |>
     filter(hromada == h) |>
-    pivot_longer(cols = c(pop_estimated, penetration_rate))
+    pivot_longer(cols = c(pop_estimated, penetration_rate, subscribers_monthlyFlow))
   ggplot(df_hromada |>
-    mutate(name = factor(name, levels = c("pop_estimated", "penetration_rate"))), aes(x = t, y = value, colour = a_name, linetype = name)) +
+    mutate(name = factor(name, levels = c("pop_estimated", "penetration_rate", "subscribers_monthlyFlow"))), aes(x = t, y = value, colour = a_name, linetype = name)) +
     geom_line() +
     facet_grid(name ~ s_name, scales = "free_y") +
     theme_minimal() +
     labs(
       title = paste("Hromada population and penetration rate through time in\n", h, "in oblast", df_hromada$oblast[1]),
       x = "Time", y = ""
-    )
+    )+
+    guides(linetype="none")
 
   dir.create(file.path(out_dir, "model", "deterministic", "figs", "Penetration rate", df_hromada$oblast[1], df_hromada$raion[1]), showWarnings = F, recursive = T)
   ggsave(
