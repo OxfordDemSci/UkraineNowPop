@@ -906,35 +906,7 @@ if (print_check) {
 # Step 4: Evaluate and visualise model -------------------------------
 
 # visualise missing hromada
-missing_hromadas_df <- monthlyFlows |>
-  group_by(t, destination_hromada, destination_oblast, destination_macroregion) |>
-  summarise(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)) |>
-  filter(destination_hromada %in% missing_hromadas$destination_hromada) |>
-  ungroup() |>
-  complete(
-    t = seq(min(monthlyFlows$t, na.rm = T), max(monthlyFlows$t), by = "1 month"),
-    nesting(destination_hromada, destination_oblast, destination_macroregion)
-  ) |>
-  mutate(
-    missing = ifelse(is.na(subscribers_monthlyFlow), T, F),
-    subscribers_monthlyFlow = ifelse(is.na(subscribers_monthlyFlow), 0, subscribers_monthlyFlow)
-  ) |>
-  left_join(
-    missing_hromadas |>
-      mutate(missing_label = paste0("Timesteps missing:", n_timesteps))
-  )
 
-gg_missing <- ggplot(missing_hromadas_df, aes(x = t, y = subscribers_monthlyFlow, col = destination_hromada, alpha = missing)) +
-  geom_point() +
-  facet_wrap(fct_reorder(missing_label, n_timesteps) ~ .) +
-  theme_minimal() +
-  theme(legend.position = "None") +
-  labs(title = "Timesteps missing for each hromada series", x = "")
-gg_missing
-
-ggsave(file.path(out_dir, "population_proxy", "mobile_phone", "figs", "monthly_flows_hromada_missing.png"), gg_missing,
-  w = 8, height = 6
-)
 
 map_3_missing <-
   # visualise missing age-sex combination

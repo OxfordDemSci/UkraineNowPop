@@ -1,7 +1,7 @@
 rm(list = ls())
 gc()
 library(tmap)
-
+tmap_options(component.autoscale = F)
 # Load required helpers
 source(file.path(here::here(), "R_helpers/generic.R"))
 hromada <- read_csv(file.path(in_dir, "KSE-Loc-Data-Hub", "full_dataset.csv"))
@@ -203,29 +203,107 @@ write_csv(monthlyFlows, file.path(out_dir, "population_proxy", "mobile_phone", "
 # Data assessment -------------------------------------------------------
 
 
-# Vodafone geographical coverage
+# Monthly flows data availability ----------------------------------------------------------
 
-n_distinct(stocks$hromada_code)
-n_distinct(hromada$hromada_code)
+# Destination
+hromada_available <- monthlyFlows |>
+  group_by(destination_hromada) |>
+  summarise(n_timesteps = n_distinct(t))
+n_distinct(monthlyFlows$t)
 
-hromada_list <- hromada_geo |>
-  full_join(
-    stocks |>
-      filter(hromada_code != "Abroad") |>
-      group_by(hromada_code) |>
-      filter(n_distinct(t) == n_distinct(stocks$t)) |>
-      distinct(hromada_code) |>
-      mutate(`Data availibility` = "in Vodafone")
+n_hromada_available_total <- hromada_available |>
+  filter(destination_hromada != "Abroad") |>
+  filter(n_timesteps == n_distinct(monthlyFlows$t)) |>
+  nrow()
+
+hromada_oblast_available <- monthlyFlows |>
+  group_by(t, destination_oblast) |>
+  summarise(n_hromada = n_distinct(destination_hromada)) |>
+  left_join(hromada_geo |>
+    st_drop_geometry() |>
+    group_by(oblast_name_en) |>
+    summarise(n_hromada_true = n_distinct(hromada_code)) |>
+    rename(destination_oblast = oblast_name_en))
+
+hromada_oblast_available |>
+  ggplot(aes(x = t, y = n_hromada)) +
+  geom_line() +
+  geom_line(aes(y = n_hromada_true), col = "red") +
+  facet_wrap(destination_oblast ~ ., scales = "free_y") +
+  labs(title = paste0("Hromada availibility: ", n_hromada_available_total, " present for the full period"))
+
+ggsave(
+  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "monthly_flows_hromada_available_timeline.png"),
+  width = 8,
+  height = 6
+)
+
+# Missing timesteps through time
+
+missing_hromadas_df <- monthlyFlows |>
+  group_by(t, destination_hromada, destination_oblast, destination_macroregion) |>
+  summarise(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)) |>
+  filter(destination_hromada %in% missing_hromadas$destination_hromada) |>
+  ungroup() |>
+  complete(
+    t = seq(min(monthlyFlows$t, na.rm = T), max(monthlyFlows$t), by = "1 month"),
+    nesting(destination_hromada, destination_oblast, destination_macroregion)
+  ) |>
+  mutate(
+    missing = ifelse(is.na(subscribers_monthlyFlow), T, F),
+    subscribers_monthlyFlow = ifelse(is.na(subscribers_monthlyFlow), 0, subscribers_monthlyFlow)
+  ) |>
+  left_join(
+    missing_hromadas |>
+      mutate(missing_label = paste0("Timesteps missing:", n_timesteps))
   )
 
-map_missing <- tm_shape(hromada_list) + tm_polygons(fill = "Data availibility") +
-  tm_shape(oblast_geo) +
-  tm_borders(lwd = 3)
+gg_missing <- ggplot(missing_hromadas_df, aes(x = t, y = subscribers_monthlyFlow, col = destination_hromada, alpha = missing)) +
+  geom_point() +
+  facet_wrap(fct_reorder(missing_label, n_timesteps) ~ .) +
+  theme_minimal() +
+  theme(legend.position = "None") +
+  labs(title = "Timesteps missing for each hromada series", x = "")
+gg_missing
 
-tmap_save(
-  map_missing,
-  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "map_missing.png")
+ggsave(file.path(out_dir, "population_proxy", "mobile_phone", "figs", "monthly_flows_hromada_missing.png"), gg_missing,
+  w = 8, height = 6
 )
+
+
+
+# Monthly flows users evolution ----------------------------------------
+
+monthlyFlows |>
+  group_by(t) |>
+  summarise(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)) |>
+  ggplot(aes(x = t, y = subscribers_monthlyFlow)) +
+  geom_line() +
+  theme_minimal() +
+  labs(title = "Evolution of subscribers across time")
+
+ggsave(
+  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "subscribers_evolution.png"),
+  width = 8,
+  height = 6
+)
+
+monthlyFlows |>
+  group_by(t, destination_oblast, destination_macroregion) |>
+  summarise(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)) |>
+  ggplot(aes(x = t, y = subscribers_monthlyFlow, col = destination_oblast)) +
+  geom_line() +
+  theme_minimal() +
+  facet_wrap(. ~ destination_macroregion, scales = "free") +
+  labs(title = "Evolution of subscribers by oblast across time")
+
+ggsave(
+  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "subscribers_evolution_oblast.png"),
+  width = 8,
+  height = 6
+)
+
+
 
 # Hromada through time
 stocks |>
@@ -412,89 +490,6 @@ ggsave(
   height = 6
 )
 
-
-# Monthly flows ----------------------------------------------------------
-
-# Data consistency checks
-
-# Origin
-monthlyFlows |>
-  group_by(t, origin_oblast) |>
-  summarise(n_hromada = n_distinct(origin_hromada)) |>
-  left_join(hromada_geo |>
-    st_drop_geometry() |>
-    group_by(oblast_name_en) |>
-    summarise(n_hromada_true = n_distinct(hromada_code)) |>
-    rename(origin_oblast = oblast_name_en)) |>
-  ggplot(aes(x = t, y = n_hromada)) +
-  geom_line() +
-  geom_line(aes(y = n_hromada_true), col = "red") +
-  facet_wrap(origin_oblast ~ ., scales = "free_y") +
-  labs(title = "Monthly flows origin")
-
-ggsave(
-  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "monthly_flows_origin.png"),
-  width = 8,
-  height = 6
-)
-
-
-# Destination
-n_hromada_available <- monthlyFlows |>
-  group_by(destination_hromada) |>
-  filter(n_distinct(t) == n_distinct(monthlyFlows$t))
-n_hromada_available <- length(unique(n_hromada_available$destination_hromada))
-
-monthlyFlows |>
-  group_by(t, destination_oblast) |>
-  summarise(n_hromada = n_distinct(destination_hromada)) |>
-  left_join(hromada_geo |>
-    st_drop_geometry() |>
-    group_by(oblast_name_en) |>
-    summarise(n_hromada_true = n_distinct(hromada_code)) |>
-    rename(destination_oblast = oblast_name_en)) |>
-  ggplot(aes(x = t, y = n_hromada)) +
-  geom_line() +
-  geom_line(aes(y = n_hromada_true), col = "red") +
-  facet_wrap(destination_oblast ~ ., scales = "free_y") +
-  labs(title = paste0("Hromada availibility: ", n_hromada_available - 1, " present for the full period"))
-
-ggsave(
-  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "monthly_flows_hromada_available.png"),
-  width = 8,
-  height = 6
-)
-
-# users evolution
-monthlyFlows |>
-  group_by(t) |>
-  summarise(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)) |>
-  ggplot(aes(x = t, y = subscribers_monthlyFlow)) +
-  geom_line() +
-  theme_minimal() +
-  labs(title = "Evolution of subscribers across time")
-
-ggsave(
-  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "subscribers_evolution.png"),
-  width = 8,
-  height = 6
-)
-
-monthlyFlows |>
-  group_by(t, destination_oblast, destination_macroregion) |>
-  summarise(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)) |>
-  ggplot(aes(x = t, y = subscribers_monthlyFlow, col = destination_oblast)) +
-  geom_line() +
-  theme_minimal() +
-  facet_wrap(. ~ destination_macroregion, scales = "free") +
-  labs(title = "Evolution of subscribers by oblast across time")
-
-ggsave(
-  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "subscribers_evolution_oblast.png"),
-  width = 8,
-  height = 6
-)
-
 # Check coherence stocks - baseline flows - monthly flows ----------------
 
 
@@ -570,50 +565,3 @@ stocks |>
   ungroup() |>
   group_by(a_name, s_name) |>
   summarise(complete = sum(n == 40) / n() * 100)
-
-# Focus on missing hromada
-
-hromada_missing <- stocks |>
-  group_by(hromada_code) |>
-  mutate(n_t = 40 - n_distinct(t)) |>
-  distinct(hromada_code, n_t) |>
-  ungroup()
-
-ggplot(stocks |>
-  right_join(
-    hromada_missing |>
-      filter(n_t > 0) |>
-      mutate(n_t_label = fct_reorder(paste("Missing timestep:", n_t), n_t)) |>
-      arrange(n_t)
-  ) |>
-  group_by(t, hromada_code, n_t, n_t_label) |>
-  summarise(n_subscribers = sum(subscribers_stock)), aes(x = t, y = n_subscribers, col = hromada_code)) +
-  geom_line() +
-  theme_minimal() +
-  facet_wrap(n_t_label ~ ., scales = "free_y") +
-  theme(legend.position = "None") +
-  labs(title = "Number of subscribers per hromada that have missing data through time")
-
-ggsave(
-  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "missing_data_hromada_through_time.png"),
-  width = 8,
-  height = 6
-)
-
-
-hromada_geo_missing <- hromada_geo |>
-  left_join(
-    hromada_missing
-  )
-
-map_hromada_geo_missing <- tm_shape(hromada_geo_missing) +
-  tm_fill(
-    fill = "n_t",
-    fill.scale = tm_scale_intervals(4, breaks = c(0, 1, 10, 20, 38), values = c("grey95", "yellowgreen", "gold1", "red4"), labels = c("0", "1-10", "11-20", "21-38")),
-    fill.legend = tm_legend(title = "Number of timesteps missing")
-  )
-
-tmap_save(
-  map_hromada_geo_missing,
-  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "map_hromada_geo_missing.png")
-)

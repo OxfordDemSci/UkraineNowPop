@@ -9,7 +9,10 @@ source(file.path(here::here(), "R_helpers/generic.R"))
 
 # Load data
 pcodes <- read_csv(file.path(here::here("src/dashboard/api/app/data/db-data/global_pcodes.csv")))
-flows_hromada_agesex <- data.table::fread(file.path(out_dir, "model", "deterministic", "mobilePhone_deterministic_agesex_domestic.csv"))
+flows_hromada_agesex <- data.table::fread(file.path(
+  out_dir, "model", "deterministic", "deliverables", "202508",
+  paste0(tolower(country), "_flows_hromada_agesex", output_label, ".csv")
+))
 
 
 flows_hromada_agesex <- flows_hromada_agesex |>
@@ -145,7 +148,7 @@ prepare_flows <- function(raw_flows, level) {
       probability = count / sum(count)
     )
 
-    return(flows_prep)
+  return(flows_prep)
 }
 
 pop_flows_all <- lapply(
@@ -160,4 +163,3 @@ pop_flows_all <- bind_rows(
 write_csv(pop_flows_all,
   file = file.path(env$repo_dir, "src", "dashboard", "api", "app", "data", "db-data", "migration.csv")
 )
-
