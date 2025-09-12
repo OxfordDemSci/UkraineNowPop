@@ -1,5 +1,6 @@
 source(file.path(here::here(), "R_helpers/generic.R"))
 library(tmap)
+library(data.table)
 hromada_geo <- st_read(file.path(out_dir, "ua_master_hromada.gpkg"))
 flows_hromada_agesex <- data.table::fread(file.path(
   out_dir, "model", "deterministic", "deliverables", "202508",
@@ -16,16 +17,17 @@ pcodes <- pcodes |>
 
 dir.create(file.path(out_dir, "model", "deterministic", "figs"), showWarnings = F)
 
-stocks_hromada_agesex <- flows_hromada_agesex |>
-  as_tibble() |>
-  group_by(t, a_name, s_name,
-    hromada = destination_hromada, oblast = destination_oblast, raion = destination_raion,
-    hromada_PCODE = destination_hromada_PCODE, raion_PCODE = destination_raion_PCODE
-  ) |>
-  summarise(
-    pop_estimated = sum(pop_estimated),
-    .groups = "drop"
+stocks_hromada_agesex <- flows_hromada_agesex[
+  ,
+  .(pop_estimated = sum(pop_estimated)),
+  by = .(t, a_name, s_name,
+    hromada = destination_hromada,
+    oblast = destination_oblast,
+    raion = destination_raion,
+    hromada_PCODE = destination_hromada_PCODE,
+    raion_PCODE = destination_raion_PCODE
   )
+]
 
 flows_hromada_totals_last <- flows_hromada_agesex |>
   as_tibble() |>
@@ -53,14 +55,37 @@ stocks_hromada_totals <- stocks_hromada_agesex |>
   group_by(t, hromada, oblast, raion) |>
   summarise(pop_estimated = sum(pop_estimated))
 
-stocks_hromada_agesex_raw <- flows_hromada_agesex_raw |>
-  group_by(t, s_name, a_name, hromada = destination_hromada, ) |>
-  summarise(subscribers_monthlyFlow = sum(subscribers_monthlyFlow))
+stocks_hromada_agesex_raw <- flows_hromada_agesex_raw[
+  ,
+  .(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)),
+  by = .(t, s_name, a_name, hromada = destination_hromada)
+]
 
 stocks_hromada_agesex <- stocks_hromada_agesex |>
   left_join(stocks_hromada_agesex_raw) |>
   mutate(
     penetration_rate = subscribers_monthlyFlow / pop_estimated
+  ) |>
+  left_join(
+    pcodes |>
+      filter(`Admin Level` == 3) |>
+      rename(hromada_PCODE = pcode, hromada_name = Name) |>
+      select(hromada_PCODE, hromada_name)
+  )
+
+stocks_raion_agesex <- stocks_hromada_agesex |>
+  group_by(t, raion, raion_PCODE, oblast, a_name, s_name) |>
+  summarise(
+    pop_estimated = sum(pop_estimated),
+    subscribers_monthlyFlow = sum(subscribers_monthlyFlow),
+    penetration_rate = sum(subscribers_monthlyFlow) / sum(pop_estimated),
+    .groups = "drop"
+  ) |>
+  left_join(
+    pcodes |>
+      filter(`Admin Level` == 2) |>
+      rename(raion_PCODE = pcode, raion_name = Name) |>
+      select(raion_PCODE, raion_name)
   )
 
 # Assessment of data availibility ----------------------------------------
@@ -104,22 +129,53 @@ for (h in unique(stocks_hromada_agesex$hromada)) {
   df_hromada <- stocks_hromada_agesex |>
     filter(hromada == h) |>
     pivot_longer(cols = c(pop_estimated, penetration_rate, subscribers_monthlyFlow))
+  h_name <- df_hromada$hromada_name[1]
+
   ggplot(df_hromada |>
     mutate(name = factor(name, levels = c("pop_estimated", "penetration_rate", "subscribers_monthlyFlow"))), aes(x = t, y = value, colour = a_name, linetype = name)) +
     geom_line() +
     facet_grid(name ~ s_name, scales = "free_y") +
     theme_minimal() +
     labs(
-      title = paste("Hromada population and penetration rate through time in\n", h, "in oblast", df_hromada$oblast[1]),
+      title = paste("Hromada population and penetration rate through time in\n", h_name, "in oblast", df_hromada$oblast[1]),
       x = "Time", y = ""
-    )+
-    guides(linetype="none")
+    ) +
+    guides(linetype = "none")
 
-  dir.create(file.path(out_dir, "model", "deterministic", "figs", "Penetration rate", df_hromada$oblast[1], df_hromada$raion[1]), showWarnings = F, recursive = T)
+  dir.create(file.path(out_dir, "model", "deterministic", "figs", "Penetration rate", "Hromada", df_hromada$oblast[1], df_hromada$raion[1]), showWarnings = F, recursive = T)
   ggsave(
     file.path(
-      out_dir, "model", "deterministic", "figs", "Penetration rate", df_hromada$oblast[1], df_hromada$raion[1],
-      paste0("penRate_hromada_", h, ".png")
+      out_dir, "model", "deterministic", "figs", "Penetration rate", "Hromada", df_hromada$oblast[1], df_hromada$raion[1],
+      paste0("penRate_hromada_", h, "_", h_name, ".png")
+    ),
+    width = 8,
+    height = 6
+  )
+}
+
+for (r in unique(stocks_raion_agesex$raion)) {
+  # r= 'UA74100000000047140'
+  df_raion <- stocks_raion_agesex |>
+    filter(raion == r) |>
+    pivot_longer(cols = c(pop_estimated, penetration_rate, subscribers_monthlyFlow))
+  r_name <- df_raion$raion_name[1]
+
+  ggplot(df_raion |>
+    mutate(name = factor(name, levels = c("pop_estimated", "penetration_rate", "subscribers_monthlyFlow"))), aes(x = t, y = value, colour = a_name, linetype = name)) +
+    geom_line() +
+    facet_grid(name ~ s_name, scales = "free_y") +
+    theme_minimal() +
+    labs(
+      title = paste("Raion population and penetration rate through time in\n", r_name, "in oblast", df_raion$oblast[1]),
+      x = "Time", y = ""
+    ) +
+    guides(linetype = "none")
+
+  dir.create(file.path(out_dir, "model", "deterministic", "figs", "Penetration rate", "Raion", df_raion$oblast[1]), showWarnings = F, recursive = T)
+  ggsave(
+    file.path(
+      out_dir, "model", "deterministic", "figs", "Penetration rate", "Raion", df_raion$oblast[1],
+      paste0("penRate_raion_", r, "_", r_name, ".png")
     ),
     width = 8,
     height = 6
