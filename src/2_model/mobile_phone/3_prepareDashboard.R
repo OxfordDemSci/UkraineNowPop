@@ -4,162 +4,120 @@ gc()
 
 # Load required helpers
 source(file.path(here::here(), "R_helpers/generic.R"))
+library(data.table)
 
 # Script parameter
 
 # Load data
-pcodes <- read_csv(file.path(here::here("src/dashboard/api/app/data/db-data/global_pcodes.csv")))
-flows_hromada_agesex <- data.table::fread(file.path(
-  out_dir, "model", "deterministic", "deliverables", "202508",
-  paste0(tolower(country), "_flows_hromada_agesex", output_label, ".csv")
-))
-
-
-flows_hromada_agesex <- flows_hromada_agesex |>
-  mutate(
-    origin_hromada = ifelse(origin_hromada == "abroad", "Abroad", origin_hromada),
-    destination_hromada = ifelse(destination_hromada == "abroad", "Abroad", destination_hromada),
-    origin_hromada = ifelse(origin_hromada == "Kyiv", "UA800000", origin_hromada),
-    origin_hromada = str_sub(origin_hromada, 1, 9),
-    origin_raion = ifelse(origin_raion == "Kyiv", "UA8000", origin_raion),
-    origin_raion = str_sub(origin_hromada, 1, 6),
-    destination_hromada = ifelse(destination_hromada == "Kyiv", "UA800000", destination_hromada),
-    destination_hromada = str_sub(destination_hromada, 1, 9),
-    destination_raion = ifelse(destination_raion == "Kyiv", "UA8000", destination_raion),
-    destination_raion = str_sub(destination_hromada, 1, 6)
+flows <- fread(
+  file.path(
+    out_dir, "model", "deterministic", "deliverables", "202508",
+    paste0(tolower(country), "_flows_hromada_agesex", output_label, ".csv")
+  ),
+  # Read only what we actually use
+  select = c(
+    "t", "a_name", "s_name", "pop_estimated",
+    "origin_hromada", "destination_hromada",
+    "origin_hromada_PCODE", "origin_raion_PCODE", "origin_oblast_PCODE",
+    "destination_hromada_PCODE", "destination_raion_PCODE", "destination_oblast_PCODE"
   )
-
-pcodes <- pcodes |>
-  filter(`Admin Level` == 1 & Location == "UKR") |>
-  rename(pcode = `P-Code`)
+)
 
 
-# prepare stocks data
-
-prepare_stocks <- function(raw_flows, level) {
-  admin_level <- ifelse(level == "oblast", 1, ifelse(level == "raion", 2, ifelse(level == "hromada", 3, NA)))
-
-  pop_stocks <- raw_flows |>
-    as_tibble() |>
-    rename(i_name = paste0("destination_", level)) |>
-    group_by(t, a_name, s_name, i_name) |>
-    summarise(
-      pop = sum(monthlyFlow_hat_calibrated),
-      .groups = "drop"
-    )
-
-  # convert to dashboard indexing
-
-  if (level == "oblast") {
-    pop_stocks <- pop_stocks |>
-      left_join(pcodes |>
-        select(i_name = Name, pcode))
-  } else {
-    pop_stocks <- pop_stocks |>
-      rename(pcode = i_name)
-  }
-
-  pop_stocks <- pop_stocks |>
-    separate(col = a_name, into = c("age_min0", "age_max0"), sep = "-", convert = TRUE) |>
-    mutate(
-      country = "UKR",
-      admin_level = admin_level,
-      age_min = ifelse(str_detect(age_min0, "Plus"), str_sub(age_min0, 1, 2), round(as.numeric(age_min0), 0)) |> as.integer(),
-      age_max = ifelse(str_detect(age_min0, "Plus"), 999, round(as.numeric(age_max0), 0)) |> as.integer(),
-      sex = ifelse(s_name == "M", 1, 2),
-      pop = as.integer(pop)
-    ) |>
-    rename(
-      "day" = "t",
-    ) |>
-    select(country, admin_level, pcode, day, age_min, age_max, sex, pop) |>
-    rowwise() |>
-    mutate(
-      pop_upper = pop,
-      pop_lower = pop,
-      pop_posterior = paste0("[", paste(as.integer(rnorm(100, pop, 1)), collapse = ", "), "]")
-    )
-  return(pop_stocks)
+parse_age_sex <- function(DT) {
+  # Split "a_name" like "0-4" or "65Plus"
+  DT[, c("age_min0", "age_max0") := tstrsplit(a_name, "-", fixed = TRUE)]
+  DT[, age_min := fifelse(
+    grepl("Plus", a_name),
+    as.integer(gsub("\\D", "", a_name)),
+    as.integer(age_min0)
+  )]
+  DT[, age_max := fifelse(grepl("Plus", a_name), 999L, as.integer(age_max0))]
+  DT[, sex := fifelse(s_name == "M", 1L, 2L)]
+  DT[, `:=`(country = "UKR", day = t)]
+  DT[, c("age_min0", "age_max0", "s_name", "a_name", "t") := NULL]
+  DT[]
 }
 
-pop_stocks_all <- lapply(
-  c("hromada", "raion", "oblast"),
-  function(l) prepare_stocks(flows_hromada_agesex, l)
-)
-
-pop_stocks_all <- bind_rows(
-  pop_stocks_all
-)
-
-write.csv(pop_stocks_all,
-  file = file.path(env$repo_dir, "src", "dashboard", "api", "app", "data", "db-data", "pop.csv"),
-  row.names = FALSE
-)
-
-# prepare flows data
-
-prepare_flows <- function(raw_flows, level) {
-  admin_level <- ifelse(level == "oblast", 1, ifelse(level == "raion", 2, ifelse(level == "hromada", 3, NA)))
-
-  pop_flows <- raw_flows |>
-    rename(origin_i_name = paste0("origin_", level), destination_i_name = paste0("destination_", level)) |>
-    filter(!origin_i_name %in% c("Abroad", "Unknown")) |>
-    filter(destination_i_name != "Abroad") |>
-    as_tibble() |>
-    group_by(t, a_name, s_name, origin_i_name, destination_i_name) |>
-    summarise(
-      count = sum(monthlyFlow_hat_calibrated) |> as.integer(),
-      .groups = "drop"
-    )
-
-  # convert to dashboard indexing
-
-  if (level == "oblast") {
-    pop_flows <- pop_flows |>
-      left_join(pcodes |>
-        select(i_name = Name, origin = pcode), by = c("origin_i_name" = "i_name")) |>
-      left_join(pcodes |>
-        select(i_name = Name, destination = pcode), by = c("destination_i_name" = "i_name"))
-  } else {
-    pop_flows <- pop_flows |>
-      rename(
-        origin = origin_i_name,
-        destination = destination_i_name
-      )
-  }
-
-  flows_prep <- pop_flows |>
-    separate(col = a_name, into = c("age_min0", "age_max0"), sep = "-", convert = TRUE) |>
-    mutate(
-      country = "UKR",
-      admin_level = admin_level,
-      age_min = ifelse(str_detect(age_min0, "Plus"), str_sub(age_min0, 1, 2), round(as.numeric(age_min0), 0)) |> as.integer(),
-      age_max = ifelse(str_detect(age_min0, "Plus"), 999, round(as.numeric(age_max0), 0)) |> as.integer(),
-      sex = ifelse(s_name == "M", 1, 2)
-    ) |>
-    rename(
-      "day" = "t",
-    ) |>
-    select(country, admin_level, origin, destination, day, age_min, age_max, sex, count)
-
-  flows_prep <- flows_prep |>
-    group_by(day, age_min, age_max, sex) |>
-    mutate(
-      probability = count / sum(count)
-    )
-
-  return(flows_prep)
+agg_level <- function(DT, dest_col, level) {
+  # Summarize to one admin level; renames destination_* into `pcode`
+  DT[, .(pop = sum(pop)), by = .(day, age_min, age_max, sex, country, pcode = get(dest_col))][
+    , `:=`(admin_level = level, pop = as.integer(round(pop)))
+  ]
 }
 
-pop_flows_all <- lapply(
-  c("hromada", "raion", "oblast"),
-  function(l) prepare_flows(flows_hromada_agesex, l)
+agg_level_flows <- function(DT, dest_col, orig_col, level) {
+  DT[, .(count = sum(count)),
+    by = .(day, age_min, age_max, sex, country,
+      destination = get(dest_col), origin = get(orig_col)
+    )
+  ][
+    , `:=`(admin_level = level, count = as.integer(round(count)))
+  ]
+}
+
+# --- POP STOCKS --------------------------------------------------------------
+# group once, then reshape to levels
+stocks <- flows[destination_hromada_PCODE != "Abroad",
+  .(pop = sum(pop_estimated)),
+  by = .(
+    t, a_name, s_name,
+    destination_hromada_PCODE, destination_raion_PCODE, destination_oblast_PCODE
+  )
+]
+stocks <- parse_age_sex(stocks)
+
+stocks_lvl <- rbindlist(list(
+  agg_level(stocks, "destination_hromada_PCODE", 3L),
+  agg_level(stocks, "destination_raion_PCODE", 2L),
+  agg_level(stocks, "destination_oblast_PCODE", 1L)
+), use.names = TRUE)
+
+# Add uncertainty columns cheaply
+stocks_lvl[, `:=`(pop_upper = pop, pop_lower = pop)]
+
+# NOTE: Creating a 100-length posterior string per row is very costly.
+stocks_lvl[, pop_posterior := {
+  x <- as.integer(rnorm(50, mean = pop, sd = 1))
+  paste0("[", paste(x, collapse = ", "), "]")
+}, by = .(day, age_min, age_max, sex, country, pcode, admin_level)]
+
+setcolorder(stocks_lvl, c("country", "admin_level", "pcode", "day", "age_min", "age_max", "sex", "pop", "pop_upper", "pop_lower"))
+
+fwrite(
+  stocks_lvl,
+  file = file.path(env$repo_dir, "src", "dashboard", "api", "app", "data", "db-data", "pop.csv")
 )
 
-pop_flows_all <- bind_rows(
-  pop_flows_all
-)
+# --- POP FLOWS ---------------------------------------------------------------
+flows_dt <- flows[
+  origin_hromada != "Unknown" &
+    destination_hromada != "Abroad" &
+    origin_hromada != destination_hromada,
+  .(count = sum(as.integer(pop_estimated))),
+  by = .(
+    t, a_name, s_name,
+    origin_hromada_PCODE, origin_raion_PCODE, origin_oblast_PCODE,
+    destination_hromada_PCODE, destination_raion_PCODE, destination_oblast_PCODE
+  )
+]
 
-write_csv(pop_flows_all,
+flows_dt <- parse_age_sex(flows_dt)
+
+flows_lvl <- rbindlist(list(
+  agg_level_flows(flows_dt, "destination_hromada_PCODE", "origin_hromada_PCODE", 3L),
+  agg_level_flows(flows_dt, "destination_raion_PCODE", "origin_raion_PCODE", 2L),
+  agg_level_flows(flows_dt, "destination_oblast_PCODE", "origin_oblast_PCODE", 1L)
+), use.names = TRUE)
+
+# Probability within (day, age band, sex, admin_level)
+flows_lvl[, probability := count / sum(count),
+  by = .(day, age_min, age_max, sex, admin_level)
+]
+
+setcolorder(flows_lvl, c("country", "admin_level", "day", "age_min", "age_max", "sex", "origin", "destination", "count", "probability"))
+
+fwrite(
+  flows_lvl,
   file = file.path(env$repo_dir, "src", "dashboard", "api", "app", "data", "db-data", "migration.csv")
 )
