@@ -623,8 +623,8 @@ $("#btnSettings").on("click", function () {
 });
 
 
-$("#btnQuestionPanel_Controls").on("click", function () {
-    $('#idMdHelpMainControle').modal('show');
+$("#btnLoginPanel_Controls").on("click", function () {
+    $('#idMdLoginForm').modal('show');
 });
 
 $("#btnQuestionTopRight_panel").on("click", function () {
@@ -644,7 +644,7 @@ $("#btnAboutPortal").on("click", function () {
 });
 
 $("#btnLogin").on("click", function () {
-    $('#idMdHelpMainControle').modal('hide');
+    $('#idMdLoginMainControle').modal('hide');
     $('#idMdLoginForm').modal('show');
 });
 
