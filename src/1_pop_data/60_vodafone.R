@@ -59,31 +59,46 @@ hromada_geo_names <- hromada |>
 
 
 # Stocks data -------------------------------------------------------------
+stocks_list <- list.files(file.path(in_dir, "Vodafone"), pattern = "Stocks", full.names = T)
+names(stocks_list) <- c("without_ngct", "with_ngct")
 
-stocks <- read_csv2(file.path(in_dir, "Vodafone", "Stocks.csv")) |>
-  rename(hromada_code = "Hromada") |>
-  left_join(hromada_geo_names) |>
-  mutate(t = as.Date(month, "%d.%m.%y") + months(3)) |>
+stocks <- lapply(stocks_list, function(x) {
+  read_csv2(x) |>
+    mutate(file = str_split(x, "/")[[1]][8]) |>
+    rename(hromada_code = "Hromada") |>
+    left_join(hromada_geo_names) |>
+    mutate(t = as.Date(month, "%d.%m.%y") + months(3)) |>
+    mutate(
+      oblast_name_en = ifelse(hromada_code == "abroad", "Abroad", oblast_name_en),
+      macroregion = ifelse(hromada_code == "abroad", "Abroad", macroregion),
+      hromada_code = ifelse(hromada_code == "abroad", "Abroad", hromada_code),
+      s_name = ifelse(sex == "female", "F", "M"),
+      a_name = str_replace(age, "-", "_"),
+      a_name = str_replace(age, "\\+", "Plus")
+    ) |>
+    rename(
+      subscribers_stock = subscribers
+    )
+})
+
+stocks <- stocks[["without_ngct"]] |>
+  full_join(stocks[["with_ngct"]] |> filter(!hromada_code %in% unique(stocks[["without_ngct"]]$hromada_code)) |> select(-file)) |>
   mutate(
-    oblast_name_en = ifelse(hromada_code == "abroad", "Abroad", oblast_name_en),
-    macroregion = ifelse(hromada_code == "abroad", "Abroad", macroregion),
-    hromada_code = ifelse(hromada_code == "abroad", "Abroad", hromada_code),
-    s_name = ifelse(sex == "female", "F", "M"),
-    a_name = str_replace(age, "-", "_"),
-    a_name = str_replace(age, "\\+", "Plus")
-  ) |>
-  rename(
-    subscribers_stock = subscribers
+    territory = ifelse(is.na(file), "ngct", "gct")
   )
 
 stocks <- stocks |>
-  select(t, hromada_code, hromada_name, raion_code, raion_name, oblast_name_en, ADM1_PCODE, macroregion, s_name, a_name, subscribers_stock)
+  select(t, hromada_code, hromada_name, raion_code, raion_name, oblast_name_en, ADM1_PCODE, macroregion, territory, s_name, a_name, subscribers_stock)
 
+ngct_mapping <- stocks |>
+  distinct(hromada_code, hromada_name, raion_code, raion_name, oblast_name_en, ADM1_PCODE, macroregion, territory)
+
+write.csv(ngct_mapping, file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_ngct_mapping.csv"), row.names = F)
 write.csv(stocks, file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_stocks.csv"), row.names = F)
 
 # Baseline flows ---------------------------------------------------------
 
-baselineFlows <- read_csv2(file.path(in_dir, "Vodafone", "Baseline Flows.csv")) |>
+baselineFlows <- read_csv2(file.path(in_dir, "Vodafone", "Baseline Flows_050925.csv")) |>
   rename(
     destination_hromada = `Current home hromada`,
     origin_hromada = `Home hromada pre-invasion`
@@ -134,9 +149,53 @@ baselineFlows <- read_csv2(file.path(in_dir, "Vodafone", "Baseline Flows.csv")) 
   )
 
 baselineFlows <- baselineFlows |>
-  select(t, origin_hromada, origin_oblast, origin_macroregion, destination_hromada, destination_oblast, destination_macroregion, s_name, a_name, subscribers_baselineFlow)
+  ungroup() |>
+  left_join(
+    ngct_mapping |>
+      select(origin_hromada = hromada_code, origin_oblast = oblast_name_en, origin_territory = territory)
+  ) |>
+  left_join(
+    ngct_mapping |>
+      select(destination_hromada = hromada_code, destination_oblast = oblast_name_en, destination_territory = territory)
+  )
+
+baselineFlows <- baselineFlows |>
+  select(
+    t, origin_hromada, origin_oblast, origin_macroregion, origin_territory,
+    destination_hromada, destination_oblast, destination_macroregion, destination_territory,
+    s_name, a_name, subscribers_baselineFlow
+  )
 
 write_csv(baselineFlows, file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_baselineFlows.csv"))
+
+monthlyFlows_ngct <- baselineFlows |>
+  filter(origin_territory == "ngct") |>
+  group_by(t, origin_territory, destination_territory, s_name, a_name) |>
+  summarise(subscribers_baselineFlow = sum(subscribers_baselineFlow), .groups = "drop") |>
+  left_join(
+    stocks |>
+      filter(territory == "ngct") |>
+      group_by(s_name, a_name) |>
+      summarise(subscribers_stock = sum(subscribers_stock), .groups = "drop")
+  ) |>
+  mutate(
+    subscribers_monthlyFlow = subscribers_stock - subscribers_baselineFlow,
+    destination_hromada = "ngct",
+    destination_oblast = "ngct",
+    destination_macroregion = "ngct",
+    destination_territory = "ngct",
+    origin_hromada = "ngct",
+    origin_oblast = "ngct",
+    origin_macroregion = "ngct"
+  ) |>
+  select(
+    t, origin_hromada, origin_oblast, origin_macroregion, origin_territory,
+    destination_hromada, destination_oblast, destination_macroregion, destination_territory,
+    s_name, a_name, subscribers_monthlyFlow
+  )
+
+write_csv(monthlyFlows_ngct, file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_monthlyFlows_ngctToNgct.csv"))
+
 
 
 # Monthly flows ----------------------------------------------------------
@@ -303,10 +362,54 @@ ggsave(
   height = 6
 )
 
+# Data availability
+
+stocks |>
+  filter(
+    t == min(t)
+  ) |>
+  group_by(territory, oblast_name_en) |>
+  summarise(n_hromada = n_distinct(hromada_code)) |>
+  pivot_wider(names_from = territory, values_from = n_hromada) |>
+  left_join(hromada_geo |>
+    st_drop_geometry() |>
+    group_by(oblast_name_en) |>
+    summarise(n_hromada_true = n_distinct(hromada_code))) |>
+  mutate(
+    ngct = ifelse(is.na(ngct), 0, ngct),
+    gct = ifelse(is.na(gct), 0, gct),
+    n_mising = n_hromada_true - gct - ngct
+  ) |>
+  select(-n_hromada_true) |>
+  pivot_longer(cols = c(ngct, gct, n_mising), names_to = "territory", values_to = "n_hromada") |>
+  ggplot(aes(y = oblast_name_en, x = n_hromada, fill = territory)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  labs(title = "Data availability", y = "", x = "Number of hromada") +
+  scale_fill_manual(values = c("gct" = "darksalmon", "ngct" = "darkgreen", "n_mising" = "grey"))
+
+# map ngct/gct
+
+stocks |>
+  filter(
+    t == min(t)
+  ) |>
+  full_join(
+    hromada_geo
+  ) |>
+  mutate(
+    territory = ifelse(hromada_code == "Kyiv", "gct", territory),
+    territory = ifelse(is.na(territory), "missing", territory)
+  ) |>
+  ggplot(aes(fill = territory, geometry = geom)) +
+  geom_sf() +
+  theme_void() +
+  scale_fill_manual(values = c("gct" = "darksalmon", "ngct" = "darkgreen", "missing" = "grey"))
 
 
 # Hromada through time
 stocks |>
+  filter(territory = "gct") |>
   group_by(t, oblast_name_en) |>
   summarise(n_hromada = n_distinct(hromada_code)) |>
   left_join(hromada_geo |>
@@ -389,6 +492,17 @@ ggsave(
 
 
 # Baseline flows assessment -----------------------------------------------
+ngct_territory <- stocks |>
+  filter(territory == "ngct") |>
+  distinct(hromada_code) |>
+  pull(hromada_code)
+
+baselineFlows <- baselineFlows |>
+  mutate(
+    origin_territory = ifelse(origin_hromada %in% ngct_territory, "ngct", "gct"),
+    destination_territory = ifelse(destination_hromada %in% ngct_territory, "ngct", "gct")
+  )
+
 
 
 baselineFlows_hromada <- baselineFlows |>
@@ -445,7 +559,7 @@ ggsave(
 # Users evolution
 
 baselineFlows_hromada <- baselineFlows |>
-  group_by(t, origin_oblast, origin_hromada, destination_oblast, destination_hromada) |>
+  group_by(t, origin_territory, origin_oblast, origin_hromada, destination_territory, destination_oblast, destination_hromada) |>
   summarise(subscribers_baselineFlow = sum(subscribers_baselineFlow))
 
 baselineFlows_oblast <- baselineFlows_hromada |>
@@ -490,13 +604,87 @@ ggsave(
   height = 6
 )
 
-# Check coherence stocks - baseline flows - monthly flows ----------------
+baselineFlows_territory <- baselineFlows |>
+  filter(destination_macroregion != "Abroad") |>
+  filter(origin_macroregion != "Abroad") |>
+  group_by(t, origin_territory, destination_territory) |>
+  summarise(subscribers_baselineFlow_cumulative = sum(subscribers_baselineFlow)) |>
+  ungroup() |>
+  group_by(origin_territory, destination_territory) |>
+  arrange(t) |>
+  mutate(subscribers_baselineFlow = subscribers_baselineFlow_cumulative - lag(subscribers_baselineFlow_cumulative))
 
+
+ggplot(
+  baselineFlows_territory |>
+    pivot_longer(-c(t, origin_territory, destination_territory), names_to = "type", values_to = "subscribers_baselineFlow") |>
+    mutate(type = fct_relevel(type, c("subscribers_baselineFlow_cumulative", "subscribers_baselineFlow"))),
+  aes(x = t, y = subscribers_baselineFlow, col = origin_territory)
+) +
+  geom_line() +
+  facet_wrap(type ~ origin_territory, scales = "free_y") +
+  scale_color_manual(values = c("gct" = "darksalmon", "ngct" = "darkgreen")) +
+  labs(title = "Baseline flows to gct territories")
+
+baselineFlows_originNgct <- baselineFlows |>
+  filter(origin_territory == "ngct") |>
+  group_by(t, destination_oblast) |>
+  summarise(subscribers_baselineFlow_cumulative = sum(subscribers_baselineFlow)) |>
+  ungroup() |>
+  group_by(destination_oblast) |>
+  arrange(t) |>
+  mutate(subscribers_baselineFlow = subscribers_baselineFlow_cumulative - lag(subscribers_baselineFlow_cumulative))
+
+
+ggplot(baselineFlows_originNgct, aes(x = t, y = subscribers_baselineFlow)) +
+  geom_line(col = "darkgreen") +
+  facet_wrap(destination_oblast ~ ., scales = "free_y") +
+  labs(title = "Baseline flows from ngct territory")
+
+# Check coherence stocks - baseline flows - monthly flows ----------------
+coherence_df_flows <- baselineFlows |>
+  ungroup() |>
+  full_join(
+    monthlyFlows
+  ) |>
+  mutate(
+    diff_flows = subscribers_baselineFlow - subscribers_monthlyFlow
+  )
+
+coherence_df_hromada <- baselineFlows_hromada |>
+  ungroup() |>
+  group_by(t, destination_territory, destination_oblast, destination_hromada) |>
+  summarise(subscribers_baselineFlow_dest = sum(subscribers_baselineFlow)) |>
+  rename(oblast_name_en = destination_oblast, hromada_code = destination_hromada, territory = destination_territory) |>
+  full_join(
+    baselineFlows |>
+      ungroup() |>
+      group_by(t, origin_territory, origin_oblast, origin_hromada) |>
+      summarise(subscribers_baselineFlow_ori = sum(subscribers_baselineFlow), .groups = "drop") |>
+      mutate(t = t - months(1)) |>
+      rename(oblast_name_en = origin_oblast, hromada_code = origin_hromada, territory = origin_territory)
+  ) |>
+  full_join(
+    stocks |>
+      ungroup() |>
+      group_by(t, oblast_name_en, hromada_code) |>
+      summarise(subscribers_stock = sum(subscribers_stock))
+  ) |>
+  full_join(
+    monthlyFlows |>
+      ungroup() |>
+      group_by(t, destination_oblast, destination_hromada) |>
+      rename(oblast_name_en = destination_oblast, hromada_code = destination_hromada) |>
+      summarise(subscribers_monthlyFlow = sum(subscribers_monthlyFlow))
+  ) |>
+  mutate(
+    diff_flows = subscribers_baselineFlow_dest - subscribers_monthlyFlow
+  )
 
 coherence_df <- baselineFlows_oblast |>
   ungroup() |>
   group_by(t, destination_oblast) |>
-  summarise(subscribers_baselineFlow = sum(subscribers_baselineFlow)) |>
+  summarise(subscribers_baselineFlow_dest = sum(subscribers_baselineFlow)) |>
   rename(oblast_name_en = destination_oblast) |>
   full_join(
     stocks |>
@@ -515,7 +703,8 @@ coherence_df <- baselineFlows_oblast |>
 coherence_df |>
   pivot_longer(starts_with("subscriber"), names_to = "type", values_to = "subscribers") |>
   group_by(t, type) |>
-  summarise(subscribers = sum(subscribers)) |>
+  summarise(subscribers = sum(subscribers, na.rm = T)) |>
+  mutate(subscribers = ifelse(subscribers == 0, NA, subscribers)) |>
   ggplot(aes(x = t, y = subscribers, col = type)) +
   geom_line() +
   labs(title = "Coherence stocks - baseline flows - monthly flows") +
@@ -552,11 +741,11 @@ ggsave(
 
 # At hromada level
 stocks |>
-  group_by(s_name, a_name, hromada_code) |>
+  group_by(s_name, hromada_code) |>
   summarise(n = n_distinct(t)) |>
   ungroup() |>
-  group_by(a_name, s_name) |>
-  summarise(complete = sum(n == 40) / n() * 100)
+  group_by(s_name) |>
+  summarise(complete = sum(n == n_distinct(stocks$t)) / n() * 100)
 
 # At raion level
 stocks |>
@@ -564,4 +753,20 @@ stocks |>
   summarise(n = n_distinct(t)) |>
   ungroup() |>
   group_by(a_name, s_name) |>
-  summarise(complete = sum(n == 40) / n() * 100)
+  summarise(complete = sum(n == n_distinct(stocks$t)) / n() * 100)
+
+stocks |>
+  filter(territory == "gct") |>
+  group_by(s_name, raion_code) |>
+  summarise(n = n_distinct(t)) |>
+  ungroup() |>
+  group_by(s_name) |>
+  summarise(complete = sum(n == n_distinct(stocks$t)) / n() * 100)
+
+stocks |>
+  filter(territory == "gct") |>
+  group_by(a_name, raion_code) |>
+  summarise(n = n_distinct(t)) |>
+  ungroup() |>
+  group_by(a_name) |>
+  summarise(complete = sum(n == n_distinct(stocks$t)) / n() * 100)
