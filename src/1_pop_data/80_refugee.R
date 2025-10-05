@@ -1,7 +1,7 @@
 library(tidyverse)
 source(file.path(here::here(), "R_helpers/generic.R"))
 
-download_eurostat <- F
+download_eurostat <- T
 
 monthlyFlows <- read_csv(file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_monthlyFlows.csv"))
 
@@ -75,66 +75,6 @@ agesex_reference_processed <- agesex_reference |>
     a_prop_eurostat = pop / sum(pop)
   )
 
-# UNHCR
-refugee_agesex <- read_csv(file.path(in_dir, "UNHCR", "UNHCR_refugee_agesex.csv"))
-
-refugee_agesex <- refugee_agesex |>
-  mutate(
-    t = as.Date(t, format = "%d/%m/%Y"),
-    duplicate_row = case_when(
-      a_unhcr == "18-34" ~ 2,
-      a_unhcr == "35-59" ~ 3,
-      a_unhcr == "60Plus" ~ 2,
-      T ~ 1
-    )
-  ) |>
-  uncount(duplicate_row, .id = "id_dup") |>
-  mutate(
-    a_ref = case_when(
-      a_unhcr == "0-4" ~ "0-17",
-      a_unhcr == "5-17" ~ "0-17",
-      a_unhcr == "60Plus" & id_dup == 1 ~ "60-64",
-      a_unhcr == "60Plus" & id_dup == 2 ~ "65Plus",
-      a_unhcr == "18-34" & id_dup == 1 ~ "18-24",
-      a_unhcr == "18-34" & id_dup == 2 ~ "25-34",
-      a_unhcr == "35-59" & id_dup == 1 ~ "35-44",
-      a_unhcr == "35-59" & id_dup == 2 ~ "45-54",
-      a_unhcr == "35-59" & id_dup == 3 ~ "55-59",
-      T ~ a_unhcr
-    )
-  ) |>
-  left_join(
-    agesex_reference_processed |>
-      select(-pop)
-  ) |>
-  mutate(
-    a_prop_unhcr = ifelse(is.na(a_prop_unhcr), 1, a_prop_unhcr),
-    percentage = percentage * a_prop_unhcr,
-    a_name = case_when(
-      a_ref == "60-64" ~ "55-64",
-      a_ref == "55-59" ~ "55-64",
-      T ~ a_ref
-    )
-  ) |>
-  group_by(t, a_name, s_name) |>
-  summarise(
-    percentage = sum(percentage)
-  )
-
-refugee_agesex_smoothed <- bind_rows(
-  refugee_agesex,
-  tibble(
-    t = rep(seq.Date(
-      max(refugee_agesex$t),
-      max(monthlyFlows$t),
-      by = "month"
-    ), length(unique(refugee_agesex$s_name)) * length(unique(refugee_agesex$a_name))),
-    a_name = rep(unique(refugee_agesex$a_name), length(seq.Date(max(refugee_agesex$t), max(monthlyFlows$t), by = "month")) * length(unique(refugee_agesex$s_name))),
-    s_name = rep(unique(refugee_agesex$s_name), length(seq.Date(max(refugee_agesex$t), max(monthlyFlows$t), by = "month")) * length(unique(refugee_agesex$a_name))),
-    percentage = NA
-  )
-)
-
 
 # Eurostat
 eurostat_refugee_file <- file.path(in_dir, "Eurostat", "Eurostat_refugee_agesex.csv")
@@ -148,7 +88,7 @@ if (download_eurostat) {
   )
 }
 
-eurostat_refugee <- read_csv(eurostat_refugee_file)
+eurostat_refugee <- read_csv(file(eurostat_refugee_file))
 
 eurostat_refugee <- eurostat_refugee |>
   select(sex, age, geo, TIME_PERIOD, OBS_VALUE) |>
