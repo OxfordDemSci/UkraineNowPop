@@ -1,21 +1,30 @@
 source(file.path(here::here(), "R_helpers/generic.R"))
 library(tmap)
 library(data.table)
+library(future.apply)
+
+# parameters
+output_date <- "202509"
+output_label <- ""
+dir.create(file.path(out_dir, "model", "deterministic", "figs", output_date), showWarnings = F)
+
+# load data
 hromada_geo <- st_read(file.path(out_dir, "ua_master_hromada.gpkg"))
-flows_hromada_agesex <- data.table::fread(file.path(
-  out_dir, "model", "deterministic", "deliverables", "202508",
+flows_hromada_agesex <- fread(file.path(
+  out_dir, "model", "deterministic", "deliverables", output_date,
   paste0(tolower(country), "_flows_hromada_agesex", output_label, ".csv")
 ))
-flows_hromada_agesex_raw <- data.table::fread(file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_monthlyFlows.csv"))
+flows_hromada_agesex_raw <- rbind(
+  fread(file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_monthlyFlows.csv")),
+  fread(file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_monthlyFlows_ngctToNgct.csv"))[, c("origin_territory ", "destination_territory") := NULL],
+  fill = T
+)
 
 pcodes <- read_csv(file.path(here::here("src/dashboard/api/app/data/db-data/global_pcodes.csv")))
 
 pcodes <- pcodes |>
   filter(Location == "UKR") |>
   rename(pcode = `P-Code`)
-
-
-dir.create(file.path(out_dir, "model", "deterministic", "figs"), showWarnings = F)
 
 stocks_hromada_agesex <- flows_hromada_agesex[
   ,
@@ -25,7 +34,8 @@ stocks_hromada_agesex <- flows_hromada_agesex[
     oblast = destination_oblast,
     raion = destination_raion,
     hromada_PCODE = destination_hromada_PCODE,
-    raion_PCODE = destination_raion_PCODE
+    raion_PCODE = destination_raion_PCODE,
+    macroregion = destination_macroregion
   )
 ]
 
@@ -45,7 +55,6 @@ stocks_hromada_agesex_first <- stocks_hromada_agesex |>
 
 stocks_hromada_agesex_last <- stocks_hromada_agesex |>
   filter(t == max(stocks_hromada_agesex$t))
-
 
 stocks_hromada_totals_last <- stocks_hromada_agesex_last |>
   group_by(t, hromada, oblast, raion) |>
@@ -88,6 +97,41 @@ stocks_raion_agesex <- stocks_hromada_agesex |>
       select(raion_PCODE, raion_name)
   )
 
+stocks_oblast_agesex <- stocks_hromada_agesex |>
+  group_by(t, macroregion, oblast, a_name, s_name) |>
+  summarise(
+    pop_estimated = sum(pop_estimated),
+    subscribers_monthlyFlow = sum(subscribers_monthlyFlow),
+    penetration_rate = sum(subscribers_monthlyFlow) / sum(pop_estimated),
+    .groups = "drop"
+  )
+
+stocks_oblast <- stocks_hromada_agesex |>
+  group_by(t, macroregion, oblast) |>
+  summarise(
+    pop_estimated = sum(pop_estimated, na.rm = T),
+    subscribers_monthlyFlow = sum(subscribers_monthlyFlow, na.rm = T),
+    .groups = "drop"
+  ) |>
+  mutate(penetration_rate = subscribers_monthlyFlow / pop_estimated)
+
+stocks_territory <- stocks_hromada_agesex |>
+  group_by(t, territory = ifelse(macroregion == "ngct", "ngct", "gct")) |>
+  summarise(
+    pop_estimated = sum(pop_estimated, na.rm = T),
+    subscribers_monthlyFlow = sum(subscribers_monthlyFlow, na.rm = T),
+    .groups = "drop"
+  ) |>
+  mutate(penetration_rate = subscribers_monthlyFlow / pop_estimated)
+
+stocks_national <- stocks_oblast |>
+  group_by(t) |>
+  summarise(
+    pop_estimated = sum(pop_estimated),
+    subscribers_monthlyFlow = sum(subscribers_monthlyFlow),
+    penetration_rate = sum(subscribers_monthlyFlow) / sum(pop_estimated),
+    .groups = "drop"
+  )
 # Assessment of data availibility ----------------------------------------
 # See scripts 1_pop_data/60_vodafone.R. Section Monthly flows data availability
 
@@ -115,75 +159,183 @@ tm_pop_last <- tm_shape(hromada_geo_pop) +
 
 tm_pop_last
 tmap_save(tm_pop_last,
-  filename = file.path(out_dir, "model", "deterministic", "figs", paste0("map_pop_", stocks_hromada_totals_last$t[1], ".png")),
+  filename = file.path(out_dir, "model", "deterministic", "figs", output_date, paste0("map_pop_", stocks_hromada_totals_last$t[1], ".png")),
 )
 
+##########################################################################
 # Time series of total pop and in/out flows abroad (by age-sex)
+##########################################################################
+
 # see 0_deterministic.R
 
-# Hromada population and penetration rate through time
+###########################################################################
+# Population and penetration rate through time
+##########################################################################
 
+# --- helper: prepare melted table (do once for each dataset) ---
+melt_for_plot <- function(df) {
+  dt <- as.data.table(df)
+  melted <- melt(
+    dt,
+    id.vars = intersect(
+      names(dt),
+      c("t", "a_name", "s_name", "hromada", "hromada_name", "oblast", "raion", "raion_name", "macroregion", "territory")
+    ),
+    measure.vars = c("pop_estimated", "penetration_rate", "subscribers_monthlyFlow"),
+    variable.name = "name",
+    value.name = "value",
+    variable.factor = FALSE
+  )
+  # set factor levels once
+  melted[, name := factor(name, levels = c("pop_estimated", "penetration_rate", "subscribers_monthlyFlow"))]
+  return(melted)
+}
 
-for (h in unique(stocks_hromada_agesex$hromada)) {
-  # h='UA05020010000053508'
-  df_hromada <- stocks_hromada_agesex |>
-    filter(hromada == h) |>
-    pivot_longer(cols = c(pop_estimated, penetration_rate, subscribers_monthlyFlow))
-  h_name <- df_hromada$hromada_name[1]
+precreate_dirs <- function(melted_dt, level = c("Hromada", "Raion", "Oblast"), out_dir_base) {
+  level <- match.arg(level)
+  if (level == "Hromada") {
+    dirs <- unique(melted_dt[, .(oblast, raion)])
+    for (r in seq_len(nrow(dirs))) {
+      dir.create(file.path(out_dir_base, "Penetration rate", "Hromada", dirs$oblast[r], dirs$raion[r]), recursive = TRUE)
+    }
+  } else if (level == "Raion") {
+    dirs <- unique(melted_dt[, .(oblast)])
+    for (r in seq_len(nrow(dirs))) {
+      dir.create(file.path(out_dir_base, "Penetration rate", "Raion", dirs$oblast[r]), recursive = TRUE)
+    }
+  } else if (level == "Oblast") {
+    dir.create(file.path(out_dir_base, "Penetration rate", "Oblast"), recursive = TRUE)
+  }
+}
 
-  ggplot(df_hromada |>
-    mutate(name = factor(name, levels = c("pop_estimated", "penetration_rate", "subscribers_monthlyFlow"))), aes(x = t, y = value, colour = a_name, linetype = name)) +
+plot_PoPpenRateSubs <- function(key, split_list, level = c("Hromada", "Raion", "Oblast"), out_dir_base) {
+  level <- match.arg(level)
+  df <- split_list[[key]]
+  if (is.null(df) || nrow(df) == 0) {
+    return(NULL)
+  }
+
+  # Build plot (title uses name + oblast/raion info)
+  if (level == "Hromada") {
+    display_name <- df$hromada_name[1]
+    oblast_name <- df$oblast[1]
+    raion_name <- df$raion[1]
+    outfile <- file.path(
+      out_dir_base, "Penetration rate", "Hromada", oblast_name, raion_name,
+      paste0("penRate_hromada_", key, "_", display_name, ".png")
+    )
+    title_txt <- paste0("Hromada population and penetration rate through time in\n", display_name, " in oblast ", oblast_name)
+  } else if (level == "Raion") {
+    display_name <- df$raion_name[1]
+    oblast_name <- df$oblast[1]
+    outfile <- file.path(
+      out_dir_base, "Penetration rate", "Raion", oblast_name,
+      paste0("penRate_raion_", key, "_", display_name, ".png")
+    )
+    title_txt <- paste0("Raion population and penetration rate through time in\n", display_name, " in oblast ", oblast_name)
+  } else if (level == "Oblast") {
+    outfile <- file.path(
+      out_dir_base, "Penetration rate", "Oblast",
+      paste0("penRate_oblast_", key, ".png")
+    )
+    title_txt <- paste0("Oblast population and penetration rate through time in\n", key)
+  }
+
+  p <- ggplot(df, aes(x = t, y = value, colour = a_name, linetype = name)) +
     geom_line() +
     facet_grid(name ~ s_name, scales = "free_y") +
     theme_minimal() +
-    labs(
-      title = paste("Hromada population and penetration rate through time in\n", h_name, "in oblast", df_hromada$oblast[1]),
-      x = "Time", y = ""
-    ) +
-    guides(linetype = "none")
+    labs(title = title_txt, x = "Time", y = "") +
+    guides(linetype = "none") +
+    scale_y_continuous(labels = scales::label_number())
 
-  dir.create(file.path(out_dir, "model", "deterministic", "figs", "Penetration rate", "Hromada", df_hromada$oblast[1], df_hromada$raion[1]), showWarnings = F, recursive = T)
-  ggsave(
-    file.path(
-      out_dir, "model", "deterministic", "figs", "Penetration rate", "Hromada", df_hromada$oblast[1], df_hromada$raion[1],
-      paste0("penRate_hromada_", h, "_", h_name, ".png")
-    ),
-    width = 8,
-    height = 6
-  )
+  # Use ragg device for speed
+  ggsave(p, filename = outfile, width = 8, height = 6)
+
+  invisible(NULL)
 }
 
-for (r in unique(stocks_raion_agesex$raion)) {
-  # r= 'UA74100000000047140'
-  df_raion <- stocks_raion_agesex |>
-    filter(raion == r) |>
-    pivot_longer(cols = c(pop_estimated, penetration_rate, subscribers_monthlyFlow))
-  r_name <- df_raion$raion_name[1]
+# Process Hromadas in parallel
 
-  ggplot(df_raion |>
-    mutate(name = factor(name, levels = c("pop_estimated", "penetration_rate", "subscribers_monthlyFlow"))), aes(x = t, y = value, colour = a_name, linetype = name)) +
-    geom_line() +
-    facet_grid(name ~ s_name, scales = "free_y") +
-    theme_minimal() +
-    labs(
-      title = paste("Raion population and penetration rate through time in\n", r_name, "in oblast", df_raion$oblast[1]),
-      x = "Time", y = ""
-    ) +
-    guides(linetype = "none")
+out_dir_base <- file.path(out_dir, "model", "deterministic", "figs", output_date)
+melted_h <- melt_for_plot(stocks_hromada_agesex)
 
-  dir.create(file.path(out_dir, "model", "deterministic", "figs", "Penetration rate", "Raion", df_raion$oblast[1]), showWarnings = F, recursive = T)
-  ggsave(
-    file.path(
-      out_dir, "model", "deterministic", "figs", "Penetration rate", "Raion", df_raion$oblast[1],
-      paste0("penRate_raion_", r, "_", r_name, ".png")
-    ),
-    width = 8,
-    height = 6
-  )
-}
+# Pre-create directories (avoid repeated dir.create inside each worker)
+precreate_dirs(melted_h, level = "Hromada", out_dir_base = out_dir_base)
+
+# split into list by hromada (cheap reference copy)
+h_list <- split(melted_h, by = "hromada", keep.by = TRUE)
+
+# set up parallel plan (works on Windows too: multisession)
+plan(multisession, workers = 4)
+# dispatch jobs (future_lapply will export needed objects automatically)
+future_lapply(names(h_list), function(hid) plot_PoPpenRateSubs(hid, h_list, level = "Hromada", out_dir_base = out_dir_base),
+  future.seed = TRUE
+)
+plan(sequential)
 
 
+# Process Raions in parallel
+
+melted_r <- melt_for_plot(stocks_raion_agesex)
+
+# Pre-create directories for raions
+precreate_dirs(melted_r, level = "Raion", out_dir_base = out_dir_base)
+
+# split list by raion
+r_list <- split(melted_r, by = "raion", keep.by = TRUE)
+
+plan(multisession, workers = 4)
+future_lapply(names(r_list), function(rid) plot_PoPpenRateSubs(rid, r_list, level = "Raion", out_dir_base = out_dir_base),
+  future.seed = TRUE
+)
+plan(sequential)
+
+
+# Process Oblast
+
+melted_o <- melt_for_plot(stocks_oblast_agesex)
+precreate_dirs(melted_o, level = "Oblast", out_dir_base = out_dir_base)
+
+# split list by oblast
+o_list <- split(melted_o, by = "oblast", keep.by = TRUE)
+
+lapply(names(o_list), function(oid) plot_PoPpenRateSubs(oid, o_list, level = "Oblast", out_dir_base = out_dir_base))
+
+# Process national
+melted_o_tot <- melt_for_plot(stocks_oblast)
+
+ggplot(melted_o_tot, aes(x = t, y = value, colour = oblast, linetype = name)) +
+  geom_line() +
+  ggh4x::facet_grid2(macroregion ~ name, scales = "free_y", independent = "y") +
+  theme_minimal() +
+  labs(title = "Oblast population and penetration rate", x = "Time", y = "") +
+  guides(linetype = "none", colour = "none")+
+  scale_y_continuous(labels = scales::label_number())
+
+ggsave(
+  filename = file.path(out_dir_base, "Penetration rate", "Oblast", paste0("penRate_oblast_total.png")),
+  width = 8, height = 6
+)
+
+melted_n <- melt_for_plot(stocks_national)
+melted_t <- melt_for_plot(stocks_territory)
+
+ggplot(
+  bind_rows(melted_n |> mutate(territory = "total"), melted_t),
+  aes(x = t, y = value, linetype = name, colour = territory)
+) +
+  geom_line() +
+  theme_minimal() +
+  labs(title = "National population and penetration rate", x = "Time", y = "") +
+  guides(linetype = "none", colour = "none") +
+  ggh4x::facet_grid2(name ~ territory, scales = "free_y", independent = "y") +
+  scale_color_manual(values = c("total" = "black", "gct" = "darksalmon", "ngct" = "darkgreen")) +
+  scale_y_continuous(labels = scales::label_number())
+
+##########################################################
 # Top migration corridors
+##########################################################
 
 top_corridor_last <- flows_hromada_agesex |>
   as_tibble() |>
@@ -222,11 +374,14 @@ gg_corridor <- ggplot(top_corridor_last, aes(y = reorder(corridor, pop_estimated
   )
 gg_corridor
 
-ggsave(file.path(out_dir, "model", "deterministic", "figs", "corridor_agesex_top10.png"), gg_corridor,
+ggsave(file.path(out_dir, "model", "deterministic", "figs", output_date, "corridor_agesex_top10.png"), gg_corridor,
   w = 8, height = 6
 )
 
+##################################################################
 # Population pyramid for a couple locations baseline vs current
+##################################################################
+
 
 stocks_hromada_agesex_pyramid <- stocks_hromada_agesex |>
   filter(t == max(t) | t == min(t)) |>
@@ -258,11 +413,14 @@ gg_pyramid <- ggplot(
   facet_wrap(. ~ hromada_name, scales = "free")
 gg_pyramid
 
-ggsave(file.path(out_dir, "model", "deterministic", "figs", "pyramid_hromada_firstLast.png"), gg_pyramid,
+ggsave(file.path(out_dir, "model", "deterministic", "figs", output_date, "pyramid_hromada_firstLast.png"), gg_pyramid,
   w = 8, height = 6
 )
 
+##################################################
 # Map of arrivers from abroad
+##################################################
+
 abroad_arrivals_last <- flows_hromada_totals_last |>
   filter(origin_hromada == "Abroad")
 
@@ -271,7 +429,6 @@ hromada_geo_abroad_arrivals <- hromada_geo |>
     abroad_arrivals_last |>
       rename(hromada_code = destination_hromada)
   )
-
 
 tm_abroad_arrivals_last <- tm_shape(hromada_geo_abroad_arrivals) +
   tm_polygons(
@@ -292,11 +449,12 @@ tm_abroad_arrivals_last <- tm_shape(hromada_geo_abroad_arrivals) +
 tm_abroad_arrivals_last
 
 tmap_save(tm_abroad_arrivals_last,
-  filename = file.path(out_dir, "model", "deterministic", "figs", paste0("map_abroad_arrivals_", stocks_hromada_totals_last$t[1], ".png")),
+  filename = file.path(out_dir, "model", "deterministic", "figs", output_date, paste0("map_abroad_arrivals_", stocks_hromada_totals_last$t[1], ".png")),
 )
 
-
+##################################################
 # Map of leavers to abroad
+##################################################
 
 abroad_leavers_last <- flows_hromada_totals_last |>
   filter(destination_hromada == "Abroad")
@@ -326,7 +484,7 @@ tm_abroad_leavers_last <- tm_shape(hromada_geo_abroad_leavers) +
 tm_abroad_leavers_last
 
 tmap_save(tm_abroad_leavers_last,
-  filename = file.path(out_dir, "model", "deterministic", "figs", paste0("map_abroad_leavers_", stocks_hromada_totals_last$t[1], ".png")),
+  filename = file.path(out_dir, "model", "deterministic", "figs", output_date, paste0("map_abroad_leavers_", stocks_hromada_totals_last$t[1], ".png")),
 )
 
 # Map of internal leavers
@@ -368,7 +526,7 @@ tm_leavers_last <- tm_shape(hromada_geo_leavers) +
 tm_leavers_last
 
 tmap_save(tm_leavers_last,
-  filename = file.path(out_dir, "model", "deterministic", "figs", paste0("map_internal_leavers_", stocks_hromada_totals_last$t[1], ".png")),
+  filename = file.path(out_dir, "model", "deterministic", "figs", output_date, paste0("map_internal_leavers_", stocks_hromada_totals_last$t[1], ".png")),
 )
 
 
@@ -410,5 +568,5 @@ tm_arrivers_last <- tm_shape(hromada_geo_arrivers) +
 tm_arrivers_last
 
 tmap_save(tm_arrivers_last,
-  filename = file.path(out_dir, "model", "deterministic", "figs", paste0("map_internal_arrivers_", stocks_hromada_totals_last$t[1], ".png")),
+  filename = file.path(out_dir, "model", "deterministic", "figs", output_date, paste0("map_internal_arrivers_", stocks_hromada_totals_last$t[1], ".png")),
 )
