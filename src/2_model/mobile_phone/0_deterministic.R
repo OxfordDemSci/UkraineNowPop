@@ -497,6 +497,7 @@ national_pop_minusOutflows_plusInflows <- bind_rows(
   ) |>
   ungroup()
 
+# estimate the number of people in NGCT area
 penetration_rate_ngct <- monthlyFlows_ngct |>
   filter(t == min(monthlyFlows_ngct$t)) |>
   filter(a_name %in% agesex_geoCombination_full$a_name & s_name %in% agesex_geoCombination_full$s_name) |>
@@ -507,7 +508,7 @@ penetration_rate_ngct <- monthlyFlows_ngct |>
       )
   ) |>
   mutate(
-    p0 = subscribers_monthlyFlow / pop
+    p0 = subscribers_monthlyFlow / pop # t0 penetration rate
   ) |>
   select(-t)
 
@@ -521,6 +522,7 @@ ngct_hat <- monthlyFlows_ngct |>
     subscribers_monthlyFlow_hat = subscribers_monthlyFlow / p0
   )
 
+# add NGCT pop estimates to the national population table
 national_pop_minusOutflows_plusInflows_minusNGCT <- national_pop_minusOutflows_plusInflows |>
   left_join(
     ngct_hat |>
@@ -685,7 +687,7 @@ for (idx in 1:n_distinct(monthlyFlows$t)) {
 
   monthlyFlows_agesex_rescaled_hat[[idx]] <- bind_rows(
 
-    # Treat first internal and outflows (with calibration to flows totals and scaling to national)
+    # Treat first internal (with scaling to GCT population derived as pop - NGCT)
     monthlyFlows_agesex_hat[[idx]] |>
       filter(origin_hromada != "Abroad") |>
       filter(destination_hromada != "Abroad") |>
@@ -725,8 +727,7 @@ for (idx in 1:n_distinct(monthlyFlows$t)) {
       ungroup() |>
       select(-pop_updated, -inflows, -outflows, -ngct),
 
-    # rescale the outflows
-
+    # rescale the outflows the border crossing
     monthlyFlows_agesex_hat[[idx]] |>
       filter(origin_hromada != "Abroad") |>
       filter(destination_hromada == "Abroad") |>
@@ -766,7 +767,7 @@ for (idx in 1:n_distinct(monthlyFlows$t)) {
       ungroup() |>
       select(-outflows),
 
-    # And add  the actual inflows from abroad
+    # And add the actual inflows from abroad
     monthlyFlows_agesex_hat[[idx]] |>
       filter(origin_hromada == "Abroad" & destination_hromada != "Abroad") |>
       mutate(
@@ -877,7 +878,7 @@ monthlyFlows_agesex_rescaled_hat_df <- bind_rows(
     rename(pi_hat = p0, monthlyFlow_hat_calibrated = subscribers_monthlyFlow_hat) |>
     select(-origin_territory, -destination_territory, -subscribers_monthlyFlow)
 )
-
+monthlyFlows_agesex_df <- bind_rows(monthlyFlows_agesex)
 
 # write output
 
@@ -905,7 +906,7 @@ monthlyFlows_agesex_hat_df_stocks_oblast <- monthlyFlows_agesex_hat_df_stocks |>
 # check
 
 if (print_check) {
-  # check the population constraint 
+  # check the population constraint
   monthlyFlows_agesex_hat_df_stocks_oblast |>
     group_by(t, a_name, s_name) |>
     summarise(
