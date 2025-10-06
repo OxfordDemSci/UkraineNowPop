@@ -19,7 +19,10 @@ hromada_geo <- st_read(file.path(out_dir, "ua_master_hromada.gpkg")) |>
   )
 
 # Load Vodafone data
-monthlyFlows <- read_csv(file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_monthlyFlows.csv"))
+monthlyFlows <- data.table::fread(file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_monthlyFlows.csv")) |>
+  mutate(
+    t = as.Date(t)
+  )
 monthlyFlows_ngct <- read_csv(file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_monthlyFlows_ngctToNgct.csv"))
 ngct_mapping <- read_csv(file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_ngct_mapping.csv"))
 
@@ -88,15 +91,17 @@ monthlyFlows <- monthlyFlows |>
 
 
 # compute missing hromadas
-missing_hromadas <- monthlyFlows |>
-  group_by(t, destination_hromada) |>
-  summarise(
-    subscribers_monthlyFlow = sum(subscribers_monthlyFlow),
-    .groups = "drop"
-  ) |>
-  group_by(destination_hromada) |>
-  summarise(n_timesteps = length(unique(monthlyFlows$t)) - n()) |>
-  filter(n_timesteps > 0)
+timesteps_total <- length(unique(monthlyFlows$t))
+missing_hromadas <- monthlyFlows[
+  , .(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)),
+  by = .(t, destination_hromada)
+][
+  , .(n_timesteps = timesteps_total - .N),
+  by = destination_hromada
+][
+  n_timesteps > 0
+]
+
 
 dropping_hromadas <- missing_hromadas |>
   filter(n_timesteps > 3)
@@ -149,15 +154,6 @@ monthlyFlows_imputed <- bind_rows(
   filter(!destination_hromada %in% dropping_hromadas$destination_hromada)
 
 
-# add ngct flows
-
-monthlyFlows_imputed <- bind_rows(
-  monthlyFlows_imputed,
-  monthlyFlows_ngct |>
-    select(-ends_with("territory"))
-)
-
-
 # compute available age-sex combinations
 agesex_geoCombination <- monthlyFlows_imputed |>
   group_by(t, a_name, s_name) |>
@@ -188,7 +184,7 @@ agesex_geoCombination_full <- agesex_geoCombination |>
   pivot_wider(names_from = geo_level, values_from = n_combinations) |>
   group_by(a_name, s_name) |>
   summarise(n_macroregion = mean(n_macroregion)) |>
-  filter(n_macroregion == 57 & a_name != "All" & s_name != "All")
+  filter(n_macroregion == 56 & a_name != "All" & s_name != "All")
 
 # remove missing age-sex combinations
 monthlyFlows_imputed <- monthlyFlows_imputed |>
@@ -457,7 +453,6 @@ returnee_agesex <- returnee_sex |>
     pi = pi_returnee * pi_refugee
   )
 
-
 borderCrossing_in_monthly_agesex <- borderCrossing_in_monthly |>
   left_join(
     returnee_agesex |>
@@ -501,6 +496,36 @@ national_pop_minusOutflows_plusInflows <- bind_rows(
     pop_minusInflows = pop_updated - inflows
   ) |>
   ungroup()
+
+penetration_rate_ngct <- monthlyFlows_ngct |>
+  filter(t == min(monthlyFlows_ngct$t)) |>
+  filter(a_name %in% agesex_geoCombination_full$a_name & s_name %in% agesex_geoCombination_full$s_name) |>
+  left_join(
+    hromada_agesex |>
+      rename(
+        origin_hromada = hromada_code
+      )
+  ) |>
+  mutate(
+    p0 = subscribers_monthlyFlow / pop
+  ) |>
+  select(-t)
+
+ngct_hat <- monthlyFlows_ngct |>
+  filter(a_name %in% agesex_geoCombination_full$a_name & s_name %in% agesex_geoCombination_full$s_name) |>
+  left_join(
+    penetration_rate_ngct |>
+      select(origin_hromada, a_name, s_name, p0)
+  ) |>
+  mutate(
+    subscribers_monthlyFlow_hat = subscribers_monthlyFlow / p0
+  )
+
+national_pop_minusOutflows_plusInflows_minusNGCT <- national_pop_minusOutflows_plusInflows |>
+  left_join(
+    ngct_hat |>
+      select(t, a_name, s_name, ngct = subscribers_monthlyFlow_hat)
+  )
 
 
 # Step 2: The model ---------------------------------------
@@ -656,7 +681,7 @@ for (idx in 1:n_distinct(monthlyFlows$t)) {
     ) |>
     select(-origin_p, -destination_p)
 
-  # Compute domestinc estimates as a combination of rescaled domestic population + inflows from abroad
+  # Compute domestic estimates as a combination of rescaled domestic population + inflows from abroad
 
   monthlyFlows_agesex_rescaled_hat[[idx]] <- bind_rows(
 
@@ -687,18 +712,18 @@ for (idx in 1:n_distinct(monthlyFlows$t)) {
       ) |>
       select(-monthlyFlow_hat) |>
       left_join(
-        national_pop_minusOutflows_plusInflows |>
+        national_pop_minusOutflows_plusInflows_minusNGCT |>
           filter(t == monthlyFlows_agesex[[idx]]$t[1]) |>
-          select(t, a_name, s_name, pop_updated, inflows, outflows),
+          select(t, a_name, s_name, pop_updated, inflows, outflows, ngct),
         by = c("t", "a_name", "s_name")
       ) |>
       group_by(t, a_name, s_name) |>
       mutate(
-        scaling_factor = (pop_updated - inflows - outflows) / sum(monthlyFlow_hat_agesex),
+        scaling_factor = (pop_updated - inflows - outflows - ngct) / sum(monthlyFlow_hat_agesex),
         monthlyFlow_hat_calibrated = monthlyFlow_hat_agesex * scaling_factor
       ) |>
       ungroup() |>
-      select(-pop_updated, -inflows, -outflows),
+      select(-pop_updated, -inflows, -outflows, -ngct),
 
     # rescale the outflows
 
@@ -741,7 +766,7 @@ for (idx in 1:n_distinct(monthlyFlows$t)) {
       ungroup() |>
       select(-outflows),
 
-    # And then the actual inflows from abroad
+    # And add  the actual inflows from abroad
     monthlyFlows_agesex_hat[[idx]] |>
       filter(origin_hromada == "Abroad" & destination_hromada != "Abroad") |>
       mutate(
@@ -845,8 +870,13 @@ penetration_rate_df <- bind_rows(penetration_rate)
 monthlyFlows_totals_hat_df <- bind_rows(monthlyFlows_totals_hat)
 
 penetration_rate_agesexMacroregion_df <- bind_rows(penetration_rate_agesexMacroregion)
-monthlyFlows_agesex_rescaled_hat_df <- bind_rows(monthlyFlows_agesex_rescaled_hat)
-monthlyFlows_agesex_df <- bind_rows(monthlyFlows_agesex)
+
+monthlyFlows_agesex_rescaled_hat_df <- bind_rows(
+  monthlyFlows_agesex_rescaled_hat,
+  ngct_hat |>
+    rename(pi_hat = p0, monthlyFlow_hat_calibrated = subscribers_monthlyFlow_hat) |>
+    select(-origin_territory, -destination_territory, -subscribers_monthlyFlow)
+)
 
 
 # write output
@@ -855,7 +885,6 @@ dir.create(file.path(out_dir, "model", "deterministic"), showWarnings = F, recur
 write_csv(monthlyFlows_agesex_rescaled_hat_df, file.path(out_dir, "model", "deterministic", "mobilePhone_deterministic_agesex.csv"))
 
 # Compute estimated stocks
-
 
 monthlyFlows_agesex_hat_df_stocks <- monthlyFlows_agesex_rescaled_hat_df |>
   group_by(t, a_name, s_name, destination_macroregion, destination_oblast, destination_raion, destination_hromada) |>
@@ -876,6 +905,7 @@ monthlyFlows_agesex_hat_df_stocks_oblast <- monthlyFlows_agesex_hat_df_stocks |>
 # check
 
 if (print_check) {
+  # check the population constraint 
   monthlyFlows_agesex_hat_df_stocks_oblast |>
     group_by(t, a_name, s_name) |>
     summarise(
@@ -920,6 +950,23 @@ if (print_check) {
     ) |>
     mutate(
       diff = monthlyFlow_hat_calibrated - outflows
+    ) |>
+    View()
+
+  monthlyFlows_agesex_hat_df_stocks_oblast |>
+    filter(destination_macroregion != "Abroad") |>
+    filter(destination_oblast != "ngct") |>
+    group_by(t, a_name, s_name) |>
+    summarise(
+      monthlyFlow_hat_calibrated = sum(monthlyFlow_hat_calibrated),
+      .groups = "drop"
+    ) |>
+    left_join(
+      national_pop_minusOutflows_plusInflows_minusNGCT |>
+        select(-pop)
+    ) |>
+    mutate(
+      diff = monthlyFlow_hat_calibrated - (pop_updated - outflows - ngct)
     ) |>
     View()
 }
