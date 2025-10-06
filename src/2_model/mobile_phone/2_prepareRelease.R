@@ -1,73 +1,74 @@
+library(data.table)
+library(stringr)
+library(readr)
+library(here)
+
 source(file.path(here::here(), "R_helpers/generic.R"))
 
+output_date <- "202509"
+
 # create output directory
-dir.create(file.path(out_dir, "model", "deterministic", "deliverables", "202508"), recursive = T, showWarnings = F)
+dir.create(file.path(out_dir, "model", "deterministic", "deliverables", output_date),
+           recursive = TRUE, showWarnings = FALSE)
 
 # load data
-pcodes <- read_csv(file.path(here::here("src/dashboard/api/app/data/db-data/global_pcodes.csv")))
-flows_hromada_agesex <- data.table::fread(file.path(out_dir, "model", "deterministic", "mobilePhone_deterministic_agesex.csv"))
+pcodes <- fread(file.path(here::here("src/dashboard/api/app/data/db-data/global_pcodes.csv")))
+flows <- fread(file.path(out_dir, "model", "deterministic", "mobilePhone_deterministic_agesex.csv"))
 
-pcodes <- pcodes |>
-  filter(`Admin Level` == 1 & Location == "UKR") |>
-  rename(pcode = `P-Code`)
+# filter & rename pcodes
+pcodes <- pcodes[`Admin Level` == 1 & Location == "UKR",
+                 .(pcode = `P-Code`, Name)]
 
 # prepare flows data
-flows_hromada_agesex <- flows_hromada_agesex |>
-  mutate(
-    origin_hromada_PCODE = ifelse(origin_hromada == "Kyiv", "UA8000000", origin_hromada),
-    origin_hromada_PCODE = ifelse(origin_hromada_PCODE != "Abroad", str_sub(origin_hromada_PCODE, 1, 9), origin_hromada_PCODE),
-    origin_raion_PCODE = ifelse(origin_raion == "Kyiv", "UA8000", origin_raion),
-    origin_raion_PCODE = ifelse(origin_hromada_PCODE != "Abroad", str_sub(origin_raion_PCODE, 1, 6), origin_raion_PCODE),
-    destination_hromada_PCODE = ifelse(destination_hromada == "Kyiv", "UA8000000", destination_hromada),
-    destination_hromada_PCODE = ifelse(destination_hromada_PCODE != "Abroad", str_sub(destination_hromada_PCODE, 1, 9), destination_hromada_PCODE),
-    destination_raion_PCODE = ifelse(destination_raion == "Kyiv", "UA8000", destination_raion),
-    destination_raion_PCODE = ifelse(destination_hromada_PCODE != "Abroad", str_sub(destination_hromada_PCODE, 1, 6), destination_raion_PCODE),
-  ) |>
-  rename(pop_estimated = monthlyFlow_hat_calibrated) |>
-  select(
-    t, a_name, s_name, starts_with("origin"), starts_with("destination"), pop_estimated
-  )
+flows[, origin_hromada_PCODE :=
+         fifelse(origin_hromada == "Kyiv", "UA8000000", origin_hromada)]
+flows[origin_hromada_PCODE != "Abroad",
+      origin_hromada_PCODE := str_sub(origin_hromada_PCODE, 1, 9)]
 
+flows[, origin_raion_PCODE :=
+         fifelse(origin_raion == "Kyiv", "UA8000", origin_raion)]
+flows[origin_hromada_PCODE != "Abroad",
+      origin_raion_PCODE := str_sub(origin_raion_PCODE, 1, 6)]
 
-flows_hromada_agesex <- flows_hromada_agesex |>
-  left_join(
-    pcodes |>
-      select(destination_oblast = Name, destination_oblast_PCODE = pcode)
-  ) |>
-  left_join(
-    pcodes |>
-      select(origin_oblast = Name, origin_oblast_PCODE = pcode)
-  )
+flows[, destination_hromada_PCODE :=
+         fifelse(destination_hromada == "Kyiv", "UA8000000", destination_hromada)]
+flows[destination_hromada_PCODE != "Abroad",
+      destination_hromada_PCODE := str_sub(destination_hromada_PCODE, 1, 9)]
 
-flows_hromada_agesex <- flows_hromada_agesex |>
-  mutate(
-    origin_oblast_PCODE = ifelse(origin_oblast == "Abroad", "Abroad", origin_oblast_PCODE),
-    origin_oblast_PCODE = ifelse(origin_oblast == "Unknown", "Unknown", origin_oblast_PCODE),
-    destination_oblast_PCODE = ifelse(destination_oblast == "Abroad", "Abroad", destination_oblast_PCODE)
-  )
+flows[, destination_raion_PCODE :=
+         fifelse(destination_raion == "Kyiv", "UA8000", destination_raion)]
+flows[destination_hromada_PCODE != "Abroad",
+      destination_raion_PCODE := str_sub(destination_raion_PCODE, 1, 6)]
 
-# prepare stocks data
-stocks_hromada_agesex <- flows_hromada_agesex |>
-  as_tibble() |>
-  group_by(t, a_name, s_name,
-    hromada = destination_hromada, oblast = destination_oblast, raion = destination_raion,
-    hromada_PCODE = destination_hromada_PCODE, raion_PCODE = destination_raion_PCODE,
-    oblast_PCODE = destination_oblast_PCODE
-  ) |>
-  summarise(
-    pop_estimated = sum(pop_estimated),
-    .groups = "drop"
-  )
+setnames(flows, "monthlyFlow_hat_calibrated", "pop_estimated")
 
+# merge oblast info
+setnames(pcodes, "Name", "destination_oblast")
+flows <- merge(flows, pcodes[, .(destination_oblast, destination_oblast_PCODE = pcode)],
+               by = "destination_oblast", all.x = TRUE)
+
+setnames(pcodes, "destination_oblast", "origin_oblast")
+flows <- merge(flows, pcodes[, .(origin_oblast, origin_oblast_PCODE = pcode)],
+               by = "origin_oblast", all.x = TRUE)
+
+# fix special oblast codes
+flows[origin_oblast %in% c("Abroad", "Unknown"),
+      origin_oblast_PCODE := origin_oblast]
+flows[destination_oblast == "Abroad",
+      destination_oblast_PCODE := "Abroad"]
+
+# aggregate to create stocks
+stocks <- flows[, .(pop_estimated = sum(pop_estimated, na.rm = TRUE)),
+                by = .(t, a_name, s_name,
+                       hromada = destination_hromada,
+                       oblast = destination_oblast,
+                       raion = destination_raion,
+                       hromada_PCODE = destination_hromada_PCODE,
+                       raion_PCODE = destination_raion_PCODE,
+                       oblast_PCODE = destination_oblast_PCODE)]
 
 # write output
-
-write_csv(stocks_hromada_agesex, file.path(
-  out_dir, "model", "deterministic", "deliverables", "202508",
-  paste0(tolower(country), "_stocks_hromada_agesex", output_label, ".csv")
-))
-
-write_csv(flows_hromada_agesex, file.path(
-  out_dir, "model", "deterministic", "deliverables", "202508",
-  paste0(tolower(country), "_flows_hromada_agesex", output_label, ".csv")
-))
+fwrite(stocks, file.path(out_dir, "model", "deterministic", "deliverables", output_date,
+                         paste0(tolower(country), "_stocks_hromada_agesex", output_label, ".csv")))
+fwrite(flows, file.path(out_dir, "model", "deterministic", "deliverables", output_date,
+                        paste0(tolower(country), "_flows_hromada_agesex", output_label, ".csv")))
