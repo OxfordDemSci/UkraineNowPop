@@ -4,7 +4,7 @@ library(data.table)
 library(future.apply)
 
 # parameters
-output_date <- "202509"
+output_date <- "202510"
 output_label <- ""
 dir.create(file.path(out_dir, "model", "deterministic", "figs", output_date), showWarnings = F)
 
@@ -310,7 +310,7 @@ ggplot(melted_o_tot, aes(x = t, y = value, colour = oblast, linetype = name)) +
   ggh4x::facet_grid2(macroregion ~ name, scales = "free_y", independent = "y") +
   theme_minimal() +
   labs(title = "Oblast population and penetration rate", x = "Time", y = "") +
-  guides(linetype = "none", colour = "none")+
+  guides(linetype = "none", colour = "none") +
   scale_y_continuous(labels = scales::label_number())
 
 ggsave(
@@ -392,7 +392,6 @@ stocks_hromada_agesex_pyramid <- stocks_hromada_agesex |>
   ) |>
   filter(hromada_name %in% c("Kyiv", "Lvivska", "Kharkivska", "Chernivetska", "Sumska", "Dniprovska"))
 
-
 gg_pyramid <- ggplot(
   stocks_hromada_agesex_pyramid,
   aes(x = a_name, y = if_else(s_name == "M", -pop_estimated, pop_estimated), fill = s_name, alpha = factor(t), group = factor(t))
@@ -410,7 +409,8 @@ gg_pyramid <- ggplot(
     title = "Evolution of age-sex population estimates in a sample of hromadas"
   ) +
   theme_minimal() +
-  facet_wrap(. ~ hromada_name, scales = "free")
+  facet_wrap(. ~ hromada_name, scales = "free") +
+  scale_y_continuous(labels = scales::label_number())
 gg_pyramid
 
 ggsave(file.path(out_dir, "model", "deterministic", "figs", output_date, "pyramid_hromada_firstLast.png"), gg_pyramid,
