@@ -20,6 +20,8 @@ hromada_geo <- st_read(file.path(out_dir, "ua_master_hromada.gpkg")) |>
 
 # Load Vodafone data
 monthlyFlows <- read_csv(file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_monthlyFlows.csv"))
+monthlyFlows_ngct <- read_csv(file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_monthlyFlows_ngctToNgct.csv"))
+ngct_mapping <- read_csv(file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_ngct_mapping.csv"))
 
 # Load 2022 COD-PS
 agesex <- read_csv(file.path(in_dir, "COD-PS", "ukr_admpop_adm1_2022.csv"))
@@ -147,6 +149,15 @@ monthlyFlows_imputed <- bind_rows(
   filter(!destination_hromada %in% dropping_hromadas$destination_hromada)
 
 
+# add ngct flows
+
+monthlyFlows_imputed <- bind_rows(
+  monthlyFlows_imputed,
+  monthlyFlows_ngct |>
+    select(-ends_with("territory"))
+)
+
+
 # compute available age-sex combinations
 agesex_geoCombination <- monthlyFlows_imputed |>
   group_by(t, a_name, s_name) |>
@@ -177,7 +188,7 @@ agesex_geoCombination_full <- agesex_geoCombination |>
   pivot_wider(names_from = geo_level, values_from = n_combinations) |>
   group_by(a_name, s_name) |>
   summarise(n_macroregion = mean(n_macroregion)) |>
-  filter(n_macroregion == 56 & a_name != "All" & s_name != "All")
+  filter(n_macroregion == 57 & a_name != "All" & s_name != "All")
 
 # remove missing age-sex combinations
 monthlyFlows_imputed <- monthlyFlows_imputed |>
@@ -233,14 +244,25 @@ agesex <- agesex |>
 
 # Prepare reference data by age and sex
 hromada_agesex <- hromada_pop |>
-  filter(hromada_code %in% unique(monthlyFlows_imputed$destination_hromada)) |>
+  filter(hromada_code %in% c(
+    unique(monthlyFlows_imputed$destination_hromada),
+    ngct_mapping |> filter(territory == "ngct") |> pull(hromada_code)
+  )) |>
   left_join(agesex |>
     select(oblast_name_en, s_name, a_name, pi_0), relationship = "many-to-many") |>
   mutate(
     pop = total_popultaion_2022 * pi_0
   ) |>
   filter(a_name %in% agesex_geoCombination_full$a_name & s_name %in% agesex_geoCombination_full$s_name) |>
-  select(hromada_code, s_name, a_name, pop)
+  left_join(ngct_mapping |> select(hromada_code, territory)) |>
+  mutate(
+    hromada_code = ifelse(territory == "ngct", "ngct", hromada_code)
+  ) |>
+  group_by(hromada_code, s_name, a_name) |>
+  summarise(
+    pop = sum(pop),
+    .groups = "drop"
+  )
 
 # Prepare border crossing outflows by age and sex
 
@@ -1116,7 +1138,7 @@ pop_labeller <- function(variable, value) {
 }
 
 
-gg_national <- ggplot(
+gg_national_agesex <- ggplot(
   national_pop_minusOutflows_plusInflows |>
     select(-pop, -ends_with("cum")) |>
     pivot_longer(c(outflows, inflows, pop_updated)),
@@ -1126,9 +1148,28 @@ gg_national <- ggplot(
   theme_minimal() +
   facet_grid(name ~ ., scales = "free_y", labeller = pop_labeller) +
   labs(title = "National totals by age and sex through time", x = "", linetype = "Gender", col = "Age group", y = "")
-gg_national
+gg_national_agesex
 
 ggsave(file.path(out_dir, "model", "deterministic", "figs", "timeline_national_agesex.png"), gg_national,
+  w = 8, height = 6
+)
+
+gg_national <- ggplot(
+  national_pop_minusOutflows_plusInflows |>
+    select(-pop, -ends_with("cum")) |>
+    pivot_longer(c(outflows, inflows, pop_updated)) |>
+    group_by(t, name) |>
+    summarise(value = sum(value)),
+  aes(x = t, y = value)
+) +
+  geom_line() +
+  theme_minimal() +
+  facet_grid(name ~ ., scales = "free_y", labeller = pop_labeller) +
+  labs(title = "National totals through time", x = "", y = "") +
+  scale_y_continuous(labels = scales::label_number())
+gg_national
+
+ggsave(file.path(out_dir, "model", "deterministic", "figs", "timeline_national.png"), gg_national,
   w = 8, height = 6
 )
 
