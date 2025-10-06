@@ -180,17 +180,19 @@ monthlyFlows_ngct <- baselineFlows |>
   ) |>
   mutate(
     subscribers_monthlyFlow = subscribers_stock - subscribers_baselineFlow,
+    destination_raion = "ngct",
     destination_hromada = "ngct",
     destination_oblast = "ngct",
     destination_macroregion = "ngct",
     destination_territory = "ngct",
     origin_hromada = "ngct",
+    origin_raion = "ngct",
     origin_oblast = "ngct",
     origin_macroregion = "ngct"
   ) |>
   select(
-    t, origin_hromada, origin_oblast, origin_macroregion, origin_territory,
-    destination_hromada, destination_oblast, destination_macroregion, destination_territory,
+    t, origin_hromada, origin_raion, origin_oblast, origin_macroregion, origin_territory,
+    destination_hromada, destination_raion, destination_oblast, destination_macroregion, destination_territory,
     s_name, a_name, subscribers_monthlyFlow
   )
 
@@ -314,15 +316,17 @@ missing_hromadas_df <- monthlyFlows |>
   ) |>
   left_join(
     missing_hromadas |>
-      mutate(missing_label = paste0("Timesteps missing:", n_timesteps))
-  )
+      mutate(missing_label = paste0(n_timesteps, " timesteps missing\n"))
+  ) |>
+  group_by(missing_label) |>
+  mutate(missing_label = paste0(missing_label, n_distinct(destination_hromada), " hromadas"))
 
 gg_missing <- ggplot(missing_hromadas_df, aes(x = t, y = subscribers_monthlyFlow, col = destination_hromada, alpha = missing)) +
   geom_point() +
   facet_wrap(fct_reorder(missing_label, n_timesteps) ~ .) +
   theme_minimal() +
   theme(legend.position = "None") +
-  labs(title = "Timesteps missing for each hromada series", x = "")
+  labs(title = "Timesteps missing for each hromada", x = "")
 gg_missing
 
 ggsave(file.path(out_dir, "population_proxy", "mobile_phone", "figs", "monthly_flows_hromada_missing.png"), gg_missing,
@@ -390,18 +394,30 @@ stocks |>
 
 # map ngct/gct
 
-stocks |>
-  filter(
-    t == min(t)
-  ) |>
-  full_join(
-    hromada_geo
+df_map_ngct <- hromada_geo |>
+  left_join(
+    stocks |>
+      filter(
+        t == min(t)
+      ) |>
+      group_by(hromada_code, hromada_name, raion_code, raion_name, oblast_name_en, ADM1_PCODE, macroregion, territory) |>
+      summarise(subscribers_stock = sum(subscribers_stock)) |>
+      ungroup()
   ) |>
   mutate(
     territory = ifelse(hromada_code == "Kyiv", "gct", territory),
     territory = ifelse(is.na(territory), "missing", territory)
-  ) |>
-  ggplot(aes(fill = territory, geometry = geom)) +
+  )
+
+tmap_mode("view")
+tm_shape(df_map_ngct) +
+  tm_fill(
+    col = "territory", palette = c("gct" = "darksalmon", "ngct" = "darkgreen", "missing" = "grey"), alpha = 0.4,
+    title = "Territory"
+  ) +
+  tm_basemap("CartoDB.Positron")
+
+ggplot(df_map_ngct, aes(fill = territory, geometry = geom)) +
   geom_sf() +
   theme_void() +
   scale_fill_manual(values = c("gct" = "darksalmon", "ngct" = "darkgreen", "missing" = "grey"))
