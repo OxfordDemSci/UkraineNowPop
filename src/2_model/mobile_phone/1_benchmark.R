@@ -10,6 +10,7 @@ dir.create(file.path(out_dir, "model", "deterministic", "comparison"), showWarni
 dir.create(file.path(here::here(), "wd"), showWarnings = FALSE, recursive = TRUE)
 setwd(file.path(here::here(), "wd"))
 
+
 repo_dir <- env$repo_dir
 data_dir <- file.path(env$repo_dir, "data")
 src_dir <- file.path(repo_dir, "src", "2_model")
@@ -18,7 +19,7 @@ out_dir <- file.path(env$out_dir)
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
 
-flows_hromada_agesex <- data.table::fread(file.path(out_dir, "model", "deterministic", "mobilePhone_deterministic_agesex_domestic.csv")) %>%
+flows_hromada_agesex <- data.table::fread(file.path(in_dir, "output", "model", "deterministic", "mobilePhone_deterministic_agesex.csv")) %>%
   filter(destination_oblast != "Abroad") |>
   dplyr::mutate(
     origin_raion = ifelse(origin_raion == "Київ", "Kyiv", origin_raion),
@@ -34,13 +35,6 @@ stocks_hromada_agesex <- flows_hromada_agesex |>
   rename(ADM3_Minrehion_CODE=hromada)
   
 
-key <- c("ADM3_Minrehion_CODE") 
-    .groups = "drop"
-  ) %>%
-  ungroup() %>%
-  rename(ADM3_Minrehion_CODE = hromada)
-
-
 key <- c("ADM3_Minrehion_CODE")
 
 clean_key <- function(x) {
@@ -55,7 +49,7 @@ stocks_hromada_agesex <- stocks_hromada_agesex %>%
   mutate(!!key := clean_key(!!sym(key)))
 
 
-geo_linkADM3 <- readxl::read_excel(file.path(data_dir, "COD-PS", "2022", "ukr_gazetteer_v01.xlsx"), sheet = "ukr_admgz_adm3") %>%
+geo_linkADM3 <- readxl::read_excel(file.path(in_dir, "data", "COD-PS", "2022", "ukr_gazetteer_v01.xlsx"), sheet = "ukr_admgz_adm3") %>%
   dplyr::select(ADM1_PCODE, ADM2_PCODE, ADM3_PCODE, Minrehion_CODE) %>%
   rename(ADM3_Minrehion_CODE = Minrehion_CODE)
 
@@ -88,7 +82,7 @@ geo <- readxl::read_excel(file.path(data_dir, "COD-PS", "2022", "ukr_adminbounda
   )
 
 date_start <- "2021-12-01"
-date_end <- "2025-02-01"
+date_end <- "2025-08-01"
 
 time_index_expanded <- tibble(
   collection_date = seq(as.Date(date_start), as.Date(date_end), by = 1)
@@ -104,7 +98,7 @@ time_index <- time_index_expanded |>
   arrange(t)
 
 
-codps23 <- read.csv(file.path(in_dir, "COD-PS", "2023", "DO_NOT_SHARE_UKR_ADM2_POP_2023.csv")) %>%
+codps23 <- read.csv(file.path(in_dir, "data", "COD-PS", "2023", "DO_NOT_SHARE_UKR_ADM2_POP_2023.csv")) %>%
   rename(ADM1_EN = ADM1_NAME, ADM2_EN = ADM2_NAME) %>%
   transmute(
     ADM1_PCODE = ADM1_PCODE, ADM1_EN = ADM1_EN,
@@ -133,7 +127,7 @@ codps23 <- read.csv(file.path(in_dir, "COD-PS", "2023", "DO_NOT_SHARE_UKR_ADM2_P
   ) %>%
   dplyr::select(ADM1_PCODE, ADM1_EN, ADM2_PCODE, ADM2_EN, s_name, a_name, pop1)
 
-codps24 <- readxl::read_excel(file.path(in_dir, "COD-PS", "2024", "[restricted release] UKR_ADM2_POP_2024_Sept_27.xlsx"), sheet = 2) %>%
+codps24 <- readxl::read_excel(file.path(in_dir, "data", "COD-PS", "2024", "[restricted release] UKR_ADM2_POP_2024_Sept_27.xlsx"), sheet = 2) %>%
   rename(ADM1_EN = ADM1_NAME, ADM2_EN = ADM2_NAME) %>%
   transmute(
     ADM1_PCODE = ADM1_PCODE, ADM1_EN = ADM1_EN,
@@ -212,30 +206,6 @@ raions_complete <- raion_coverage %>%
   filter(full_coverage) %>%
   arrange(ADM2_EN) %>%
   select(ADM2_PCODE, ADM2_EN, total_hromadas)
-
-
-
-ggplot(
-  comparison22,
-  aes(x = pop0 / 1000, y = pop_estimated / 1000, color = a_name, shape = s_name)
-) +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
-  geom_point(size = 3.5, stroke = 1.8, alpha = 0.65) +
-  # facet_wrap(~ ADM1_EN, scales = "free", nrow=2) +
-  labs(
-    title = "Vodafone estimates vs. COD‑PS 2022",
-    subtitle = "Reference date: 1 Jan 2022",
-    x = "COD-PS (in thousands)",
-    y = "Vodafone‑estimated population (in thousands)",
-    colour = "Age group",
-    shape = "Sex"
-  ) +
-  # scale_color_viridis_d() +
-  scale_shape_manual(values = c("F" = 3, "M" = 2)) +
-  theme_minimal(base_size = 20)
-ggsave(file.path(out_dir, "model", "deterministic", "comparison", "vodafone_vs_codps_2022_scatterplot.jpeg"), # K:\DemSci\projects\2023_WHO_Ukraine_Population\output\model\deterministic\comparison
-  plot = last_plot(), width = 25, height = 20, units = "cm", dpi = 300
-)
 
 
 
@@ -672,13 +642,13 @@ ggsave(file.path(out_dir, "model", "deterministic", "comparison", "vodafone_vs_c
 # SMD estimates vs Vodafone estimates
 #######################################
 #2023_WHO_Ukraine_Population\deliverables\20240305 Deterministic Estimates
-parent_dir <- file.path(in_dir, "20240305 Deterministic Estimates/extract",
+parent_dir <- file.path(in_dir, "deliverables", "20240305 Deterministic Estimates/extract",
   "Ukraine_population_estimates_2203", "Ukraine_population_estimates_2023", "oblast_daily_population/model")
 
 all_subdirs <- list.dirs(parent_dir, full.names = TRUE, recursive = FALSE)
 date_pattern <- "^\\d{4}-\\d{2}-\\d{2}$"
 
-target_dates <- seq(as.Date("2021-12-01"), as.Date("2025-02-01"), by = "day")
+target_dates <- seq(as.Date("2021-12-01"), as.Date("2025-08-01"), by = "day")
 
 date_subdirs <- all_subdirs[str_detect(basename(all_subdirs), date_pattern)]
 filtered_subdirs <- date_subdirs[basename(date_subdirs) %in% target_dates]
@@ -813,10 +783,7 @@ for (adm in unique(pyramid_df$ADM1_EN)) {
 
   ggsave(filename = fpath, plot = p, width = 35, height = 25, units = "cm", dpi = 300)
 }
-library(jsonlite)
-
-flows_hromada_agesex <- data.table::fread(file.path(out_dir, "model", "deterministic", "mobilePhone_deterministic_agesex_domestic.csv"))
-
+                     
 
 # Download IDP numbers from DTM
 url_idp <- "https://dtmapi.iom.int/api/idpAdmin2Data/GetAdmin2Datav2?CountryName=Ukraine"
