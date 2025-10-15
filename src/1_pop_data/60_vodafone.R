@@ -2,6 +2,7 @@ rm(list = ls())
 gc()
 library(tmap)
 tmap_options(component.autoscale = F)
+
 # Load required helpers
 source(file.path(here::here(), "R_helpers/generic.R"))
 hromada <- read_csv(file.path(in_dir, "KSE-Loc-Data-Hub", "full_dataset.csv"))
@@ -9,7 +10,11 @@ master_index <- read_csv(file.path(out_dir, "ua_master_index.csv"))
 hromada_geo <- st_read(file.path(out_dir, "ua_master_hromada.gpkg"))
 
 # create output directories
-dir.create(file.path(out_dir, "population_proxy", "mobile_phone", "figs"), recursive = T, showWarnings = F)
+dir.create(
+  file.path(out_dir, "population_proxy", "mobile_phone", "figs"),
+  recursive = T,
+  showWarnings = F
+)
 
 # prepare inputs
 oblast_geo <- hromada_geo |>
@@ -19,8 +24,12 @@ oblast_geo <- hromada_geo |>
 # Link Meta and Vodafone geolabelling
 hromada_geo_names <- hromada |>
   select(
-    hromada_name, raion_name, raion_code,
-    oblast_name, oblast_code, oblast_name_en,
+    hromada_name,
+    raion_name,
+    raion_code,
+    oblast_name,
+    oblast_code,
+    oblast_name_en,
     hromada_code
   ) |>
   mutate(
@@ -49,7 +58,10 @@ hromada_geo_names <- hromada |>
       TRUE ~ oblast_name_en
     ),
   ) |>
-  full_join(master_index |> distinct(i, i_key, ADM1_PCODE, i_name, macroregion), by = c("oblast_name_en" = "i_name")) |>
+  full_join(
+    master_index |> distinct(i, i_key, ADM1_PCODE, i_name, macroregion),
+    by = c("oblast_name_en" = "i_name")
+  ) |>
   mutate(
     hromada_code = ifelse(oblast_name_en == "Kyiv", "Kyiv", hromada_code),
     raion_code = ifelse(oblast_name_en == "Kyiv", "Kyiv", raion_code),
@@ -59,7 +71,11 @@ hromada_geo_names <- hromada |>
 
 
 # Stocks data -------------------------------------------------------------
-stocks_list <- list.files(file.path(in_dir, "Vodafone"), pattern = "Stocks", full.names = T)
+stocks_list <- list.files(
+  file.path(in_dir, "Vodafone"),
+  pattern = "Stocks",
+  full.names = T
+)
 names(stocks_list) <- c("without_ngct", "with_ngct")
 
 stocks <- lapply(stocks_list, function(x) {
@@ -69,7 +85,11 @@ stocks <- lapply(stocks_list, function(x) {
     left_join(hromada_geo_names) |>
     mutate(t = as.Date(month, "%d.%m.%y") + months(3)) |>
     mutate(
-      oblast_name_en = ifelse(hromada_code == "abroad", "Abroad", oblast_name_en),
+      oblast_name_en = ifelse(
+        hromada_code == "abroad",
+        "Abroad",
+        oblast_name_en
+      ),
       macroregion = ifelse(hromada_code == "abroad", "Abroad", macroregion),
       hromada_code = ifelse(hromada_code == "abroad", "Abroad", hromada_code),
       s_name = ifelse(sex == "female", "F", "M"),
@@ -82,42 +102,99 @@ stocks <- lapply(stocks_list, function(x) {
 })
 
 stocks <- stocks[["without_ngct"]] |>
-  full_join(stocks[["with_ngct"]] |> filter(!hromada_code %in% unique(stocks[["without_ngct"]]$hromada_code)) |> select(-file)) |>
+  full_join(
+    stocks[["with_ngct"]] |>
+      filter(
+        !hromada_code %in% unique(stocks[["without_ngct"]]$hromada_code)
+      ) |>
+      select(-file)
+  ) |>
   mutate(
     territory = ifelse(is.na(file), "ngct", "gct")
   )
 
 stocks <- stocks |>
-  select(t, hromada_code, hromada_name, raion_code, raion_name, oblast_name_en, ADM1_PCODE, macroregion, territory, s_name, a_name, subscribers_stock)
+  select(
+    t,
+    hromada_code,
+    hromada_name,
+    raion_code,
+    raion_name,
+    oblast_name_en,
+    ADM1_PCODE,
+    macroregion,
+    territory,
+    s_name,
+    a_name,
+    subscribers_stock
+  )
 
 ngct_mapping <- stocks |>
-  distinct(hromada_code, hromada_name, raion_code, raion_name, oblast_name_en, ADM1_PCODE, macroregion, territory)
+  distinct(
+    hromada_code,
+    hromada_name,
+    raion_code,
+    raion_name,
+    oblast_name_en,
+    ADM1_PCODE,
+    macroregion,
+    territory
+  )
 
-write.csv(ngct_mapping, file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_ngct_mapping.csv"), row.names = F)
-write.csv(stocks, file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_stocks.csv"), row.names = F)
+write.csv(
+  ngct_mapping,
+  file.path(
+    out_dir,
+    "population_proxy",
+    "mobile_phone",
+    "vodafone_ngct_mapping.csv"
+  ),
+  row.names = F
+)
+write.csv(
+  stocks,
+  file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_stocks.csv"),
+  row.names = F
+)
 
 # Baseline flows ---------------------------------------------------------
 
-baselineFlows <- read_csv2(file.path(in_dir, "Vodafone", "Baseline Flows_050925.csv")) |>
+baselineFlows <- read_csv2(file.path(
+  in_dir,
+  "Vodafone",
+  "Baseline Flows_050925.csv"
+)) |>
   rename(
     destination_hromada = `Current home hromada`,
     origin_hromada = `Home hromada pre-invasion`
   ) |>
   mutate(t = as.Date(month, "%d.%m.%y") + months(3)) |>
-  left_join(hromada_geo_names |>
-    select(hromada_code, oblast_name_en, macroregion) |>
-    rename(
-      destination_oblast = oblast_name_en,
-      destination_hromada = hromada_code,
-      destination_macroregion = macroregion
-    )) |>
-  left_join(hromada_geo_names |>
-    select(hromada_code, oblast_name_en, macroregion) |>
-    rename(origin_oblast = oblast_name_en, origin_hromada = hromada_code, origin_macroregion = macroregion)) |>
+  left_join(
+    hromada_geo_names |>
+      select(hromada_code, oblast_name_en, macroregion) |>
+      rename(
+        destination_oblast = oblast_name_en,
+        destination_hromada = hromada_code,
+        destination_macroregion = macroregion
+      )
+  ) |>
+  left_join(
+    hromada_geo_names |>
+      select(hromada_code, oblast_name_en, macroregion) |>
+      rename(
+        origin_oblast = oblast_name_en,
+        origin_hromada = hromada_code,
+        origin_macroregion = macroregion
+      )
+  ) |>
   mutate(
     # Replace NAs in origin/destination
     origin_hromada = if_else(is.na(origin_hromada), "Unknown", origin_hromada),
-    destination_hromada = if_else(is.na(destination_hromada), "Unknown", destination_hromada),
+    destination_hromada = if_else(
+      is.na(destination_hromada),
+      "Unknown",
+      destination_hromada
+    ),
     origin_oblast = case_when(
       origin_hromada == "abroad" ~ "Abroad",
       origin_hromada == "Unknown" ~ "Unknown",
@@ -138,8 +215,16 @@ baselineFlows <- read_csv2(file.path(in_dir, "Vodafone", "Baseline Flows_050925.
       destination_hromada == "Unknown" ~ "Unknown",
       TRUE ~ destination_macroregion
     ),
-    origin_hromada = if_else(origin_hromada == "abroad", "Abroad", origin_hromada),
-    destination_hromada = if_else(destination_hromada == "abroad", "Abroad", destination_hromada),
+    origin_hromada = if_else(
+      origin_hromada == "abroad",
+      "Abroad",
+      origin_hromada
+    ),
+    destination_hromada = if_else(
+      destination_hromada == "abroad",
+      "Abroad",
+      destination_hromada
+    ),
     s_name = ifelse(sex == "female", "F", "M"),
     a_name = str_replace(age, "-", "_"),
     a_name = str_replace(age, "\\+", "Plus")
@@ -152,26 +237,54 @@ baselineFlows <- baselineFlows |>
   ungroup() |>
   left_join(
     ngct_mapping |>
-      select(origin_hromada = hromada_code, origin_oblast = oblast_name_en, origin_territory = territory)
+      select(
+        origin_hromada = hromada_code,
+        origin_oblast = oblast_name_en,
+        origin_territory = territory
+      )
   ) |>
   left_join(
     ngct_mapping |>
-      select(destination_hromada = hromada_code, destination_oblast = oblast_name_en, destination_territory = territory)
+      select(
+        destination_hromada = hromada_code,
+        destination_oblast = oblast_name_en,
+        destination_territory = territory
+      )
   )
 
 baselineFlows <- baselineFlows |>
   select(
-    t, origin_hromada, origin_oblast, origin_macroregion, origin_territory,
-    destination_hromada, destination_oblast, destination_macroregion, destination_territory,
-    s_name, a_name, subscribers_baselineFlow
+    t,
+    origin_hromada,
+    origin_oblast,
+    origin_macroregion,
+    origin_territory,
+    destination_hromada,
+    destination_oblast,
+    destination_macroregion,
+    destination_territory,
+    s_name,
+    a_name,
+    subscribers_baselineFlow
   )
 
-write_csv(baselineFlows, file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_baselineFlows.csv"))
+write_csv(
+  baselineFlows,
+  file.path(
+    out_dir,
+    "population_proxy",
+    "mobile_phone",
+    "vodafone_baselineFlows.csv"
+  )
+)
 
 monthlyFlows_ngct <- baselineFlows |>
   filter(origin_territory == "ngct") |>
   group_by(t, origin_territory, destination_territory, s_name, a_name) |>
-  summarise(subscribers_baselineFlow = sum(subscribers_baselineFlow), .groups = "drop") |>
+  summarise(
+    subscribers_baselineFlow = sum(subscribers_baselineFlow),
+    .groups = "drop"
+  ) |>
   left_join(
     stocks |>
       filter(territory == "ngct") |>
@@ -191,17 +304,39 @@ monthlyFlows_ngct <- baselineFlows |>
     origin_macroregion = "ngct"
   ) |>
   select(
-    t, origin_hromada, origin_raion, origin_oblast, origin_macroregion, origin_territory,
-    destination_hromada, destination_raion, destination_oblast, destination_macroregion, destination_territory,
-    s_name, a_name, subscribers_monthlyFlow
+    t,
+    origin_hromada,
+    origin_raion,
+    origin_oblast,
+    origin_macroregion,
+    origin_territory,
+    destination_hromada,
+    destination_raion,
+    destination_oblast,
+    destination_macroregion,
+    destination_territory,
+    s_name,
+    a_name,
+    subscribers_monthlyFlow
   )
 
-write_csv(monthlyFlows_ngct, file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_monthlyFlows_ngctToNgct.csv"))
-
+write_csv(
+  monthlyFlows_ngct,
+  file.path(
+    out_dir,
+    "population_proxy",
+    "mobile_phone",
+    "vodafone_monthlyFlows_ngctToNgct.csv"
+  )
+)
 
 
 # Monthly flows ----------------------------------------------------------
-monthlyFlows_list <- list.files(file.path(in_dir, "Vodafone"), pattern = "Monthly", full.names = T)
+monthlyFlows_list <- list.files(
+  file.path(in_dir, "Vodafone"),
+  pattern = "Monthly",
+  full.names = T
+)
 
 monthlyFlows <- lapply(monthlyFlows_list, read_csv2) |>
   bind_rows()
@@ -212,20 +347,32 @@ monthlyFlows <- monthlyFlows |>
     origin_hromada = `Home hromada last month`
   ) |>
   mutate(t = as.Date(month, "%d.%m.%y") + months(3)) |>
-  left_join(hromada_geo_names |>
-    select(hromada_code, oblast_name_en, macroregion) |>
-    rename(
-      destination_oblast = oblast_name_en,
-      destination_hromada = hromada_code,
-      destination_macroregion = macroregion
-    )) |>
-  left_join(hromada_geo_names |>
-    select(hromada_code, oblast_name_en, macroregion) |>
-    rename(origin_oblast = oblast_name_en, origin_hromada = hromada_code, origin_macroregion = macroregion)) |>
+  left_join(
+    hromada_geo_names |>
+      select(hromada_code, oblast_name_en, macroregion) |>
+      rename(
+        destination_oblast = oblast_name_en,
+        destination_hromada = hromada_code,
+        destination_macroregion = macroregion
+      )
+  ) |>
+  left_join(
+    hromada_geo_names |>
+      select(hromada_code, oblast_name_en, macroregion) |>
+      rename(
+        origin_oblast = oblast_name_en,
+        origin_hromada = hromada_code,
+        origin_macroregion = macroregion
+      )
+  ) |>
   mutate(
     # Replace NAs in origin/destination
     origin_hromada = if_else(is.na(origin_hromada), "Unknown", origin_hromada),
-    destination_hromada = if_else(is.na(destination_hromada), "Unknown", destination_hromada),
+    destination_hromada = if_else(
+      is.na(destination_hromada),
+      "Unknown",
+      destination_hromada
+    ),
     origin_oblast = case_when(
       origin_hromada == "abroad" ~ "Abroad",
       origin_hromada == "Unknown" ~ "Unknown",
@@ -246,8 +393,16 @@ monthlyFlows <- monthlyFlows |>
       destination_hromada == "Unknown" ~ "Unknown",
       TRUE ~ destination_macroregion
     ),
-    origin_hromada = if_else(origin_hromada == "abroad", "Abroad", origin_hromada),
-    destination_hromada = if_else(destination_hromada == "abroad", "Abroad", destination_hromada),
+    origin_hromada = if_else(
+      origin_hromada == "abroad",
+      "Abroad",
+      origin_hromada
+    ),
+    destination_hromada = if_else(
+      destination_hromada == "abroad",
+      "Abroad",
+      destination_hromada
+    ),
     s_name = ifelse(sex == "female", "F", "M"),
     a_name = str_replace(age, "-", "_"),
     a_name = str_replace(age, "\\+", "Plus")
@@ -257,12 +412,30 @@ monthlyFlows <- monthlyFlows |>
   )
 
 monthlyFlows <- monthlyFlows |>
-  select(t, origin_hromada, origin_oblast, origin_macroregion, destination_hromada, destination_oblast, destination_macroregion, s_name, a_name, subscribers_monthlyFlow)
+  select(
+    t,
+    origin_hromada,
+    origin_oblast,
+    origin_macroregion,
+    destination_hromada,
+    destination_oblast,
+    destination_macroregion,
+    s_name,
+    a_name,
+    subscribers_monthlyFlow
+  )
 
-write_csv(monthlyFlows, file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_monthlyFlows.csv"))
+write_csv(
+  monthlyFlows,
+  file.path(
+    out_dir,
+    "population_proxy",
+    "mobile_phone",
+    "vodafone_monthlyFlows.csv"
+  )
+)
 
 # Data assessment -------------------------------------------------------
-
 
 # Monthly flows data availability ----------------------------------------------------------
 
@@ -280,21 +453,35 @@ n_hromada_available_total <- hromada_available |>
 hromada_oblast_available <- monthlyFlows |>
   group_by(t, destination_oblast) |>
   summarise(n_hromada = n_distinct(destination_hromada)) |>
-  left_join(hromada_geo |>
-    st_drop_geometry() |>
-    group_by(oblast_name_en) |>
-    summarise(n_hromada_true = n_distinct(hromada_code)) |>
-    rename(destination_oblast = oblast_name_en))
+  left_join(
+    hromada_geo |>
+      st_drop_geometry() |>
+      group_by(oblast_name_en) |>
+      summarise(n_hromada_true = n_distinct(hromada_code)) |>
+      rename(destination_oblast = oblast_name_en)
+  )
 
 hromada_oblast_available |>
   ggplot(aes(x = t, y = n_hromada)) +
   geom_line() +
   geom_line(aes(y = n_hromada_true), col = "red") +
   facet_wrap(destination_oblast ~ ., scales = "free_y") +
-  labs(title = paste0("Hromada availibility: ", n_hromada_available_total, " present for the full period"))
+  labs(
+    title = paste0(
+      "Hromada availibility: ",
+      n_hromada_available_total,
+      " present for the full period"
+    )
+  )
 
 ggsave(
-  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "monthly_flows_hromada_available_timeline.png"),
+  filename = file.path(
+    out_dir,
+    "population_proxy",
+    "mobile_phone",
+    "figs",
+    "monthly_flows_hromada_available_timeline.png"
+  ),
   width = 8,
   height = 6
 )
@@ -302,26 +489,53 @@ ggsave(
 # Missing timesteps through time
 
 missing_hromadas_df <- monthlyFlows |>
-  group_by(t, destination_hromada, destination_oblast, destination_macroregion) |>
+  group_by(
+    t,
+    destination_hromada,
+    destination_oblast,
+    destination_macroregion
+  ) |>
   summarise(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)) |>
   filter(destination_hromada %in% missing_hromadas$destination_hromada) |>
   ungroup() |>
   complete(
-    t = seq(min(monthlyFlows$t, na.rm = T), max(monthlyFlows$t), by = "1 month"),
+    t = seq(
+      min(monthlyFlows$t, na.rm = T),
+      max(monthlyFlows$t),
+      by = "1 month"
+    ),
     nesting(destination_hromada, destination_oblast, destination_macroregion)
   ) |>
   mutate(
     missing = ifelse(is.na(subscribers_monthlyFlow), T, F),
-    subscribers_monthlyFlow = ifelse(is.na(subscribers_monthlyFlow), 0, subscribers_monthlyFlow)
+    subscribers_monthlyFlow = ifelse(
+      is.na(subscribers_monthlyFlow),
+      0,
+      subscribers_monthlyFlow
+    )
   ) |>
   left_join(
     missing_hromadas |>
       mutate(missing_label = paste0(n_timesteps, " timesteps missing\n"))
   ) |>
   group_by(missing_label) |>
-  mutate(missing_label = paste0(missing_label, n_distinct(destination_hromada), " hromadas"))
+  mutate(
+    missing_label = paste0(
+      missing_label,
+      n_distinct(destination_hromada),
+      " hromadas"
+    )
+  )
 
-gg_missing <- ggplot(missing_hromadas_df, aes(x = t, y = subscribers_monthlyFlow, col = destination_hromada, alpha = missing)) +
+gg_missing <- ggplot(
+  missing_hromadas_df,
+  aes(
+    x = t,
+    y = subscribers_monthlyFlow,
+    col = destination_hromada,
+    alpha = missing
+  )
+) +
   geom_point() +
   facet_wrap(fct_reorder(missing_label, n_timesteps) ~ .) +
   theme_minimal() +
@@ -329,24 +543,89 @@ gg_missing <- ggplot(missing_hromadas_df, aes(x = t, y = subscribers_monthlyFlow
   labs(title = "Timesteps missing for each hromada", x = "")
 gg_missing
 
-ggsave(file.path(out_dir, "population_proxy", "mobile_phone", "figs", "monthly_flows_hromada_missing.png"), gg_missing,
-  w = 8, height = 6
+ggsave(
+  file.path(
+    out_dir,
+    "population_proxy",
+    "mobile_phone",
+    "figs",
+    "monthly_flows_hromada_missing.png"
+  ),
+  gg_missing,
+  w = 8,
+  height = 6
 )
 
+## Unique combination --------------------------------------------------------
+monthlyFlows_wide <- monthlyFlows |>
+  filter(a_name != "0-17") |>
+  filter(a_name != "65Plus") |>
+  pivot_wider(
+    names_from = t,
+    values_from = subscribers_monthlyFlow
+  )
+
+monthlyFlows_wide_s <- monthlyFlows_wide |>
+  summarise(
+    across(
+      starts_with("202"),
+      list(
+        missing = ~ sum(is.na(.)),
+        present = ~ sum(!is.na(.))
+      )
+    )
+  ) |>
+  pivot_longer(
+    everything(),
+    names_to = c("date", "type"),
+    names_sep = "_"
+  ) |>
+  mutate(date = as.Date(date))
+
+ggplot(monthlyFlows_wide_s, aes(x = date, y = value, fill = type)) +
+  geom_col(position = "stack") +
+  scale_y_continuous(labels = scales::comma) +
+  labs(
+    title = "Evolution of combinations (origin hromada, destination hromada, age, sex)",
+    subtitle = paste0(
+      "There is ",
+      scales::comma(nrow(monthlyFlows_wide)),
+      " unique combinations in total"
+    ),
+    x = "",
+    y = "Unique combinations",
+    fill = "Combination"
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank()
+  ) +
+  scale_fill_manual(values = c("missing" = "grey", "present" = "darkgreen"))
 
 
 # Monthly flows users evolution ----------------------------------------
 
-monthlyFlows |>
+monthlyFlows_ |>
   group_by(t) |>
-  summarise(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)) |>
+  summarise(
+    subscribers_monthlyFlow = sum(subscribers_monthlyFlow),
+    subscribers_monthlyFlow_ = sum(subscribers_monthlyFlow_)
+  ) |>
   ggplot(aes(x = t, y = subscribers_monthlyFlow)) +
   geom_line() +
+  geom_line(aes(y = subscribers_monthlyFlow_), col = "red") +
   theme_minimal() +
   labs(title = "Evolution of subscribers across time")
 
 ggsave(
-  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "subscribers_evolution.png"),
+  filename = file.path(
+    out_dir,
+    "population_proxy",
+    "mobile_phone",
+    "figs",
+    "subscribers_evolution.png"
+  ),
   width = 8,
   height = 6
 )
@@ -361,7 +640,13 @@ monthlyFlows |>
   labs(title = "Evolution of subscribers by oblast across time")
 
 ggsave(
-  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "subscribers_evolution_oblast.png"),
+  filename = file.path(
+    out_dir,
+    "population_proxy",
+    "mobile_phone",
+    "figs",
+    "subscribers_evolution_oblast.png"
+  ),
   width = 8,
   height = 6
 )
@@ -375,22 +660,30 @@ stocks |>
   group_by(territory, oblast_name_en) |>
   summarise(n_hromada = n_distinct(hromada_code)) |>
   pivot_wider(names_from = territory, values_from = n_hromada) |>
-  left_join(hromada_geo |>
-    st_drop_geometry() |>
-    group_by(oblast_name_en) |>
-    summarise(n_hromada_true = n_distinct(hromada_code))) |>
+  left_join(
+    hromada_geo |>
+      st_drop_geometry() |>
+      group_by(oblast_name_en) |>
+      summarise(n_hromada_true = n_distinct(hromada_code))
+  ) |>
   mutate(
     ngct = ifelse(is.na(ngct), 0, ngct),
     gct = ifelse(is.na(gct), 0, gct),
     n_mising = n_hromada_true - gct - ngct
   ) |>
   select(-n_hromada_true) |>
-  pivot_longer(cols = c(ngct, gct, n_mising), names_to = "territory", values_to = "n_hromada") |>
+  pivot_longer(
+    cols = c(ngct, gct, n_mising),
+    names_to = "territory",
+    values_to = "n_hromada"
+  ) |>
   ggplot(aes(y = oblast_name_en, x = n_hromada, fill = territory)) +
   geom_bar(stat = "identity") +
   theme_minimal() +
   labs(title = "Data availability", y = "", x = "Number of hromada") +
-  scale_fill_manual(values = c("gct" = "darksalmon", "ngct" = "darkgreen", "n_mising" = "grey"))
+  scale_fill_manual(
+    values = c("gct" = "darksalmon", "ngct" = "darkgreen", "n_mising" = "grey")
+  )
 
 # map ngct/gct
 
@@ -400,7 +693,16 @@ df_map_ngct <- hromada_geo |>
       filter(
         t == min(t)
       ) |>
-      group_by(hromada_code, hromada_name, raion_code, raion_name, oblast_name_en, ADM1_PCODE, macroregion, territory) |>
+      group_by(
+        hromada_code,
+        hromada_name,
+        raion_code,
+        raion_name,
+        oblast_name_en,
+        ADM1_PCODE,
+        macroregion,
+        territory
+      ) |>
       summarise(subscribers_stock = sum(subscribers_stock)) |>
       ungroup()
   ) |>
@@ -412,7 +714,9 @@ df_map_ngct <- hromada_geo |>
 tmap_mode("view")
 tm_shape(df_map_ngct) +
   tm_fill(
-    col = "territory", palette = c("gct" = "darksalmon", "ngct" = "darkgreen", "missing" = "grey"), alpha = 0.4,
+    col = "territory",
+    palette = c("gct" = "darksalmon", "ngct" = "darkgreen", "missing" = "grey"),
+    alpha = 0.4,
     title = "Territory"
   ) +
   tm_basemap("CartoDB.Positron")
@@ -420,7 +724,9 @@ tm_shape(df_map_ngct) +
 ggplot(df_map_ngct, aes(fill = territory, geometry = geom)) +
   geom_sf() +
   theme_void() +
-  scale_fill_manual(values = c("gct" = "darksalmon", "ngct" = "darkgreen", "missing" = "grey"))
+  scale_fill_manual(
+    values = c("gct" = "darksalmon", "ngct" = "darkgreen", "missing" = "grey")
+  )
 
 
 # Hromada through time
@@ -428,16 +734,24 @@ stocks |>
   filter(territory = "gct") |>
   group_by(t, oblast_name_en) |>
   summarise(n_hromada = n_distinct(hromada_code)) |>
-  left_join(hromada_geo |>
-    group_by(oblast_name_en) |>
-    summarise(n_hromada_true = n_distinct(hromada_code))) |>
+  left_join(
+    hromada_geo |>
+      group_by(oblast_name_en) |>
+      summarise(n_hromada_true = n_distinct(hromada_code))
+  ) |>
   ggplot(aes(x = t, y = n_hromada)) +
   geom_line() +
   geom_line(aes(y = n_hromada_true), col = "red") +
   facet_wrap(oblast_name_en ~ ., scales = "free_y")
 
 ggsave(
-  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "hromada_through_time.png"),
+  filename = file.path(
+    out_dir,
+    "population_proxy",
+    "mobile_phone",
+    "figs",
+    "hromada_through_time.png"
+  ),
   width = 8,
   height = 6
 )
@@ -446,16 +760,24 @@ ggsave(
 stocks |>
   group_by(t, oblast_name_en) |>
   summarise(n_raion = n_distinct(raion_code)) |>
-  left_join(hromada_geo |>
-    group_by(oblast_name_en) |>
-    summarise(n_raion_true = n_distinct(raion_code))) |>
+  left_join(
+    hromada_geo |>
+      group_by(oblast_name_en) |>
+      summarise(n_raion_true = n_distinct(raion_code))
+  ) |>
   ggplot(aes(x = t, y = n_raion)) +
   geom_line() +
   geom_line(aes(y = n_raion_true), col = "red") +
   facet_wrap(oblast_name_en ~ ., scales = "free_y")
 
 ggsave(
-  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "raion_through_time.png"),
+  filename = file.path(
+    out_dir,
+    "population_proxy",
+    "mobile_phone",
+    "figs",
+    "raion_through_time.png"
+  ),
   width = 8,
   height = 6
 )
@@ -464,13 +786,12 @@ ggsave(
 # User evolution
 
 stocks |>
-  group_by(t, oblast_name_en) |>
+  group_by(t, territory) |>
   summarise(n_users = sum(subscribers_stock)) |>
   ggplot(aes(x = t, y = n_users)) +
   geom_line() +
-  facet_wrap(oblast_name_en ~ ., scales = "free_y") +
+  facet_wrap(territory ~ ., scales = "free_y") +
   labs(title = "Subscribers evolution")
-
 
 
 # subscribers evolution by age and sex
@@ -485,7 +806,13 @@ stocks |>
   labs(title = "Male subscribers")
 
 ggsave(
-  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "subscribers_evolution_male_by_age.png"),
+  filename = file.path(
+    out_dir,
+    "population_proxy",
+    "mobile_phone",
+    "figs",
+    "subscribers_evolution_male_by_age.png"
+  ),
   width = 8,
   height = 6
 )
@@ -501,7 +828,13 @@ stocks |>
   labs(title = "Female subscribers")
 
 ggsave(
-  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "subscribers_evolution_female_by_age.png"),
+  filename = file.path(
+    out_dir,
+    "population_proxy",
+    "mobile_phone",
+    "figs",
+    "subscribers_evolution_female_by_age.png"
+  ),
   width = 8,
   height = 6
 )
@@ -515,10 +848,17 @@ ngct_territory <- stocks |>
 
 baselineFlows <- baselineFlows |>
   mutate(
-    origin_territory = ifelse(origin_hromada %in% ngct_territory, "ngct", "gct"),
-    destination_territory = ifelse(destination_hromada %in% ngct_territory, "ngct", "gct")
+    origin_territory = ifelse(
+      origin_hromada %in% ngct_territory,
+      "ngct",
+      "gct"
+    ),
+    destination_territory = ifelse(
+      destination_hromada %in% ngct_territory,
+      "ngct",
+      "gct"
+    )
   )
-
 
 
 baselineFlows_hromada <- baselineFlows |>
@@ -533,11 +873,13 @@ n_distinct(baselineFlows_hromada$destination_hromada)
 baselineFlows |>
   group_by(t, origin_oblast) |>
   summarise(n_hromada = n_distinct(origin_hromada)) |>
-  left_join(hromada_geo |>
-    st_drop_geometry() |>
-    group_by(oblast_name_en) |>
-    summarise(n_hromada_true = n_distinct(hromada_code)) |>
-    rename(origin_oblast = oblast_name_en)) |>
+  left_join(
+    hromada_geo |>
+      st_drop_geometry() |>
+      group_by(oblast_name_en) |>
+      summarise(n_hromada_true = n_distinct(hromada_code)) |>
+      rename(origin_oblast = oblast_name_en)
+  ) |>
   ggplot(aes(x = t, y = n_hromada)) +
   geom_line() +
   geom_line(aes(y = n_hromada_true), col = "red") +
@@ -545,7 +887,13 @@ baselineFlows |>
   labs(title = "Baseline flows origin")
 
 ggsave(
-  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "baseline_flows_origin.png"),
+  filename = file.path(
+    out_dir,
+    "population_proxy",
+    "mobile_phone",
+    "figs",
+    "baseline_flows_origin.png"
+  ),
   width = 8,
   height = 6
 )
@@ -555,11 +903,13 @@ ggsave(
 baselineFlows |>
   group_by(t, destination_oblast) |>
   summarise(n_hromada = n_distinct(destination_hromada)) |>
-  left_join(hromada_geo |>
-    st_drop_geometry() |>
-    group_by(oblast_name_en) |>
-    summarise(n_hromada_true = n_distinct(hromada_code)) |>
-    rename(destination_oblast = oblast_name_en)) |>
+  left_join(
+    hromada_geo |>
+      st_drop_geometry() |>
+      group_by(oblast_name_en) |>
+      summarise(n_hromada_true = n_distinct(hromada_code)) |>
+      rename(destination_oblast = oblast_name_en)
+  ) |>
   ggplot(aes(x = t, y = n_hromada)) +
   geom_line() +
   geom_line(aes(y = n_hromada_true), col = "red") +
@@ -567,7 +917,13 @@ baselineFlows |>
   labs(title = "Baseline flows destination")
 
 ggsave(
-  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "baseline_flows_destination.png"),
+  filename = file.path(
+    out_dir,
+    "population_proxy",
+    "mobile_phone",
+    "figs",
+    "baseline_flows_destination.png"
+  ),
   width = 8,
   height = 6
 )
@@ -575,7 +931,15 @@ ggsave(
 # Users evolution
 
 baselineFlows_hromada <- baselineFlows |>
-  group_by(t, origin_territory, origin_oblast, origin_hromada, destination_territory, destination_oblast, destination_hromada) |>
+  group_by(
+    t,
+    origin_territory,
+    origin_oblast,
+    origin_hromada,
+    destination_territory,
+    destination_oblast,
+    destination_hromada
+  ) |>
   summarise(subscribers_baselineFlow = sum(subscribers_baselineFlow))
 
 baselineFlows_oblast <- baselineFlows_hromada |>
@@ -583,58 +947,99 @@ baselineFlows_oblast <- baselineFlows_hromada |>
   summarise(subscribers_baselineFlow = sum(subscribers_baselineFlow))
 
 
-ggplot(baselineFlows_oblast |>
-  filter(origin_oblast == "Kyiv"), aes(x = t, y = subscribers_baselineFlow)) +
+ggplot(
+  baselineFlows_oblast |>
+    filter(origin_oblast == "Kyiv"),
+  aes(x = t, y = subscribers_baselineFlow)
+) +
   geom_line() +
   facet_wrap(origin_oblast ~ destination_oblast, scales = "free_y") +
   labs(title = "Kyiv -> other oblasts")
 
 ggsave(
-  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "baseline_flows_from_kyiv.png"),
+  filename = file.path(
+    out_dir,
+    "population_proxy",
+    "mobile_phone",
+    "figs",
+    "baseline_flows_from_kyiv.png"
+  ),
   width = 8,
   height = 6
 )
 
 
-ggplot(baselineFlows_oblast |>
-  filter(destination_oblast == "Kyiv"), aes(x = t, y = subscribers_baselineFlow)) +
+ggplot(
+  baselineFlows_oblast |>
+    filter(destination_oblast == "Kyiv"),
+  aes(x = t, y = subscribers_baselineFlow)
+) +
   geom_line() +
   facet_wrap(origin_oblast ~ destination_oblast, scales = "free_y") +
   labs(title = "Other oblasts -> Kyiv")
 
 ggsave(
-  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "baseline_flows_to_kyiv.png"),
+  filename = file.path(
+    out_dir,
+    "population_proxy",
+    "mobile_phone",
+    "figs",
+    "baseline_flows_to_kyiv.png"
+  ),
   width = 8,
   height = 6
 )
 
 
-ggplot(baselineFlows_oblast |>
-  filter(origin_oblast == "Unknown"), aes(x = t, y = subscribers_baselineFlow)) +
+ggplot(
+  baselineFlows_oblast |>
+    filter(origin_oblast == "Unknown"),
+  aes(x = t, y = subscribers_baselineFlow)
+) +
   geom_line() +
   facet_wrap(origin_oblast ~ destination_oblast, scales = "free_y")
 
 ggsave(
-  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "baseline_flows_from_unknown.png"),
+  filename = file.path(
+    out_dir,
+    "population_proxy",
+    "mobile_phone",
+    "figs",
+    "baseline_flows_from_unknown.png"
+  ),
   width = 8,
   height = 6
 )
 
-baselineFlows_territory <- baselineFlows |>
+baselineFlows_territory <- baselineFlows_territory |>
   filter(destination_macroregion != "Abroad") |>
   filter(origin_macroregion != "Abroad") |>
   group_by(t, origin_territory, destination_territory) |>
-  summarise(subscribers_baselineFlow_cumulative = sum(subscribers_baselineFlow)) |>
+  summarise(
+    subscribers_baselineFlow_cumulative = sum(subscribers_monthlyFlow)
+  ) |>
   ungroup() |>
   group_by(origin_territory, destination_territory) |>
   arrange(t) |>
-  mutate(subscribers_baselineFlow = subscribers_baselineFlow_cumulative - lag(subscribers_baselineFlow_cumulative))
+  mutate(
+    subscribers_baselineFlow = subscribers_baselineFlow_cumulative -
+      lag(subscribers_baselineFlow_cumulative)
+  )
 
 
 ggplot(
   baselineFlows_territory |>
-    pivot_longer(-c(t, origin_territory, destination_territory), names_to = "type", values_to = "subscribers_baselineFlow") |>
-    mutate(type = fct_relevel(type, c("subscribers_baselineFlow_cumulative", "subscribers_baselineFlow"))),
+    pivot_longer(
+      -c(t, origin_territory, destination_territory),
+      names_to = "type",
+      values_to = "subscribers_baselineFlow"
+    ) |>
+    mutate(
+      type = fct_relevel(
+        type,
+        c("subscribers_baselineFlow_cumulative", "subscribers_baselineFlow")
+      )
+    ),
   aes(x = t, y = subscribers_baselineFlow, col = origin_territory)
 ) +
   geom_line() +
@@ -645,11 +1050,16 @@ ggplot(
 baselineFlows_originNgct <- baselineFlows |>
   filter(origin_territory == "ngct") |>
   group_by(t, destination_oblast) |>
-  summarise(subscribers_baselineFlow_cumulative = sum(subscribers_baselineFlow)) |>
+  summarise(
+    subscribers_baselineFlow_cumulative = sum(subscribers_baselineFlow)
+  ) |>
   ungroup() |>
   group_by(destination_oblast) |>
   arrange(t) |>
-  mutate(subscribers_baselineFlow = subscribers_baselineFlow_cumulative - lag(subscribers_baselineFlow_cumulative))
+  mutate(
+    subscribers_baselineFlow = subscribers_baselineFlow_cumulative -
+      lag(subscribers_baselineFlow_cumulative)
+  )
 
 
 ggplot(baselineFlows_originNgct, aes(x = t, y = subscribers_baselineFlow)) +
@@ -671,14 +1081,25 @@ coherence_df_hromada <- baselineFlows_hromada |>
   ungroup() |>
   group_by(t, destination_territory, destination_oblast, destination_hromada) |>
   summarise(subscribers_baselineFlow_dest = sum(subscribers_baselineFlow)) |>
-  rename(oblast_name_en = destination_oblast, hromada_code = destination_hromada, territory = destination_territory) |>
+  rename(
+    oblast_name_en = destination_oblast,
+    hromada_code = destination_hromada,
+    territory = destination_territory
+  ) |>
   full_join(
     baselineFlows |>
       ungroup() |>
       group_by(t, origin_territory, origin_oblast, origin_hromada) |>
-      summarise(subscribers_baselineFlow_ori = sum(subscribers_baselineFlow), .groups = "drop") |>
+      summarise(
+        subscribers_baselineFlow_ori = sum(subscribers_baselineFlow),
+        .groups = "drop"
+      ) |>
       mutate(t = t - months(1)) |>
-      rename(oblast_name_en = origin_oblast, hromada_code = origin_hromada, territory = origin_territory)
+      rename(
+        oblast_name_en = origin_oblast,
+        hromada_code = origin_hromada,
+        territory = origin_territory
+      )
   ) |>
   full_join(
     stocks |>
@@ -690,7 +1111,10 @@ coherence_df_hromada <- baselineFlows_hromada |>
     monthlyFlows |>
       ungroup() |>
       group_by(t, destination_oblast, destination_hromada) |>
-      rename(oblast_name_en = destination_oblast, hromada_code = destination_hromada) |>
+      rename(
+        oblast_name_en = destination_oblast,
+        hromada_code = destination_hromada
+      ) |>
       summarise(subscribers_monthlyFlow = sum(subscribers_monthlyFlow))
   ) |>
   mutate(
@@ -717,7 +1141,11 @@ coherence_df <- baselineFlows_oblast |>
   )
 
 coherence_df |>
-  pivot_longer(starts_with("subscriber"), names_to = "type", values_to = "subscribers") |>
+  pivot_longer(
+    starts_with("subscriber"),
+    names_to = "type",
+    values_to = "subscribers"
+  ) |>
   group_by(t, type) |>
   summarise(subscribers = sum(subscribers, na.rm = T)) |>
   mutate(subscribers = ifelse(subscribers == 0, NA, subscribers)) |>
@@ -727,7 +1155,13 @@ coherence_df |>
   theme_minimal()
 
 ggsave(
-  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "coherence_stocks_flows.png"),
+  filename = file.path(
+    out_dir,
+    "population_proxy",
+    "mobile_phone",
+    "figs",
+    "coherence_stocks_flows.png"
+  ),
   width = 8,
   height = 6
 )
@@ -739,9 +1173,11 @@ ggsave(
 stocks |>
   group_by(t, oblast_name_en, a_name, s_name) |>
   summarise(n_hromada = n_distinct(hromada_code)) |>
-  left_join(hromada_geo |>
-    group_by(oblast_name_en) |>
-    summarise(n_hromada_true = n_distinct(hromada_code))) |>
+  left_join(
+    hromada_geo |>
+      group_by(oblast_name_en) |>
+      summarise(n_hromada_true = n_distinct(hromada_code))
+  ) |>
   ggplot(aes(x = t, y = n_hromada, col = a_name, linetype = s_name)) +
   geom_line() +
   geom_line(aes(y = n_hromada_true), col = "grey20") +
@@ -749,7 +1185,13 @@ stocks |>
   theme_minimal()
 
 ggsave(
-  filename = file.path(out_dir, "population_proxy", "mobile_phone", "figs", "hromada_through_time_by_agesex.png"),
+  filename = file.path(
+    out_dir,
+    "population_proxy",
+    "mobile_phone",
+    "figs",
+    "hromada_through_time_by_agesex.png"
+  ),
   width = 8,
   height = 6
 )
