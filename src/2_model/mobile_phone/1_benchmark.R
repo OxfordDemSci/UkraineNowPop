@@ -111,6 +111,7 @@ clean_key <- function(x) {
 }
 
 stocks_hromada_agesex <- stocks_hromada_agesex %>%
+  mutate(ADM3_Minrehion_CODE = hromada) %>%
   mutate(!!key := clean_key(!!sym(key)))
 
 
@@ -471,27 +472,38 @@ map_raion <- raion_geo |>
       )
   )
 
-map_raion |>
-  ggplot() +
-  geom_sf(aes(fill = pop_diff)) +
-  scale_fill_gradient2(
-    low = "#A25933",
-    mid = "white",
-    high = "#75871B",
-    midpoint = 0,
-    labels = scales::comma,
-    limits = c(-max(abs(map_raion$pop_diff)), max(abs(map_raion$pop_diff)))
+tm_map_raion <- tm_shape(map_raion) +
+  tm_polygons(
+    fill = "pop_diff",
+    fill.scale = tm_scale_intervals(
+      values = c("#722d08ff", "white", "#75871B"),
+      midpoint = 0,
+      value.na = "grey"
+    ),
+    col = 'white',
+    lwd = 0.1,
+    fill.legend = tm_legend(
+      title = "COD-PS 2023 - Vodafone",
+      position = tm_pos_in("right", "bottom"),
+      frame = F
+    )
   ) +
-  theme_void() +
-  labs(
-    title = "Population difference between Vodafone estimates and COD-PS 2023",
-    fill = "Difference\n(COD-PS - Vodafone)"
+  tm_layout(
+    frame = FALSE,
+    asp = 1.5
+  ) +
+  tm_title(
+    text = "Population difference between Vodafone estimates and COD-PS 2023",
+  ) +
+  tm_credits(
+    text = "Date: 1 July 2023 \nGeographical scope: complete raions",
+    position = c("left", "bottom"),
+    size = 0.7
   )
-
-
-ggsave(
-  file.path(fig_dir, "vodafone_vs_codps_2023_pop_map_raion.jpeg"),
-  plot = last_plot(),
+tm_map_raion
+tmap_save(
+  tm = tm_map_raion,
+  filename = file.path(fig_dir, "vodafone_vs_codps_2023_pop_map_raion.jpeg"),
   width = 35,
   height = 25,
   units = "cm",
@@ -857,27 +869,38 @@ map_raion <- raion_geo |>
         pop_diff = pop2 - pop_estimated
       )
   )
-
-map_raion |>
-  ggplot() +
-  geom_sf(aes(fill = pop_diff)) +
-  scale_fill_gradient2(
-    low = "#A25933",
-    mid = "white",
-    high = "#75871B",
-    midpoint = 0,
-    labels = scales::comma,
-    limits = c(-max(abs(map_raion$pop_diff)), max(abs(map_raion$pop_diff)))
+tm_map_raion_2024 <- tm_shape(map_raion) +
+  tm_polygons(
+    fill = "pop_diff",
+    fill.scale = tm_scale_intervals(
+      values = c("#722d08ff", "white", "#75871B"),
+      midpoint = 0,
+      value.na = "grey"
+    ),
+    col = 'white',
+    lwd = 0.1,
+    fill.legend = tm_legend(
+      title = "COD-PS 2024 - Vodafone",
+      position = tm_pos_in("right", "bottom"),
+      frame = F
+    )
   ) +
-  theme_void() +
-  labs(
-    title = "Population difference between Vodafone estimates and COD-PS 2024",
-    fill = "Difference\n(COD-PS - Vodafone)"
+  tm_layout(
+    frame = FALSE,
+    asp = 1.5
+  ) +
+  tm_title(
+    text = "Population difference between Vodafone estimates and COD-PS 2024",
+  ) +
+  tm_credits(
+    text = "Date: 1 July 2024 \nGeographical scope: complete raions",
+    position = c("left", "bottom"),
+    size = 0.7
   )
-
-ggsave(
-  file.path(fig_dir, "vodafone_vs_codps_2024_pop_map_raion.jpeg"),
-  plot = last_plot(),
+tm_map_raion_2024
+tmap_save(
+  tm = tm_map_raion_2024,
+  filename = file.path(fig_dir, "vodafone_vs_codps_2024_pop_map_raion.jpeg"),
   width = 35,
   height = 25,
   units = "cm",
