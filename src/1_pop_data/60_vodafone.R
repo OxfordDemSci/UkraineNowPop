@@ -3,6 +3,8 @@ gc()
 library(tmap)
 tmap_options(component.autoscale = F)
 
+correct_dip202506 <- TRUE
+
 # Load required helpers
 source(file.path(here::here(), "R_helpers/generic.R"))
 hromada <- read_csv(file.path(in_dir, "KSE-Loc-Data-Hub", "full_dataset.csv"))
@@ -320,6 +322,27 @@ monthlyFlows_ngct <- baselineFlows |>
     subscribers_monthlyFlow
   )
 
+if (correct_dip202506) {
+  dip_change <- monthlyFlows_ngct |>
+    filter(t %in% as.Date(c('2025-05-01', '2025-06-01'))) |>
+    group_by(t, s_name, a_name) |>
+    summarise(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)) |>
+    pivot_wider(names_from = t, values_from = subscribers_monthlyFlow) |>
+    mutate(
+      dip_ratio = `2025-05-01` / `2025-06-01`
+    )
+
+  monthlyFlows_ngct <- monthlyFlows_ngct |>
+    left_join(dip_change) |>
+    mutate(
+      subscribers_monthlyFlow = ifelse(
+        t >= as.Date('2025-06-01'),
+        subscribers_monthlyFlow * dip_ratio,
+        subscribers_monthlyFlow
+      )
+    )
+}
+
 write_csv(
   monthlyFlows_ngct,
   file.path(
@@ -424,6 +447,45 @@ monthlyFlows <- monthlyFlows |>
     a_name,
     subscribers_monthlyFlow
   )
+
+if (correct_dip202506) {
+  # compute percent change between May 2025 and June 2025 by oblast, age, sex
+
+  change_arounddip <- monthlyFlows |>
+    filter(t %in% as.Date(c('2025-05-01', '2025-06-01'))) |>
+    group_by(t, destination_hromada, a_name, s_name) |>
+    summarise(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)) |>
+    pivot_wider(names_from = t, values_from = subscribers_monthlyFlow) |>
+    mutate(
+      dip_ratio = `2025-05-01` / `2025-06-01`
+    )
+
+  monthlyFlows <- monthlyFlows |>
+    left_join(
+      change_arounddip |>
+        select(
+          destination_hromada,
+          a_name,
+          s_name,
+          dip_ratio
+        )
+    ) |>
+    mutate(
+      subscribers_monthlyFlow_ = ifelse(
+        t >= as.Date('2025-06-01'),
+        subscribers_monthlyFlow * dip_ratio,
+        subscribers_monthlyFlow
+      ),
+      subscribers_monthlyFlow_ = ifelse(
+        is.na(subscribers_monthlyFlow_),
+        subscribers_monthlyFlow,
+        subscribers_monthlyFlow_
+      )
+    ) |>
+    select(-subscribers_monthlyFlow) |>
+    rename(subscribers_monthlyFlow = subscribers_monthlyFlow_) |>
+    select(-dip_ratio)
+}
 
 write_csv(
   monthlyFlows,
@@ -606,17 +668,29 @@ ggplot(monthlyFlows_wide_s, aes(x = date, y = value, fill = type)) +
 
 # Monthly flows users evolution ----------------------------------------
 
-monthlyFlows_ |>
+monthlyFlows |>
   group_by(t) |>
   summarise(
     subscribers_monthlyFlow = sum(subscribers_monthlyFlow),
-    subscribers_monthlyFlow_ = sum(subscribers_monthlyFlow_)
+    #subscribers_monthlyFlow_ = sum(subscribers_monthlyFlow_)
   ) |>
   ggplot(aes(x = t, y = subscribers_monthlyFlow)) +
   geom_line() +
-  geom_line(aes(y = subscribers_monthlyFlow_), col = "red") +
+  #geom_line(aes(y = subscribers_monthlyFlow_), col = "red") +
   theme_minimal() +
   labs(title = "Evolution of subscribers across time")
+
+monthlyFlows_ngct |>
+  group_by(t) |>
+  summarise(
+    subscribers_monthlyFlow = sum(subscribers_monthlyFlow),
+    #subscribers_monthlyFlow_ = sum(subscribers_monthlyFlow_)
+  ) |>
+  ggplot(aes(x = t, y = subscribers_monthlyFlow)) +
+  geom_line() +
+  #geom_line(aes(y = subscribers_monthlyFlow_), col = "red") +
+  theme_minimal() +
+  labs(title = "Evolution of subscribers ngct -> ngct across time")
 
 ggsave(
   filename = file.path(
@@ -1228,3 +1302,59 @@ stocks |>
   ungroup() |>
   group_by(a_name) |>
   summarise(complete = sum(n == n_distinct(stocks$t)) / n() * 100)
+
+# Investigate the dip in users in June 2025 ------------------------------------------------
+
+stocks_arounddip <- monthlyFlows_ |>
+  #filter(t > as.Date('2025-03-01')) |>
+  group_by(t, destination_oblast, a_name, s_name) |>
+  summarise(
+    n_users = sum(subscribers_monthlyFlow_),
+    n_hromada = n_distinct(destination_hromada)
+  )
+
+ggplot(
+  stocks_arounddip,
+  aes(x = t, y = n_users, col = a_name, linetype = s_name)
+) +
+  geom_line() +
+  labs(title = "Subscribers evolution around June 2025") +
+  facet_wrap(destination_oblast ~ ., scales = "free_y") +
+  theme_minimal()
+
+ggplot(
+  stocks_arounddip,
+  aes(x = t, y = n_hromada, col = a_name, linetype = s_name)
+) +
+  geom_line() +
+  labs(title = "Hromada availibility evolution around June 2025") +
+  facet_wrap(destination_oblast ~ ., scales = "free_y") +
+  theme_minimal()
+
+# compute the relative change in users from May to June 2025 at raion level
+stocks_arounddip_raion <- monthlyFlows |>
+  filter(t %in% as.Date(c('2025-05-01', '2025-06-01'))) |>
+  group_by(t, destination_oblast, destination_raion, a_name, s_name) |>
+  summarise(n_users = sum(subscribers_monthlyFlow)) |>
+  pivot_wider(names_from = t, values_from = n_users) |>
+  mutate(
+    rel_change = (`2025-06-01` - `2025-05-01`) / `2025-05-01` * 100
+  )
+
+ggplot(stocks_arounddip_raion, aes(x = rel_change, y = a_name)) +
+  geom_boxplot() +
+  facet_wrap(destination_oblast ~ ., scales = "free_y") +
+  theme_minimal() +
+  lims(x = c(-100, 1000))
+
+# plot a couploe of hrmaoda by age and sex from monthlflows
+
+sample_hromada <- sample(unique(monthlyFlows$destination_hromada), 10)
+monthlyFlows_ |>
+  filter(destination_hromada %in% sample_hromada) |>
+  group_by(t, destination_hromada, a_name, s_name) |>
+  summarise(n_users = sum(subscribers_monthlyFlow)) |>
+  ggplot(aes(x = t, y = n_users, col = a_name, linetype = s_name)) +
+  geom_line() +
+  facet_wrap(destination_hromada ~ ., scales = "free_y") +
+  theme_minimal()
