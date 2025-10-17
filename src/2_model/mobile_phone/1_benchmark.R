@@ -1331,15 +1331,17 @@ ggplot(
   aes(x = t, y = diff_perc, col = destination_oblast, group = destination_raion)
 ) +
   geom_line() +
-  facet_wrap(. ~ destination_oblast, scales = "free_y") +
+  facet_wrap(. ~ destination_oblast) +
   theme_minimal() +
   theme(legend.position = "none") +
   labs(
     title = "Raion-level comparison between IDP counts and estimated movers count",
     caption = "IDP counts from IOM Displacement Tracking Matrix\nMovers counts estimated from Vodafone flows data",
-    y = "(Movers-IDP)/IDP (%)"
+    y = "(Movers-IDP)/IDP (%)",
+    x = ''
   ) +
-  scale_color_paletteer_d("pals::stepped")
+  paletteer::scale_color_paletteer_d("pals::stepped") +
+  lims(y = c(-1, 20))
 
 ggsave(
   file.path(fig_dir, "vodafone_vs_dtm_idp_time_series_raion.jpeg"),
