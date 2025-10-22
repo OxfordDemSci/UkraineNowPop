@@ -1179,3 +1179,92 @@ ggplot(
     values = c("total" = "black", "gct" = "darksalmon", "ngct" = "darkgreen")
   ) +
   scale_y_continuous(labels = scales::label_number())
+
+
+# [INTERNAL] Origin of flows ----
+
+# create per-destination plots of origins and save to disk
+destination_h_code <- unique(flows$destination_hromada_PCODE)
+destination_h_names <- pcodes |>
+  filter(`Admin Level` == 3) |>
+  filter(pcode %in% destination_h_code) |>
+  pull(Name)
+
+out_dir_flows_plots <- file.path(
+  out_dir_base,
+  "Flows origin",
+  "Hromada"
+)
+
+destination_h_list <- split(
+  flows_hromada_agesex,
+  by = "destination_hromada_PCODE",
+  keep.by = TRUE
+)
+
+lapply(
+  1:length(destination_h_code),
+  function(h) {
+    #h <- 'UA05020010000053508'
+
+    if (is.na(h) || h %in% c("Abroad", "Unknown")) {
+      next
+    }
+    flows_to_h <- destination_h_list[[h]]
+
+    # order origin_oblast by total contribution (desc)
+    flows_to_h_from_o <- flows_to_h[,
+      .(pop_estimated = sum(pop_estimated, na.rm = TRUE)),
+      by = .(origin_oblast, t)
+    ]
+
+    # build plot
+    p <- ggplot(
+      flows_to_h_from_o,
+      aes(x = t, y = pop_estimated, fill = origin_oblast)
+    ) +
+      geom_col() +
+      theme_minimal() +
+      labs(
+        title = paste0(
+          "Origin oblast of flows to hromada ",
+          destination_h_names[h],
+          " in oblast ",
+          flows_to_h$destination_oblast[1]
+        ),
+        subtitle = "Oblasts sorted by total population contributed (top to bottom)",
+        y = "Estimated population (18-64 years old)",
+        x = '',
+        fill = "Origin oblast"
+      ) +
+      facet_wrap(
+        . ~ reorder(origin_oblast, desc(pop_estimated)),
+        scales = "free_y"
+      ) +
+      scale_y_continuous(labels = scales::comma) +
+      theme(legend.position = "none")
+
+    # safe filename and save
+    outdir <- file.path(
+      out_dir_flows_plots,
+      flows_to_h$destination_oblast[1],
+      flows_to_h$destination_raion[1]
+    )
+    dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
+    ggsave(
+      filename = file.path(
+        outdir,
+        paste0(
+          "originFlows_hromada_",
+          destination_h_code[h],
+          "_",
+          destination_h_names[h],
+          ".png"
+        )
+      ),
+      plot = p,
+      width = 8,
+      height = 6
+    )
+  }
+)
