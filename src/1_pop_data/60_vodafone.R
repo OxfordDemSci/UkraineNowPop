@@ -78,7 +78,7 @@ stocks_list <- list.files(
   pattern = "Stocks",
   full.names = T
 )
-names(stocks_list) <- c("without_ngct", "with_ngct")
+names(stocks_list) <- c("without_ngct1", "without_ngct2", "with_ngct")
 
 stocks <- lapply(stocks_list, function(x) {
   read_csv2(x) |>
@@ -103,11 +103,12 @@ stocks <- lapply(stocks_list, function(x) {
     )
 })
 
-stocks <- stocks[["without_ngct"]] |>
+stocks <- stocks[["without_ngct1"]] |>
+  bind_rows(stocks[["without_ngct2"]]) |>
   full_join(
     stocks[["with_ngct"]] |>
       filter(
-        !hromada_code %in% unique(stocks[["without_ngct"]]$hromada_code)
+        !hromada_code %in% unique(stocks[["without_ngct1"]]$hromada_code)
       ) |>
       select(-file)
   ) |>
@@ -390,8 +391,8 @@ monthlyFlows <- monthlyFlows |>
   ) |>
   mutate(
     # Replace NAs in origin/destination
-    origin_hromada = if_else(is.na(origin_hromada), "Unknown", origin_hromada),
-    destination_hromada = if_else(
+    origin_hromada = ifelse(is.na(origin_hromada), "Unknown", origin_hromada),
+    destination_hromada = ifelse(
       is.na(destination_hromada),
       "Unknown",
       destination_hromada
@@ -416,12 +417,12 @@ monthlyFlows <- monthlyFlows |>
       destination_hromada == "Unknown" ~ "Unknown",
       TRUE ~ destination_macroregion
     ),
-    origin_hromada = if_else(
+    origin_hromada = ifelse(
       origin_hromada == "abroad",
       "Abroad",
       origin_hromada
     ),
-    destination_hromada = if_else(
+    destination_hromada = ifelse(
       destination_hromada == "abroad",
       "Abroad",
       destination_hromada
@@ -448,10 +449,81 @@ monthlyFlows <- monthlyFlows |>
     subscribers_monthlyFlow
   )
 
+# Remove missing combination (age, sex, hromada)
+
+# compute missing hromadas
+timesteps_total <- length(unique(monthlyFlows$t))
+monthlyFlows <- data.table(monthlyFlows)
+missing_hromadas <- monthlyFlows[,
+  .(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)),
+  by = .(t, destination_hromada)
+][,
+  .(n_timesteps = timesteps_total - .N),
+  by = destination_hromada
+][
+  n_timesteps > 0
+]
+
+
+dropping_hromadas <- missing_hromadas |>
+  filter(n_timesteps > 3)
+
+# imputation
+# select hromadas with only three missing timesteps
+imputed_hromadas <- missing_hromadas |>
+  filter(n_timesteps <= 3)
+
+# check the minimum date without data
+date_to_impute_hromadas_df <- monthlyFlows |>
+  group_by(t, destination_hromada) |>
+  summarise(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)) |>
+  ungroup() |>
+  filter(destination_hromada %in% imputed_hromadas$destination_hromada) |>
+  complete(
+    t = seq(
+      min(monthlyFlows$t, na.rm = T),
+      max(monthlyFlows$t),
+      by = "1 month"
+    ),
+    nesting(destination_hromada)
+  ) |>
+  filter(is.na(subscribers_monthlyFlow))
+
+imputed_hromadas_df <- missing_hromadas |>
+  filter(n_timesteps < 4) |>
+  left_join(
+    date_to_impute_hromadas_df |>
+      group_by(destination_hromada) |>
+      summarise(t = min(t))
+  )
+
+# replicate last observed date
+imputed_hromadas_df <- imputed_hromadas_df |>
+  mutate(
+    t = t - months(1)
+  ) |>
+  left_join(
+    monthlyFlows
+  ) |>
+  uncount(n_timesteps, .id = "month") |>
+  mutate(
+    t = t + months(month)
+  ) |>
+  select(-month)
+
+# combine imputed with available data
+monthlyFlows_imputed <- bind_rows(
+  monthlyFlows,
+  imputed_hromadas_df
+) |>
+  filter(!origin_hromada %in% dropping_hromadas$destination_hromada) |>
+  filter(!destination_hromada %in% dropping_hromadas$destination_hromada)
+
+
 if (correct_dip202506) {
   # compute percent change between May 2025 and June 2025 by oblast, age, sex
 
-  change_arounddip <- monthlyFlows |>
+  change_arounddip <- monthlyFlows_imputed |>
     filter(t %in% as.Date(c('2025-05-01', '2025-06-01'))) |>
     group_by(t, destination_hromada, a_name, s_name) |>
     summarise(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)) |>
@@ -460,7 +532,7 @@ if (correct_dip202506) {
       dip_ratio = `2025-05-01` / `2025-06-01`
     )
 
-  monthlyFlows <- monthlyFlows |>
+  monthlyFlows_imputed <- monthlyFlows_imputed |>
     left_join(
       change_arounddip |>
         select(
@@ -488,12 +560,12 @@ if (correct_dip202506) {
 }
 
 write_csv(
-  monthlyFlows,
+  monthlyFlows_imputed,
   file.path(
     out_dir,
     "population_proxy",
     "mobile_phone",
-    "vodafone_monthlyFlows.csv"
+    "vodafone_monthlyFlows_imputed.csv"
   )
 )
 
@@ -549,6 +621,8 @@ ggsave(
 )
 
 # Missing timesteps through time
+missing_hromadas <- hromada_available |>
+  filter(n_timesteps < n_distinct(monthlyFlows$t))
 
 missing_hromadas_df <- monthlyFlows |>
   group_by(
@@ -668,15 +742,34 @@ ggplot(monthlyFlows_wide_s, aes(x = date, y = value, fill = type)) +
 
 # Monthly flows users evolution ----------------------------------------
 
-monthlyFlows |>
+monthlyFlows_ |>
   group_by(t) |>
   summarise(
     subscribers_monthlyFlow = sum(subscribers_monthlyFlow),
-    #subscribers_monthlyFlow_ = sum(subscribers_monthlyFlow_)
+    subscribers_monthlyFlow_ = sum(subscribers_monthlyFlow_)
   ) |>
   ggplot(aes(x = t, y = subscribers_monthlyFlow)) +
   geom_line() +
-  #geom_line(aes(y = subscribers_monthlyFlow_), col = "red") +
+  geom_line(aes(y = subscribers_monthlyFlow_), col = "red") +
+  theme_minimal() +
+  labs(title = "Evolution of subscribers across time")
+
+monthlyFlows |>
+  group_by(t) |>
+  summarise(
+    subscribers_monthlyFlow = sum(subscribers_monthlyFlow)
+  ) |>
+  ggplot(aes(x = t, y = subscribers_monthlyFlow)) +
+  geom_line() +
+  geom_line(
+    data = monthlyFlows_imputed |>
+      group_by(t) |>
+      summarise(
+        subscribers_monthlyFlow = sum(subscribers_monthlyFlow)
+      ),
+    aes(y = subscribers_monthlyFlow),
+    col = "red"
+  ) +
   theme_minimal() +
   labs(title = "Evolution of subscribers across time")
 
@@ -1358,3 +1451,82 @@ monthlyFlows_ |>
   geom_line() +
   facet_wrap(destination_hromada ~ ., scales = "free_y") +
   theme_minimal()
+
+monthlyFlows_imputed |>
+  filter(destination_hromada %in% sample_hromada) |>
+  group_by(t, destination_hromada) |>
+  summarise(
+    n_users = sum(subscribers_monthlyFlow),
+    n_users_corrected = sum(subscribers_monthlyFlow_)
+  ) |>
+  ggplot(aes(x = t, y = n_users)) +
+  geom_line() +
+  geom_line(aes(y = n_users_corrected), col = "red") +
+  facet_wrap(destination_hromada ~ ., scales = "free_y") +
+  theme_minimal() +
+  labs(title = "Destination hromadas. In red correction applied")
+
+monthlyFlows_imputed |>
+  filter(origin_hromada %in% sample_hromada) |>
+  group_by(t, origin_hromada) |>
+  summarise(
+    n_users = sum(subscribers_monthlyFlow),
+    n_users_corrected = sum(subscribers_monthlyFlow_)
+  ) |>
+  ggplot(aes(x = t, y = n_users)) +
+  geom_line() +
+  geom_line(aes(y = n_users_corrected), col = "red") +
+  facet_wrap(origin_hromada ~ ., scales = "free_y") +
+  theme_minimal() +
+  labs(title = "Origin hromadas. In red correction applied")
+
+movers <- data.table(monthlyFlows)[
+  origin_oblast != destination_oblast,
+  .(movers = sum(subscribers_monthlyFlow)),
+  by = .(t, destination_oblast)
+]
+
+ggplot(
+  movers,
+  aes(x = t, y = movers, col = destination_oblast)
+) +
+  geom_line() +
+  facet_wrap(. ~ destination_oblast, scales = "free_y") +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  labs(title = "Movers from the flows data", y = "count")
+
+stocks <- data.table(monthlyFlows_imputed)[,
+  .(
+    subscribers_monthlyFlow = sum(subscribers_monthlyFlow),
+    subscribers_monthlyFlow_ = sum(subscribers_monthlyFlow_)
+  ),
+  by = .(t, destination_oblast)
+]
+
+ggplot(
+  stocks,
+  aes(x = t, y = subscribers_monthlyFlow_, col = destination_oblast)
+) +
+  geom_line() +
+  geom_line(aes(y = subscribers_monthlyFlow), linetype = 2) +
+  facet_wrap(. ~ destination_oblast, scales = "free_y") +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  labs(title = "Stocks from the flows data", y = "count")
+
+
+stocks_origin <- data.table(monthlyFlows)[,
+  .(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)),
+  by = .(t, origin_oblast)
+]
+
+ggplot(
+  stocks_origin,
+  aes(x = t, y = subscribers_monthlyFlow, col = origin_oblast)
+) +
+  geom_line() +
+  facet_wrap(. ~ origin_oblast, scales = "free_y") +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  labs(title = "Stocks from the flows data - origin", y = "count")
