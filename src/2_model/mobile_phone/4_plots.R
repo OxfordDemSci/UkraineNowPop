@@ -5,6 +5,7 @@ source(file.path(here::here(), "R_helpers/generic.R"))
 library(tmap)
 library(data.table)
 library(future.apply)
+library(readxl)
 
 # parameters ----
 output_date <- "202510"
@@ -42,13 +43,39 @@ flows_hromada_agesex_raw <- rbind(
   fill = T
 )
 
-pcodes <- read_csv(file.path(here::here(
-  "src/dashboard/api/app/data/db-data/global_pcodes.csv"
-)))
-
-pcodes <- pcodes |>
-  filter(Location == "UKR") |>
-  rename(pcode = `P-Code`)
+pcodes <- read_excel(
+  file.path(
+    in_dir,
+    "COD-PS",
+    "2022",
+    "ukr_adminboundaries_tabulardata.xlsx"
+  ),
+  sheet = "ADM3"
+) |>
+  select(
+    ADM3_EN,
+    ADM2_EN,
+    ADM1_EN,
+    ADM3_PCODE,
+    ADM2_PCODE,
+    ADM1_PCODE,
+    ADM3_UA,
+    ADM2_UA,
+    ADM1_UA
+  ) |>
+  bind_rows(
+    tibble(
+      ADM3_EN = c("Abroad", "Unknown"),
+      ADM2_EN = c("Abroad", "Unknown"),
+      ADM1_EN = c("Abroad", "Unknown"),
+      ADM3_PCODE = c("Abroad", "Unknown"),
+      ADM2_PCODE = c("Abroad", "Unknown"),
+      ADM1_PCODE = c("Abroad", "Unknown"),
+      ADM3_UA = c("За кордоном", "Невідомо"),
+      ADM2_UA = c("За кордоном", "Невідомо"),
+      ADM1_UA = c("За кордоном", "Невідомо")
+    )
+  )
 
 ngct_mapping <- fread(file.path(
   out_dir,
@@ -68,8 +95,7 @@ stocks_hromada_agesex <- flows_hromada_agesex[,
     oblast = destination_oblast,
     raion = destination_raion,
     hromada_PCODE = destination_hromada_PCODE,
-    raion_PCODE = destination_raion_PCODE,
-    macroregion = destination_macroregion
+    raion_PCODE = destination_raion_PCODE
   )
 ]
 
@@ -78,12 +104,10 @@ flows_hromada_totals_last <- flows_hromada_agesex |>
   filter(t == max(stocks_hromada_agesex$t)) |>
   group_by(
     t,
-    origin_macroregion,
     origin_oblast,
     origin_raion,
     origin_hromada,
     origin_hromada_PCODE,
-    destination_macroregion,
     destination_oblast,
     destination_raion,
     destination_hromada,
@@ -104,8 +128,12 @@ stocks_hromada_totals_last <- stocks_hromada_agesex_last |>
   summarise(pop_estimated = sum(pop_estimated))
 
 stocks_hromada_totals <- stocks_hromada_agesex |>
-  group_by(t, hromada, oblast, raion) |>
-  summarise(pop_estimated = sum(pop_estimated))
+  group_by(t, hromada_PCODE, oblast, raion_PCODE) |>
+  summarise(pop_estimated = sum(pop_estimated)) |>
+  left_join(
+    pcodes |>
+      select(ADM3_EN, hromada_PCODE = ADM3_PCODE, raion_PCODE = ADM2_PCODE)
+  )
 
 stocks_hromada_agesex_raw <- flows_hromada_agesex_raw[,
   .(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)),
@@ -119,8 +147,7 @@ stocks_hromada_agesex <- stocks_hromada_agesex |>
   ) |>
   left_join(
     pcodes |>
-      filter(`Admin Level` == 3) |>
-      rename(hromada_PCODE = pcode, hromada_name = Name) |>
+      rename(hromada_PCODE = ADM3_PCODE, hromada_name = ADM3_EN) |>
       select(hromada_PCODE, hromada_name)
   )
 
@@ -134,9 +161,8 @@ stocks_raion_agesex <- stocks_hromada_agesex |>
   ) |>
   left_join(
     pcodes |>
-      filter(`Admin Level` == 2) |>
-      rename(raion_PCODE = pcode, raion_name = Name) |>
-      select(raion_PCODE, raion_name)
+      rename(raion_PCODE = ADM2_PCODE, raion_name = ADM2_EN) |>
+      distinct(raion_PCODE, raion_name)
   )
 
 stocks_oblast_agesex <- stocks_hromada_agesex |>
@@ -149,7 +175,7 @@ stocks_oblast_agesex <- stocks_hromada_agesex |>
   )
 
 stocks_oblast <- stocks_hromada_agesex |>
-  group_by(t, macroregion, oblast) |>
+  group_by(t, oblast) |>
   summarise(
     pop_estimated = sum(pop_estimated, na.rm = T),
     subscribers_monthlyFlow = sum(subscribers_monthlyFlow, na.rm = T),
@@ -412,7 +438,7 @@ stocks_hromada_change <- stocks_hromada_agesex_last |>
         t_first = t
       )
   ) |>
-  group_by(hromada, oblast, raion) |>
+  group_by(hromada, oblast, raion, hromada_PCODE) |>
   summarise(
     pop_estimated = sum(pop_estimated),
     pop_estimated_before = sum(pop_estimated_before),
@@ -482,7 +508,7 @@ tmap_save(
 
 hromada_counts <- stocks_hromada_totals |>
   group_by(oblast) |>
-  summarise(n_hromadas = n_distinct(hromada))
+  summarise(n_hromadas = n_distinct(hromada_PCODE))
 
 gg_timeserie <- stocks_hromada_totals |>
   filter(oblast != 'Abroad') |>
@@ -545,17 +571,18 @@ top_corridor_last <- flows_hromada_agesex |>
   ungroup() |>
   left_join(
     pcodes |>
-      filter(`Admin Level` == 3) |>
       rename(
-        destination_hromada_PCODE = pcode,
-        destination_hromada_name = Name
+        destination_hromada_PCODE = ADM3_PCODE,
+        destination_hromada_name = ADM3_EN
       ) |>
       select(destination_hromada_PCODE, destination_hromada_name)
   ) |>
   left_join(
     pcodes |>
-      filter(`Admin Level` == 3) |>
-      rename(origin_hromada_PCODE = pcode, origin_hromada_name = Name) |>
+      rename(
+        origin_hromada_PCODE = ADM3_PCODE,
+        origin_hromada_name = ADM3_EN
+      ) |>
       select(origin_hromada_PCODE, origin_hromada_name)
   ) |>
   mutate(
@@ -600,18 +627,53 @@ ggsave(
   height = 6
 )
 
-# Population pyramid for a couple locations baseline vs current ----
+movers_by_agesex <- flows_hromada_agesex |>
+  as_tibble() |>
+  filter(t == max(stocks_hromada_agesex$t)) |>
+  rename(pop_estimated = pop_estimated) |>
+  ungroup() |>
+  filter(origin_hromada != destination_hromada & origin_hromada != "Abroad") |>
+  filter(origin_hromada != "Unknown") |>
+  filter(destination_hromada != "Abroad") |>
+  group_by(a_name, s_name) |>
+  summarise(
+    pop_estimated = sum(pop_estimated),
+    .groups = "drop"
+  )
 
+gg_movers <- ggplot(
+  movers_by_agesex,
+  aes(x = pop_estimated, y = a_name, fill = s_name)
+) +
+  geom_col(position = position_dodge2(preserve = "single"), alpha = 0.8) +
+  theme_minimal() +
+  labs(
+    x = "Estimated population",
+    y = "Age group",
+    fill = "Gender",
+    title = paste0(
+      "Total movers between hromadas by age and sex in the last month"
+    )
+  ) +
+  scale_fill_manual(values = c(f_color, m_color))
+gg_movers
+
+
+# Population pyramid for a couple locations baseline vs current ----
+max_change_hromada <- stocks_hromada_change |>
+  filter(change_type == 'Relative') |>
+  arrange(Change) |>
+  slice(c(1, 2, 3, n() - 2, n() - 1, n())) |>
+  pull(hromada_PCODE)
 stocks_hromada_agesex_pyramid <- stocks_hromada_agesex |>
-  filter(t == max(t) | t == min(t)) |>
+  mutate(t = as.Date(t)) |>
+  filter(t == max(t) | t == max(t) - months(1)) |>
   left_join(
     pcodes |>
-      filter(`Admin Level` == 3) |>
-      rename(hromada_PCODE = pcode, hromada_name = Name)
+      rename(hromada_PCODE = ADM3_PCODE, hromada_name = ADM3_EN)
   ) |>
   filter(
-    hromada_name %in%
-      c("Kyiv", "Lvivska", "Kharkivska", "Berehivska", "Sumska", "Dniprovska")
+    hromada_PCODE %in% max_change_hromada
   )
 
 gg_pyramid <- ggplot(
@@ -632,9 +694,9 @@ gg_pyramid <- ggplot(
   labs(
     x = "",
     y = "Population",
-    fill = "Gender",
+    fill = "Sex",
     alpha = "Month",
-    title = "Evolution of age-sex population estimates in a sample of hromadas"
+    title = "Age-sex population in the hromadas that experienced the largest changes",
   ) +
   theme_minimal() +
   facet_wrap(. ~ hromada_name, scales = "free") +
@@ -649,7 +711,7 @@ ggsave(
     "deterministic",
     "figs",
     output_date,
-    "pyramid_hromada_firstLast.png"
+    "pyramid_hromada_last.png"
   ),
   gg_pyramid,
   w = 8,
@@ -1268,3 +1330,149 @@ lapply(
     )
   }
 )
+
+# Metrics ####
+
+## what are the most populated hormadas ----
+stocks_hromada_totals |>
+  ungroup() |>
+  mutate(t = as.Date(t)) |>
+  filter(t == max(t)) |>
+  arrange(desc(pop_estimated)) |>
+  head(5)
+
+stocks_hromada_agesex |>
+  ungroup() |>
+  mutate(t = as.Date(t)) |>
+  filter(t == max(t)) |>
+  group_by(a_name, s_name) |>
+  filter(rank(desc(pop_estimated)) <= 1)
+
+##  how many hromadas experienced population change ----
+flows_hromada_agesex_last <- flows_hromada_agesex |>
+  filter(t == max(t))
+
+flows_hromada_agesex_last |>
+  filter(
+    origin_hromada != destination_hromada &
+      origin_hromada != "Abroad" &
+      destination_hromada != "Abroad"
+  ) |>
+  summarise(sum(pop_estimated))
+
+stocks_hromada_change |>
+  left_join(
+    pcodes |>
+      select(hromada_PCODE = ADM3_PCODE, hromada_name = ADM3_EN)
+  ) |>
+  filter(change_type == "Absolute") |>
+  filter(hromada != "Abroad") |>
+  filter(rank(desc(abs(Change))) <= 4) |>
+  select(hromada, hromada_name, oblast, Change)
+
+stocks_hromada_change |>
+  left_join(
+    pcodes |>
+      select(hromada_PCODE = ADM3_PCODE, hromada_name = ADM3_EN)
+  ) |>
+  filter(change_type == "Relative") |>
+  filter(hromada != "Abroad") |>
+  filter(rank(desc(abs(Change))) <= 10) |>
+  select(hromada, hromada_name, oblast, Change)
+
+
+flows_hromada_agesex_last |>
+  filter(
+    origin_hromada != destination_hromada &
+      origin_hromada != "Abroad" &
+      destination_hromada != "Abroad"
+  ) |>
+  group_by(a_name, s_name) |>
+  summarise(pop_estimated = sum(pop_estimated)) |>
+  left_join(
+    stocks_hromada_agesex_last |>
+      filter(hromada != "Abroad") |>
+      group_by(a_name, s_name) |>
+      summarise(total_pop = sum(pop_estimated))
+  ) |>
+  mutate(perc_moving = pop_estimated / total_pop * 100) |>
+  arrange(desc(perc_moving))
+
+top_corridor_last |>
+  group_by(a_name, s_name) |>
+  filter(rank(desc(pop_estimated)) <= 1) |>
+  select(
+    s_name,
+    a_name,
+    origin_hromada_name,
+    origin_oblast,
+    destination_hromada_name,
+    destination_oblast,
+    pop_estimated
+  )
+
+top_corridor_last |>
+  group_by(
+    origin_oblast,
+    origin_hromada_name,
+    destination_hromada_name,
+    destination_oblast
+  ) |>
+  summarise(pop_estimated = sum(pop_estimated)) |>
+  arrange(desc(pop_estimated))
+
+
+## where have people returned to from abroad ----
+abroad_arrivals_last |>
+  ungroup() |>
+  left_join(
+    stocks_hromada_totals |>
+      ungroup() |>
+      mutate(t = as.Date(t)) |>
+      filter(t == (max(stocks_hromada_totals$t) |> as.Date() - months(1))) |>
+      rename(
+        destination_hromada_PCODE = hromada_PCODE,
+        stock_pop_estimated = pop_estimated
+      ) |>
+      select(destination_hromada_PCODE, stock_pop_estimated)
+  ) |>
+  mutate(
+    pop_estimated_perc = pop_estimated / stock_pop_estimated * 100
+  ) |>
+  filter(
+    rank(desc(pop_estimated_perc)) <= 5 | rank(desc(pop_estimated)) <= 5
+  ) |>
+  left_join(
+    pcodes |>
+      rename(hromada_name = ADM3_EN, destination_hromada_PCODE = ADM3_PCODE)
+  ) |>
+  select(
+    destination_oblast,
+    hromada_name,
+    pop_estimated,
+    pop_estimated_perc
+  )
+
+## where have people left to abroad ----
+abroad_leavers_last |>
+  mutate(t = as.Date(t)) |>
+  ungroup() |>
+  left_join(
+    flows_hromada_agesex |>
+      ungroup() |>
+      mutate(t = as.Date(t)) |>
+      filter(t == (max(stocks_hromada_totals$t) |> as.Date() - months(1))) |>
+      group_by(origin_hromada_PCODE) |>
+      summarise(stock_pop_estimated = sum(pop_estimated))
+  ) |>
+  mutate(
+    pop_estimated_perc = pop_estimated / stock_pop_estimated * 100
+  ) |>
+  filter(
+    rank(desc(pop_estimated_perc)) <= 5 | rank(desc(pop_estimated)) <= 5
+  ) |>
+  left_join(
+    pcodes |>
+      rename(hromada_name = ADM3_EN, origin_hromada_PCODE = ADM3_PCODE)
+  ) |>
+  select(origin_oblast, hromada_name, pop_estimated, pop_estimated_perc)
