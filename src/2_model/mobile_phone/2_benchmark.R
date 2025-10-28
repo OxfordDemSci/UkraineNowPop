@@ -3,6 +3,7 @@ library(formattable)
 library(ggforce)
 library(NatParksPalettes)
 library(jsonlite)
+library(dtmapi)
 
 source(file.path(here::here(), "R_helpers/generic.R"))
 source(here::here(".env"), local = env)
@@ -1282,25 +1283,27 @@ for (adm in unique(pyramid_df$ADM1_EN)) {
 # Compare Vodafone estimates vs DTM IDP estimates ----
 
 ## Download IDP numbers from DTM ----
-url_idp <- "https://dtmapi.iom.int/api/idpAdmin2Data/GetAdmin2Datav2?CountryName=Ukraine"
-data_raw <- fromJSON(url_idp, flatten = TRUE)
+set_subscription_key(key = env$DTM_API_KEY)
 
-idp <- data_raw$result
-
+idp <- get_idp_admin1_data(
+  CountryName = "Ukraine",
+  FromReportingDate = "2022-01-01",
+  ToReportingDate = "2025-12-01"
+)
 
 ## Compute movers from the flows data ----
 
 library(data.table)
 
 movers <- flows_hromada_agesex[
-  origin_raion != destination_raion,
+  origin_oblast != destination_oblast,
   .(movers = sum(pop_estimated)),
-  by = .(t, destination_raion, destination_oblast)
+  by = .(t, admin1Pcode = str_sub(destination_raion, 1, 4), destination_oblast)
 ]
 
 movers <- movers |>
   mutate(
-    admin2Pcode = str_sub(destination_raion, 1, 6),
+    admin1Pcode = ifelse(admin1Pcode == "Kyiv", "UA80", admin1Pcode),
     t = as.Date(t)
   ) |>
   left_join(
@@ -1317,7 +1320,7 @@ movers <- movers |>
           format = "%d-%m-%Y"
         )
       ) |>
-      group_by(admin2Pcode, t) |>
+      group_by(admin1Pcode, t) |>
       summarise(idp = mean(numPresentIdpInd))
   ) |>
   mutate(
@@ -1325,26 +1328,39 @@ movers <- movers |>
     diff_perc = diff / idp
   )
 
+movers |>
+  filter(t > as.Date('2022-04-01')) |>
+  filter(t < as.Date('2025-05-01')) |>
+  pull(diff_perc) |>
+  summary()
+
+movers |>
+  filter(t > as.Date('2025-05-01')) |>
+  filter(t < as.Date('2025-07-01')) |>
+  pull(diff_perc) |>
+  summary()
+
+
 ## Plot comparison ----
 ggplot(
   movers |> filter(!is.na(idp) & t > as.Date("2022-02-01")),
-  aes(x = t, y = diff_perc, col = destination_oblast, group = destination_raion)
+  aes(x = t, y = diff_perc, col = destination_oblast)
 ) +
   geom_line() +
   facet_wrap(. ~ destination_oblast) +
   theme_minimal() +
   theme(legend.position = "none") +
   labs(
-    title = "Raion-level comparison between IDP counts and estimated movers count",
+    title = "Oblast-level comparison between IDP counts and estimated movers count",
     caption = "IDP counts from IOM Displacement Tracking Matrix\nMovers counts estimated from Vodafone flows data",
-    y = "(Movers-IDP)/IDP (%)",
+    y = "(Movers-IDP)/IDP",
     x = ''
   ) +
   paletteer::scale_color_paletteer_d("pals::stepped") +
-  lims(y = c(-1, 20))
+  lims(y = c(-1, 10000))
 
 ggsave(
-  file.path(fig_dir, "vodafone_vs_dtm_idp_time_series_raion.jpeg"),
+  file.path(fig_dir, "vodafone_vs_dtm_idp_time_series_oblast.jpeg"),
   plot = last_plot(),
   width = 35,
   height = 30,
@@ -1366,7 +1382,7 @@ ggplot(
 
 ggplot(
   movers |> filter(!is.na(idp)),
-  aes(x = t, y = idp, col = destination_raion)
+  aes(x = t, y = idp, col = destination_oblast)
 ) +
   geom_line() +
   facet_wrap(. ~ destination_oblast, scales = "free_y") +
@@ -1376,7 +1392,7 @@ ggplot(
 
 ggplot(
   movers |> filter(!is.na(idp)),
-  aes(x = t, y = movers, col = destination_raion)
+  aes(x = t, y = movers, col = destination_oblast)
 ) +
   geom_line() +
   facet_wrap(. ~ destination_oblast, scales = "free_y") +
