@@ -8,7 +8,7 @@ library(readxl)
 
 source(file.path(here::here(), "R_helpers/generic.R"))
 
-output_date <- "202510"
+output_date <- "20251029"
 
 # create output directory ----
 dir.create(
@@ -228,12 +228,14 @@ for (month in unique(flows$t) |> as.character()) {
   setnames(
     flows_sub_wide,
     old = c(
+      "t",
       "origin_hromada_PCODE",
       "origin_raion_PCODE",
       "destination_hromada_PCODE",
       "destination_raion_PCODE"
     ),
     new = c(
+      "DATE",
       "origin_ADM3_PCODE",
       "origin_ADM2_PCODE",
       "destination_ADM3_PCODE",
@@ -280,10 +282,12 @@ for (month in unique(flows$t) |> as.character()) {
   setnames(
     stocks_sub_wide,
     old = c(
+      "t",
       "hromada_PCODE",
       "raion_PCODE"
     ),
     new = c(
+      "DATE",
       "ADM3_PCODE",
       "ADM2_PCODE"
     )
@@ -331,7 +335,7 @@ for (month in unique(flows$t) |> as.character()) {
 
   # write output
   flows_cols <- c(
-    "t",
+    "DATE",
     "origin_ADM1_PCODE",
     "origin_ADM2_PCODE",
     "origin_ADM3_PCODE",
@@ -341,7 +345,7 @@ for (month in unique(flows$t) |> as.character()) {
     names(flows_sub_wide)[
       !(names(flows_sub_wide) %in%
         c(
-          "t",
+          "DATE",
           "origin_ADM1_PCODE",
           "origin_ADM2_PCODE",
           "origin_ADM3_PCODE",
@@ -352,7 +356,7 @@ for (month in unique(flows$t) |> as.character()) {
     ]
   )
   stocks_cols <- c(
-    "t",
+    "DATE",
     "ADM1_PCODE",
     "ADM2_PCODE",
     "ADM3_PCODE",
@@ -365,7 +369,7 @@ for (month in unique(flows$t) |> as.character()) {
     names(stocks_sub_wide)[
       !(names(stocks_sub_wide) %in%
         c(
-          "t",
+          "DATE",
           "ADM1_PCODE",
           "ADM2_PCODE",
           "ADM3_PCODE",
