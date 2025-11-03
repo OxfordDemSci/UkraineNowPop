@@ -8,7 +8,7 @@ library(future.apply)
 library(readxl)
 
 # parameters ----
-output_date <- "202510"
+output_date <- "20251029"
 output_label <- ""
 dir.create(
   file.path(out_dir, "model", "deterministic", "figs", output_date),
@@ -26,7 +26,26 @@ flows_hromada_agesex <- fread(file.path(
   "deliverables",
   output_date,
   paste0(tolower(country), "_flows_hromada_agesex", output_label, ".csv")
-))
+)) |>
+  mutate(t = as.Date(t))
+
+flows_hromada_agesex_imputed <- rbind(
+  fread(file.path(
+    out_dir,
+    "population_proxy",
+    "mobile_phone",
+    "vodafone_monthlyFlows_imputed.csv"
+  )),
+  fread(file.path(
+    out_dir,
+    "population_proxy",
+    "mobile_phone",
+    "vodafone_monthlyFlows_ngctToNgct.csv"
+  )),
+  fill = T
+) |>
+  mutate(t = as.Date(t))
+
 flows_hromada_agesex_raw <- rbind(
   fread(file.path(
     out_dir,
@@ -41,7 +60,9 @@ flows_hromada_agesex_raw <- rbind(
     "vodafone_monthlyFlows_ngctToNgct.csv"
   ))[, c("origin_territory ", "destination_territory") := NULL],
   fill = T
-)
+) |>
+  mutate(t = as.Date(t))
+
 
 pcodes <- read_excel(
   file.path(
@@ -97,7 +118,8 @@ stocks_hromada_agesex <- flows_hromada_agesex[,
     hromada_PCODE = destination_hromada_PCODE,
     raion_PCODE = destination_raion_PCODE
   )
-]
+] |>
+  mutate(t = as.Date(t))
 
 flows_hromada_totals_last <- flows_hromada_agesex |>
   as_tibble() |>
@@ -135,15 +157,21 @@ stocks_hromada_totals <- stocks_hromada_agesex |>
       select(ADM3_EN, hromada_PCODE = ADM3_PCODE, raion_PCODE = ADM2_PCODE)
   )
 
+stocks_hromada_agesex_imputed <- flows_hromada_agesex_imputed[,
+  .(subscribers_monthlyFlow_imputed = sum(subscribers_monthlyFlow)),
+  by = .(t, s_name, a_name, hromada = destination_hromada)
+]
+
 stocks_hromada_agesex_raw <- flows_hromada_agesex_raw[,
   .(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)),
   by = .(t, s_name, a_name, hromada = destination_hromada)
 ]
 
 stocks_hromada_agesex <- stocks_hromada_agesex |>
-  left_join(stocks_hromada_agesex_raw) |>
+  left_join(stocks_hromada_agesex_imputed |> mutate(t = as.Date(t))) |>
+  left_join(stocks_hromada_agesex_raw |> mutate(t = as.Date(t))) |>
   mutate(
-    penetration_rate = subscribers_monthlyFlow / pop_estimated
+    penetration_rate = subscribers_monthlyFlow_imputed / pop_estimated
   ) |>
   left_join(
     pcodes |>
@@ -428,11 +456,12 @@ tmap_save(
 )
 
 # Largest population change compared to last month -----
-
-stocks_hromada_change <- stocks_hromada_agesex_last |>
+ref_date <- as.Date('2025-08-01')
+stocks_hromada_change <- stocks_hromada_agesex |>
+  filter(t == ref_date) |>
   left_join(
     stocks_hromada_agesex |>
-      filter(t == as.Date(max(stocks_hromada_agesex$t)) - months(1)) |>
+      filter(t == ref_date - months(1)) |>
       rename(
         pop_estimated_before = pop_estimated,
         t_first = t
@@ -470,7 +499,7 @@ tm_pop_change <- tm_shape(
       values = "carto.tropic",
       style = "jenks",
       value.na = 'grey',
-      midpoint = 0
+      midpoint = 0,
     ),
     fill.free = TRUE,
     col = "white",
@@ -485,7 +514,7 @@ tm_pop_change <- tm_shape(
   ) +
   tm_title(paste0(
     "Population change (18-64 years old) in ",
-    stocks_hromada_totals_last$t[1],
+    ref_date,
     " compared to previous month"
   )) +
   tm_facets(by = "change_type", ncol = 2)
@@ -499,7 +528,7 @@ tmap_save(
     "deterministic",
     "figs",
     output_date,
-    paste0("map_pop_change_", stocks_hromada_totals_last$t[1], ".png")
+    paste0("map_pop_change_", ref_date, ".png")
   ),
   width = 8,
   height = 5
@@ -989,17 +1018,17 @@ melt_for_plot <- function(df) {
         "s_name",
         "hromada",
         "hromada_name",
+        "hromada_PCODE",
         "oblast",
         "raion",
-        "raion_name",
-        "macroregion",
-        "territory"
+        "raion_PCODE"
       )
     ),
     measure.vars = c(
       "pop_estimated",
       "penetration_rate",
-      "subscribers_monthlyFlow"
+      "subscribers_monthlyFlow",
+      "subscribers_monthlyFlow_imputed"
     ),
     variable.name = "name",
     value.name = "value",
@@ -1009,7 +1038,12 @@ melt_for_plot <- function(df) {
   melted[,
     name := factor(
       name,
-      levels = c("pop_estimated", "penetration_rate", "subscribers_monthlyFlow")
+      levels = c(
+        "pop_estimated",
+        "penetration_rate",
+        "subscribers_monthlyFlow_imputed",
+        "subscribers_monthlyFlow"
+      )
     )
   ]
   return(melted)
@@ -1246,11 +1280,14 @@ ggplot(
 # [INTERNAL] Origin of flows ----
 
 # create per-destination plots of origins and save to disk
-destination_h_code <- unique(flows$destination_hromada_PCODE)
+destination_h_code <- flows_hromada_agesex |>
+  distinct(destination_hromada_PCODE, destination_hromada) |>
+  arrange(destination_hromada_PCODE)
+
 destination_h_names <- pcodes |>
-  filter(`Admin Level` == 3) |>
-  filter(pcode %in% destination_h_code) |>
-  pull(Name)
+  arrange(ADM3_PCODE) |>
+  filter(ADM3_PCODE %in% destination_h_code$destination_hromada_PCODE) |>
+  pull(ADM3_EN)
 
 out_dir_flows_plots <- file.path(
   out_dir_base,
@@ -1258,16 +1295,45 @@ out_dir_flows_plots <- file.path(
   "Hromada"
 )
 
-destination_h_list <- split(
+by_raw <- intersect(
+  names(flows_hromada_agesex),
+  names(flows_hromada_agesex_raw)
+)
+flows_hromada_agesex_ <- merge(
   flows_hromada_agesex,
-  by = "destination_hromada_PCODE",
+  flows_hromada_agesex_raw,
+  by = by_raw,
+  all.x = TRUE,
+  sort = FALSE
+)
+
+flows_hromada_agesex_imputed <- flows_hromada_agesex_imputed |>
+  rename(subscribers_monthlyFlow_imputed = subscribers_monthlyFlow)
+
+by_imp <- intersect(
+  names(flows_hromada_agesex_),
+  names(flows_hromada_agesex_imputed)
+)
+
+flows_hromada_agesex_ <- merge(
+  flows_hromada_agesex_,
+  flows_hromada_agesex_imputed,
+  by = by_imp,
+  all.x = TRUE,
+  sort = FALSE
+)
+
+destination_h_list <- split(
+  flows_hromada_agesex_,
+  by = "destination_hromada",
   keep.by = TRUE
 )
 
-lapply(
-  1:length(destination_h_code),
+plan(multisession, workers = 4)
+future_lapply(
+  1:length(destination_h_code$destination_hromada),
   function(h) {
-    #h <- 'UA05020010000053508'
+    #h <- 'UA12060110000015305'
 
     if (is.na(h) || h %in% c("Abroad", "Unknown")) {
       next
@@ -1276,14 +1342,41 @@ lapply(
 
     # order origin_oblast by total contribution (desc)
     flows_to_h_from_o <- flows_to_h[,
-      .(pop_estimated = sum(pop_estimated, na.rm = TRUE)),
+      .(
+        pop_estimated = sum(pop_estimated, na.rm = TRUE),
+        subscribers_monthlyFlow = sum(subscribers_monthlyFlow, na.rm = TRUE),
+        subscribers_monthlyFlow_imputed = sum(
+          subscribers_monthlyFlow_imputed,
+          na.rm = TRUE
+        )
+      ),
       by = .(origin_oblast, t)
     ]
-
+    flows_to_h_from_o <- flows_to_h_from_o |>
+      pivot_longer(
+        cols = c(
+          "subscribers_monthlyFlow",
+          "subscribers_monthlyFlow_imputed",
+          "pop_estimated"
+        ),
+        names_to = "metric",
+        values_to = "value"
+      )
+    flows_to_h_from_o <- flows_to_h_from_o |>
+      mutate(
+        metric = factor(
+          metric,
+          levels = c(
+            'pop_estimated',
+            'subscribers_monthlyFlow_imputed',
+            'subscribers_monthlyFlow'
+          )
+        )
+      )
     # build plot
     p <- ggplot(
       flows_to_h_from_o,
-      aes(x = t, y = pop_estimated, fill = origin_oblast)
+      aes(x = t, y = value, fill = origin_oblast)
     ) +
       geom_col() +
       theme_minimal() +
@@ -1300,11 +1393,11 @@ lapply(
         fill = "Origin oblast"
       ) +
       facet_wrap(
-        . ~ reorder(origin_oblast, desc(pop_estimated)),
+        . ~ metric,
+        nrow = 3,
         scales = "free_y"
       ) +
-      scale_y_continuous(labels = scales::comma) +
-      theme(legend.position = "none")
+      scale_y_continuous(labels = scales::comma)
 
     # safe filename and save
     outdir <- file.path(
@@ -1318,7 +1411,7 @@ lapply(
         outdir,
         paste0(
           "originFlows_hromada_",
-          destination_h_code[h],
+          destination_h_code$destination_hromada[h],
           "_",
           destination_h_names[h],
           ".png"
