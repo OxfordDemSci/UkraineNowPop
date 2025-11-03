@@ -19,7 +19,7 @@ hromada_geo <- st_read(file.path(out_dir, "ua_master_hromada.gpkg")) |>
   )
 
 # Load Vodafone data
-monthlyFlows <- data.table::fread(file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_monthlyFlows.csv")) |>
+monthlyFlows <- data.table::fread(file.path(out_dir, "population_proxy", "mobile_phone", "vodafone_monthlyFlows_imputed.csv")) |>
   mutate(
     t = as.Date(t)
   )
@@ -87,75 +87,11 @@ monthlyFlows <- monthlyFlows |>
     destination_raion = ifelse(destination_hromada == "Abroad", "Abroad", destination_raion),
   )
 
-# Remove missing combination (age, sex, hromada)
 
-
-# compute missing hromadas
-timesteps_total <- length(unique(monthlyFlows$t))
-missing_hromadas <- monthlyFlows[
-  , .(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)),
-  by = .(t, destination_hromada)
-][
-  , .(n_timesteps = timesteps_total - .N),
-  by = destination_hromada
-][
-  n_timesteps > 0
-]
-
-
-dropping_hromadas <- missing_hromadas |>
-  filter(n_timesteps > 3)
-
-# imputation
-# select hromadas with only three missing timesteps
-imputed_hromadas <- missing_hromadas |>
-  filter(n_timesteps <= 3)
-
-# check the minimum date without data
-date_to_impute_hromadas_df <- monthlyFlows |>
-  group_by(t, destination_hromada) |>
-  summarise(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)) |>
-  ungroup() |>
-  filter(destination_hromada %in% imputed_hromadas$destination_hromada) |>
-  complete(
-    t = seq(min(monthlyFlows$t, na.rm = T), max(monthlyFlows$t), by = "1 month"),
-    nesting(destination_hromada)
-  ) |>
-  filter(is.na(subscribers_monthlyFlow))
-
-imputed_hromadas_df <- missing_hromadas |>
-  filter(n_timesteps < 4) |>
-  left_join(
-    date_to_impute_hromadas_df |>
-      group_by(destination_hromada) |>
-      summarise(t = min(t))
-  )
-
-# replicate last observed date
-imputed_hromadas_df <- imputed_hromadas_df |>
-  mutate(
-    t = t - months(1)
-  ) |>
-  left_join(
-    monthlyFlows
-  ) |>
-  uncount(n_timesteps, .id = "month") |>
-  mutate(
-    t = t + months(month)
-  ) |>
-  select(-month)
-
-# combine imputed with available data
-monthlyFlows_imputed <- bind_rows(
-  monthlyFlows,
-  imputed_hromadas_df
-) |>
-  filter(!origin_hromada %in% dropping_hromadas$destination_hromada) |>
-  filter(!destination_hromada %in% dropping_hromadas$destination_hromada)
 
 
 # compute available age-sex combinations
-agesex_geoCombination <- monthlyFlows_imputed |>
+agesex_geoCombination <- monthlyFlows |>
   group_by(t, a_name, s_name) |>
   summarise(
     n_hromada = n_distinct(origin_hromada, destination_hromada),
@@ -164,7 +100,7 @@ agesex_geoCombination <- monthlyFlows_imputed |>
     n_macroregion = n_distinct(origin_macroregion, destination_macroregion),
     .groups = "drop"
   ) |>
-  bind_rows(monthlyFlows_imputed |>
+  bind_rows(monthlyFlows |>
     group_by(t) |>
     summarise(
       n_hromada = n_distinct(origin_hromada, destination_hromada),
@@ -187,7 +123,7 @@ agesex_geoCombination_full <- agesex_geoCombination |>
   filter(n_macroregion == 56 & a_name != "All" & s_name != "All")
 
 # remove missing age-sex combinations
-monthlyFlows_imputed <- monthlyFlows_imputed |>
+monthlyFlows <- monthlyFlows |>
   filter(a_name %in% agesex_geoCombination_full$a_name & s_name %in% agesex_geoCombination_full$s_name)
 
 
@@ -241,7 +177,7 @@ agesex <- agesex |>
 # Prepare reference data by age and sex
 hromada_agesex <- hromada_pop |>
   filter(hromada_code %in% c(
-    unique(monthlyFlows_imputed$destination_hromada),
+    unique(monthlyFlows$destination_hromada),
     ngct_mapping |> filter(territory == "ngct") |> pull(hromada_code)
   )) |>
   left_join(agesex |>
@@ -532,7 +468,7 @@ national_pop_minusOutflows_plusInflows_minusNGCT <- national_pop_minusOutflows_p
 
 # Step 2: The model ---------------------------------------
 
-monthlyFlows_totals <- monthlyFlows_imputed |>
+monthlyFlows_totals <- monthlyFlows |>
   group_by(t, origin_hromada, destination_hromada, origin_macroregion, destination_macroregion, origin_oblast, destination_oblast, origin_raion, destination_raion) |>
   summarise(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)) |>
   ungroup()
@@ -575,7 +511,7 @@ penetration_rate[[1]] <- monthlyFlows_totals[[1]] |>
 
 
 # Compute age and sex penetration rate on day 1
-monthlyFlows_agesex <- monthlyFlows_imputed |>
+monthlyFlows_agesex <- monthlyFlows |>
   group_split(t)
 
 penetration_rate_agesexMacroregion <- list()
