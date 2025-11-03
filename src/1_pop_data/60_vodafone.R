@@ -2,6 +2,7 @@ rm(list = ls())
 gc()
 library(tmap)
 tmap_options(component.autoscale = F)
+library(data.table)
 
 correct_dip202506 <- TRUE
 
@@ -342,6 +343,15 @@ if (correct_dip202506) {
         subscribers_monthlyFlow
       )
     )
+  monthlyFlows_ngct <- monthlyFlows_ngct |>
+    select(
+      # -dip_ratio,
+      # -starts_with("2025-0"),
+      # -origin_territory,
+      # -destination_territory,
+      -ends_with("_raion"),
+      # -ends_with("_macroregion")
+    )
 }
 
 write_csv(
@@ -449,6 +459,16 @@ monthlyFlows <- monthlyFlows |>
     subscribers_monthlyFlow
   )
 
+write_csv(
+  monthlyFlows,
+  file.path(
+    out_dir,
+    "population_proxy",
+    "mobile_phone",
+    "vodafone_monthlyFlows.csv"
+  )
+)
+
 # Remove missing combination (age, sex, hromada)
 
 # compute missing hromadas
@@ -523,29 +543,37 @@ monthlyFlows_imputed <- bind_rows(
 if (correct_dip202506) {
   # compute percent change between May 2025 and June 2025 by oblast, age, sex
 
-  change_arounddip <- monthlyFlows_imputed |>
-    filter(t %in% as.Date(c('2025-05-01', '2025-06-01'))) |>
+  change_arounddip_destination <- monthlyFlows_imputed |>
+    filter(t %in% as.Date(c('2025-05-01', '2025-07-01'))) |>
     group_by(t, destination_hromada, a_name, s_name) |>
     summarise(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)) |>
     pivot_wider(names_from = t, values_from = subscribers_monthlyFlow) |>
     mutate(
-      dip_ratio = `2025-05-01` / `2025-06-01`
+      dip_ratio_destination = `2025-05-01` / `2025-07-01`
+    ) |>
+    select(
+      destination_hromada,
+      a_name,
+      s_name,
+      dip_ratio_destination
     )
+
+  monthlyFlows_imputed <- bind_rows(
+    monthlyFlows_imputed |>
+      filter(t != as.Date('2025-06-01')),
+    monthlyFlows_imputed |>
+      filter(t == as.Date('2025-05-01')) |>
+      mutate(t = as.Date('2025-06-01'))
+  )
 
   monthlyFlows_imputed <- monthlyFlows_imputed |>
     left_join(
-      change_arounddip |>
-        select(
-          destination_hromada,
-          a_name,
-          s_name,
-          dip_ratio
-        )
+      change_arounddip_destination
     ) |>
     mutate(
       subscribers_monthlyFlow_ = ifelse(
-        t >= as.Date('2025-06-01'),
-        subscribers_monthlyFlow * dip_ratio,
+        t >= as.Date('2025-07-01'),
+        subscribers_monthlyFlow * dip_ratio_destination,
         subscribers_monthlyFlow
       ),
       subscribers_monthlyFlow_ = ifelse(
@@ -556,7 +584,8 @@ if (correct_dip202506) {
     ) |>
     select(-subscribers_monthlyFlow) |>
     rename(subscribers_monthlyFlow = subscribers_monthlyFlow_) |>
-    select(-dip_ratio)
+    select(-starts_with("dip_ratio")) |>
+    arrange(t, a_name, s_name)
 }
 
 write_csv(
@@ -742,7 +771,7 @@ ggplot(monthlyFlows_wide_s, aes(x = date, y = value, fill = type)) +
 
 # Monthly flows users evolution ----------------------------------------
 
-monthlyFlows_ |>
+monthlyFlows_imputed_ |>
   group_by(t) |>
   summarise(
     subscribers_monthlyFlow = sum(subscribers_monthlyFlow),
@@ -1496,7 +1525,7 @@ ggplot(
   theme(legend.position = "none") +
   labs(title = "Movers from the flows data", y = "count")
 
-stocks <- data.table(monthlyFlows_imputed)[,
+stocks <- data.table(monthlyFlows_imputed_)[,
   .(
     subscribers_monthlyFlow = sum(subscribers_monthlyFlow),
     subscribers_monthlyFlow_ = sum(subscribers_monthlyFlow_)
