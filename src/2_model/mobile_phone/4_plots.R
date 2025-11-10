@@ -8,7 +8,7 @@ library(future.apply)
 library(readxl)
 
 # parameters ----
-output_date <- "20251029"
+output_date <- "20251103"
 output_label <- ""
 dir.create(
   file.path(out_dir, "model", "deterministic", "figs", output_date),
@@ -44,7 +44,8 @@ flows_hromada_agesex_imputed <- rbind(
   )),
   fill = T
 ) |>
-  mutate(t = as.Date(t))
+  mutate(t = as.Date(t)) |>
+  rename(subscribers_monthlyFlow_imputed = subscribers_monthlyFlow)
 
 flows_hromada_agesex_raw <- rbind(
   fread(file.path(
@@ -158,7 +159,7 @@ stocks_hromada_totals <- stocks_hromada_agesex |>
   )
 
 stocks_hromada_agesex_imputed <- flows_hromada_agesex_imputed[,
-  .(subscribers_monthlyFlow_imputed = sum(subscribers_monthlyFlow)),
+  .(subscribers_monthlyFlow_imputed = sum(subscribers_monthlyFlow_imputed)),
   by = .(t, s_name, a_name, hromada = destination_hromada)
 ]
 
@@ -194,7 +195,7 @@ stocks_raion_agesex <- stocks_hromada_agesex |>
   )
 
 stocks_oblast_agesex <- stocks_hromada_agesex |>
-  group_by(t, macroregion, oblast, a_name, s_name) |>
+  group_by(t, oblast, a_name, s_name) |>
   summarise(
     pop_estimated = sum(pop_estimated),
     subscribers_monthlyFlow = sum(subscribers_monthlyFlow),
@@ -456,83 +457,104 @@ tmap_save(
 )
 
 # Largest population change compared to last month -----
-ref_date <- as.Date('2025-08-01')
-stocks_hromada_change <- stocks_hromada_agesex |>
-  filter(t == ref_date) |>
-  left_join(
-    stocks_hromada_agesex |>
-      filter(t == ref_date - months(1)) |>
-      rename(
-        pop_estimated_before = pop_estimated,
-        t_first = t
-      )
-  ) |>
-  group_by(hromada, oblast, raion, hromada_PCODE) |>
-  summarise(
-    pop_estimated = sum(pop_estimated),
-    pop_estimated_before = sum(pop_estimated_before),
-    .groups = "drop"
-  ) |>
-  mutate(
-    Absolute = pop_estimated - pop_estimated_before,
-    Relative = (pop_estimated - pop_estimated_before) /
-      pop_estimated_before *
-      100
-  ) |>
-  pivot_longer(
-    cols = c(Absolute, Relative),
-    names_to = "change_type",
-    values_to = "Change"
-  )
+ref_dates <- seq(
+  max(stocks_hromada_agesex$t) - months(5),
+  max(stocks_hromada_agesex$t),
+  by = 'month'
+) |>
+  as.Date()
 
-tm_pop_change <- tm_shape(
-  hromada_geo |>
+for (ref_date in ref_dates) {
+  ref_date <- as.Date(ref_date)
+  stocks_hromada_change <- stocks_hromada_agesex |>
+    filter(t == ref_date) |>
     left_join(
-      stocks_hromada_change |>
-        rename(hromada_code = hromada)
+      stocks_hromada_agesex |>
+        filter(t == ref_date - months(1)) |>
+        rename(
+          pop_estimated_before = pop_estimated,
+          t_first = t
+        ) |>
+        select(
+          a_name,
+          s_name,
+          hromada,
+          oblast,
+          raion,
+          hromada_PCODE,
+          pop_estimated_before
+        )
     ) |>
-    filter(!is.na(Change))
-) +
-  tm_polygons(
-    fill = "Change",
-    fill.scale = tm_scale_intervals(
-      values = "carto.tropic",
-      style = "jenks",
-      value.na = 'grey',
-      midpoint = 0,
-    ),
-    fill.free = TRUE,
-    col = "white",
-    lwd = 0.1
-  ) +
-  tm_layout(
-    panel.labels = c("Absolute difference (people)", "Relative difference (%)"),
-    panel.label.bg.color = 'white',
-    frame = FALSE,
-    legend.frame = FALSE,
-    asp = 1.7
-  ) +
-  tm_title(paste0(
-    "Population change (18-64 years old) in ",
-    ref_date,
-    " compared to previous month"
-  )) +
-  tm_facets(by = "change_type", ncol = 2)
-tm_pop_change
+    group_by(hromada, oblast, raion, hromada_PCODE) |>
+    summarise(
+      pop_estimated = sum(pop_estimated),
+      pop_estimated_before = sum(pop_estimated_before),
+      .groups = "drop"
+    ) |>
+    mutate(
+      Absolute = pop_estimated - pop_estimated_before,
+      Relative = (pop_estimated - pop_estimated_before) /
+        pop_estimated_before *
+        100
+    ) |>
+    pivot_longer(
+      cols = c(Absolute, Relative),
+      names_to = "change_type",
+      values_to = "Change"
+    )
 
-tmap_save(
-  tm_pop_change,
-  filename = file.path(
-    out_dir,
-    "model",
-    "deterministic",
-    "figs",
-    output_date,
-    paste0("map_pop_change_", ref_date, ".png")
-  ),
-  width = 8,
-  height = 5
-)
+  tm_pop_change <- tm_shape(
+    hromada_geo |>
+      left_join(
+        stocks_hromada_change |>
+          rename(hromada_code = hromada)
+      ) |>
+      filter(!is.na(Change))
+  ) +
+    tm_polygons(
+      fill = "Change",
+      fill.scale = tm_scale_intervals(
+        values = "carto.tropic",
+        style = "jenks",
+        value.na = 'grey',
+        midpoint = 0,
+      ),
+      fill.free = TRUE,
+      col = "white",
+      lwd = 0.1
+    ) +
+    tm_layout(
+      panel.labels = c(
+        "Absolute difference (people)",
+        "Relative difference (%)"
+      ),
+      panel.label.bg.color = 'white',
+      frame = FALSE,
+      legend.frame = FALSE,
+      asp = 1.7
+    ) +
+    tm_title(paste0(
+      "Population change (18-64 years old) in ",
+      ref_date,
+      " compared to previous month"
+    )) +
+    tm_facets(by = "change_type", ncol = 2)
+  tm_pop_change
+
+  tmap_save(
+    tm_pop_change,
+    filename = file.path(
+      out_dir,
+      "model",
+      "deterministic",
+      "figs",
+      output_date,
+      paste0("map_pop_change_", ref_date, ".png")
+    ),
+    width = 8,
+    height = 5
+  )
+}
 # Time series of total pop -----
 
 hromada_counts <- stocks_hromada_totals |>
@@ -694,6 +716,7 @@ max_change_hromada <- stocks_hromada_change |>
   arrange(Change) |>
   slice(c(1, 2, 3, n() - 2, n() - 1, n())) |>
   pull(hromada_PCODE)
+
 stocks_hromada_agesex_pyramid <- stocks_hromada_agesex |>
   mutate(t = as.Date(t)) |>
   filter(t == max(t) | t == max(t) - months(1)) |>
@@ -1280,65 +1303,129 @@ ggplot(
 # [INTERNAL] Origin of flows ----
 
 # create per-destination plots of origins and save to disk
-destination_h_code <- flows_hromada_agesex |>
-  distinct(destination_hromada_PCODE, destination_hromada) |>
-  arrange(destination_hromada_PCODE)
-
-destination_h_names <- pcodes |>
-  arrange(ADM3_PCODE) |>
-  filter(ADM3_PCODE %in% destination_h_code$destination_hromada_PCODE) |>
-  pull(ADM3_EN)
 
 out_dir_flows_plots <- file.path(
-  out_dir_base,
+  out_dir,
+  "model",
+  "deterministic",
+  "figs",
+  output_date,
   "Flows origin",
   "Hromada"
 )
+
 
 by_raw <- intersect(
   names(flows_hromada_agesex),
   names(flows_hromada_agesex_raw)
 )
-flows_hromada_agesex_ <- merge(
-  flows_hromada_agesex,
-  flows_hromada_agesex_raw,
-  by = by_raw,
+
+flows_hromada_comp <- merge(
+  flows_hromada_agesex[,
+    .(
+      pop_estimated = sum(pop_estimated, na.rm = TRUE)
+    ),
+    by = .(
+      origin_oblast,
+      origin_hromada,
+      destination_hromada,
+      destination_hromada_PCODE,
+      destination_raion,
+      destination_oblast,
+      t
+    )
+  ],
+  flows_hromada_agesex_raw[,
+    .(
+      subscribers_monthlyFlow = sum(subscribers_monthlyFlow, na.rm = TRUE)
+    ),
+    by = .(
+      origin_oblast,
+      origin_hromada,
+      destination_hromada,
+      destination_oblast,
+      t
+    )
+  ],
+  by = c(
+    'origin_oblast',
+    'origin_hromada',
+    'destination_hromada',
+    'destination_oblast',
+    't'
+  ),
   all.x = TRUE,
   sort = FALSE
 )
 
-flows_hromada_agesex_imputed <- flows_hromada_agesex_imputed |>
-  rename(subscribers_monthlyFlow_imputed = subscribers_monthlyFlow)
 
-by_imp <- intersect(
-  names(flows_hromada_agesex_),
-  names(flows_hromada_agesex_imputed)
-)
-
-flows_hromada_agesex_ <- merge(
-  flows_hromada_agesex_,
-  flows_hromada_agesex_imputed,
-  by = by_imp,
+flows_hromada_comp <- merge(
+  flows_hromada_comp,
+  flows_hromada_agesex_imputed[,
+    .(
+      subscribers_monthlyFlow_imputed = sum(
+        subscribers_monthlyFlow_imputed,
+        na.rm = TRUE
+      )
+    ),
+    by = .(
+      origin_oblast,
+      origin_hromada,
+      destination_hromada,
+      destination_oblast,
+      t
+    )
+  ],
+  by = c(
+    'origin_oblast',
+    'origin_hromada',
+    'destination_hromada',
+    'destination_oblast',
+    't'
+  ),
   all.x = TRUE,
   sort = FALSE
 )
 
-destination_h_list <- split(
-  flows_hromada_agesex_,
+destination_h_code <- flows_hromada_comp |>
+  distinct(
+    destination_oblast,
+    destination_raion,
+    destination_hromada_PCODE,
+    destination_hromada
+  ) |>
+  arrange(destination_hromada_PCODE) |>
+  left_join(
+    pcodes |>
+      select(ADM3_PCODE, ADM3_EN),
+    by = c("destination_hromada_PCODE" = "ADM3_PCODE")
+  )
+
+flows_hromada_comp_list <- split(
+  flows_hromada_comp[, .(
+    origin_oblast,
+    destination_hromada,
+    t,
+    pop_estimated,
+    subscribers_monthlyFlow,
+    subscribers_monthlyFlow_imputed
+  )],
   by = "destination_hromada",
-  keep.by = TRUE
+  keep.by = F
 )
+
 
 plan(multisession, workers = 4)
+
 future_lapply(
   1:length(destination_h_code$destination_hromada),
   function(h) {
-    #h <- 'UA12060110000015305'
+    #h <- 3
 
-    if (is.na(h) || h %in% c("Abroad", "Unknown")) {
-      next
-    }
-    flows_to_h <- destination_h_list[[h]]
+    flows_to_h <- flows_hromada_comp_list[[
+      destination_h_code[h, ]$destination_hromada
+    ]] |>
+      as.data.table()
 
     # order origin_oblast by total contribution (desc)
     flows_to_h_from_o <- flows_to_h[,
@@ -1352,6 +1439,7 @@ future_lapply(
       ),
       by = .(origin_oblast, t)
     ]
+
     flows_to_h_from_o <- flows_to_h_from_o |>
       pivot_longer(
         cols = c(
@@ -1362,6 +1450,7 @@ future_lapply(
         names_to = "metric",
         values_to = "value"
       )
+
     flows_to_h_from_o <- flows_to_h_from_o |>
       mutate(
         metric = factor(
@@ -1374,6 +1463,7 @@ future_lapply(
         )
       )
     # build plot
+
     p <- ggplot(
       flows_to_h_from_o,
       aes(x = t, y = value, fill = origin_oblast)
@@ -1383,9 +1473,9 @@ future_lapply(
       labs(
         title = paste0(
           "Origin oblast of flows to hromada ",
-          destination_h_names[h],
+          destination_h_code[h, ]$ADM3_EN,
           " in oblast ",
-          flows_to_h$destination_oblast[1]
+          destination_h_code[h, ]$destination_oblast
         ),
         subtitle = "Oblasts sorted by total population contributed (top to bottom)",
         y = "Estimated population (18-64 years old)",
@@ -1402,18 +1492,19 @@ future_lapply(
     # safe filename and save
     outdir <- file.path(
       out_dir_flows_plots,
-      flows_to_h$destination_oblast[1],
-      flows_to_h$destination_raion[1]
+      destination_h_code[h, ]$destination_oblast,
+      destination_h_code[h, ]$destination_raion
     )
     dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
+
     ggsave(
       filename = file.path(
         outdir,
         paste0(
           "originFlows_hromada_",
-          destination_h_code$destination_hromada[h],
+          destination_h_code[h, ]$destination_hromada,
           "_",
-          destination_h_names[h],
+          destination_h_code[h, ]$ADM3_EN,
           ".png"
         )
       ),

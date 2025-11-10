@@ -8,7 +8,7 @@ library(readxl)
 
 source(file.path(here::here(), "R_helpers/generic.R"))
 
-output_date <- "20251029"
+output_date <- "20251103"
 
 # create output directory ----
 dir.create(
@@ -127,10 +127,7 @@ flows[,
     "scaling_factor",
     "monthlyFlow_hat_agesex",
     'origin_macroregion',
-    'destination_macroregion',
-    '2025-05-01',
-    '2025-06-01',
-    'dip_ratio'
+    'destination_macroregion'
   ) := NULL
 ]
 
@@ -300,9 +297,28 @@ for (month in unique(flows$t) |> as.character()) {
     by.y = c("ADM3_PCODE", "ADM2_PCODE"),
     all.x = TRUE
   )
+  # replace in column names - by _
+  setnames(
+    flows_sub_wide,
+    old = names(flows_sub_wide)[grepl("-", names(flows_sub_wide))],
+    new = str_replace_all(
+      names(flows_sub_wide)[grepl("-", names(flows_sub_wide))],
+      "-",
+      "_"
+    )
+  )
+  setnames(
+    stocks_sub_wide,
+    old = names(stocks_sub_wide)[grepl("-", names(stocks_sub_wide))],
+    new = str_replace_all(
+      names(stocks_sub_wide)[grepl("-", names(stocks_sub_wide))],
+      "-",
+      "_"
+    )
+  )
 
   # create total columns
-  age_groups <- unique(flows$a_name)
+  age_groups <- unique(flows$a_name) |> str_replace("-", "_")
   for (age in age_groups) {
     flows_sub_wide[,
       paste0("T_", age) := rowSums(.SD, na.rm = TRUE),
@@ -316,21 +332,21 @@ for (month in unique(flows$t) |> as.character()) {
   sexes <- unique(flows$s_name)
   for (sex in sexes) {
     flows_sub_wide[,
-      paste0(sex, "_TL") := rowSums(.SD, na.rm = TRUE),
+      paste0(sex, "_18_64") := rowSums(.SD, na.rm = TRUE),
       .SDcols = patterns(paste0("^", sex, "_"))
     ]
     stocks_sub_wide[,
-      paste0(sex, "_TL") := rowSums(.SD, na.rm = TRUE),
+      paste0(sex, "_18_64") := rowSums(.SD, na.rm = TRUE),
       .SDcols = patterns(paste0("^", sex, "_"))
     ]
   }
   flows_sub_wide[,
-    "T_TL" := rowSums(.SD, na.rm = TRUE),
-    .SDcols = paste0(sexes, "_TL")
+    "T_18_64" := rowSums(.SD, na.rm = TRUE),
+    .SDcols = paste0(sexes, "_18_64")
   ]
   stocks_sub_wide[,
-    "T_TL" := rowSums(.SD, na.rm = TRUE),
-    .SDcols = paste0(sexes, "_TL")
+    "T_18_64" := rowSums(.SD, na.rm = TRUE),
+    .SDcols = paste0(sexes, "_18_64")
   ]
 
   # write output

@@ -4,13 +4,16 @@ library(ggforce)
 library(NatParksPalettes)
 library(jsonlite)
 library(dtmapi)
+library(tmap)
+library(data.table)
 
 source(file.path(here::here(), "R_helpers/generic.R"))
 source(here::here(".env"), local = env)
 
+download_DTM_IDP <- FALSE
 
 # Create output directories ----
-output_date <- "202510"
+output_date <- "20251103"
 
 repo_dir <- env$repo_dir
 src_dir <- file.path(repo_dir, "src", "2_model")
@@ -24,6 +27,7 @@ fig_dir <- file.path(out_dir, "comparison", output_date)
 
 data_dir <- file.path(dirname(in_dir), "data")
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
+dir.create(fig_dir, showWarnings = FALSE, recursive = TRUE)
 
 
 # Load data ----
@@ -112,7 +116,6 @@ clean_key <- function(x) {
 }
 
 stocks_hromada_agesex <- stocks_hromada_agesex %>%
-  mutate(ADM3_Minrehion_CODE = hromada) %>%
   mutate(!!key := clean_key(!!sym(key)))
 
 
@@ -513,203 +516,200 @@ tmap_save(
 
 ## Proportion comparison at raion level ----
 
-plot_obl_prop <- comparison23 %>%
-  group_by(ADM1_EN, a_name, s_name) %>%
-  summarise(
-    pop_estimated = sum(pop_estimated, na.rm = TRUE),
-    pop1 = sum(pop1, na.rm = TRUE),
-    .groups = "drop"
-  ) %>%
-  group_by(ADM1_EN) %>%
-  mutate(
-    total_est_obl = sum(pop_estimated),
-    total_bench_obl = sum(pop1),
-    prop_bench_obl = pop1 / total_bench_obl,
-    prop_bench_obl = ifelse(s_name == "M", -prop_bench_obl, prop_bench_obl)
-  ) %>%
-  ungroup() %>%
-  select(ADM1_EN, a_name, s_name, prop_bench_obl)
+# plot_obl_prop <- comparison23 %>%
+#   group_by(ADM1_EN, a_name, s_name) %>%
+#   summarise(
+#     pop_estimated = sum(pop_estimated, na.rm = TRUE),
+#     pop1 = sum(pop1, na.rm = TRUE),
+#     .groups = "drop"
+#   ) %>%
+#   group_by(ADM1_EN) %>%
+#   mutate(
+#     total_est_obl = sum(pop_estimated),
+#     total_bench_obl = sum(pop1),
+#     prop_bench_obl = pop1 / total_bench_obl,
+#     prop_bench_obl = ifelse(s_name == "M", -prop_bench_obl, prop_bench_obl)
+#   ) %>%
+#   ungroup() %>%
+#   select(ADM1_EN, a_name, s_name, prop_bench_obl)
 
+# plot_raion_prop <- comparison23 %>%
+#   left_join(plot_obl_prop) %>%
+#   group_by(ADM2_EN) %>%
+#   mutate(
+#     total_est = sum(pop_estimated, na.rm = TRUE),
+#     total_bench = sum(pop1, na.rm = TRUE)
+#   ) %>%
+#   ungroup() %>%
+#   mutate(
+#     prop_est = pop_estimated / total_est,
+#     prop_bench = pop1 / total_bench,
+#     prop_est = ifelse(s_name == "M", -prop_est, prop_est),
+#     prop_bench = ifelse(s_name == "M", -prop_bench, prop_bench)
+#   )
 
-plot_raion_prop <- comparison23 %>%
-  left_join(plot_obl_prop) %>%
-  group_by(ADM2_EN) %>%
-  mutate(
-    total_est = sum(pop_estimated, na.rm = TRUE),
-    total_bench = sum(pop1, na.rm = TRUE)
-  ) %>%
-  ungroup() %>%
-  mutate(
-    prop_est = pop_estimated / total_est,
-    prop_bench = pop1 / total_bench,
-    prop_est = ifelse(s_name == "M", -prop_est, prop_est),
-    prop_bench = ifelse(s_name == "M", -prop_bench, prop_bench)
-  )
+# base_pyr <- ggplot(plot_raion_prop, aes(x = a_name)) +
+#   geom_col(aes(y = prop_est, fill = s_name), width = 0.9, alpha = 0.65) +
+#   geom_line(
+#     aes(y = prop_bench, colour = s_name, group = s_name),
+#     linewidth = 1.1
+#   ) +
+#   geom_line(
+#     aes(y = prop_bench_obl, colour = s_name, group = s_name),
+#     linewidth = 1.1,
+#     linetype = 2
+#   ) +
+#   coord_flip() +
+#   scale_fill_manual(
+#     values = c(M = "#8C86A0", F = "#CF932C"),
+#     name = NULL,
+#     labels = c(F = "Female (Vodafone est.)", M = "Male (Vodafone est.)")
+#   ) +
+#   scale_colour_manual(
+#     values = c(M = "#8C86A0", F = "#CF932C"),
+#     name = NULL,
+#     labels = c(F = "Female (COD‑PS 2023)", M = "Male (COD‑PS 2023)")
+#   ) +
+#   scale_y_continuous(labels = function(x) round(abs(x), 2)) +
+#   labs(
+#     title = "Vodafone estimates vs. COD‑PS 2023 population pyramid by Raion (1 July 2023)",
+#     subtitle = "Solid lines: COD-PS 2023 - raion level; Dashed lines: COD-PS 2023 - oblast level ",
+#     x = NULL,
+#     y = "Population"
+#   ) +
+#   theme_minimal(base_size = 16) +
+#   theme(legend.position = "bottom")
 
-base_pyr <- ggplot(plot_raion_prop, aes(x = a_name)) +
-  geom_col(aes(y = prop_est, fill = s_name), width = 0.9, alpha = 0.65) +
-  geom_line(
-    aes(y = prop_bench, colour = s_name, group = s_name),
-    linewidth = 1.1
-  ) +
-  geom_line(
-    aes(y = prop_bench_obl, colour = s_name, group = s_name),
-    linewidth = 1.1,
-    linetype = 2
-  ) +
-  coord_flip() +
-  scale_fill_manual(
-    values = c(M = "#8C86A0", F = "#CF932C"),
-    name = NULL,
-    labels = c(F = "Female (Vodafone est.)", M = "Male (Vodafone est.)")
-  ) +
-  scale_colour_manual(
-    values = c(M = "#8C86A0", F = "#CF932C"),
-    name = NULL,
-    labels = c(F = "Female (COD‑PS 2023)", M = "Male (COD‑PS 2023)")
-  ) +
-  scale_y_continuous(labels = function(x) round(abs(x), 2)) +
-  labs(
-    title = "Vodafone estimates vs. COD‑PS 2023 population pyramid by Raion (1 July 2023)",
-    subtitle = "Solid lines: COD-PS 2023 - raion level; Dashed lines: COD-PS 2023 - oblast level ",
-    x = NULL,
-    y = "Population"
-  ) +
-  theme_minimal(base_size = 16) +
-  theme(legend.position = "bottom")
+# n_col <- 3
+# n_row <- 3
+# base_pyr +
+#   ggforce::facet_wrap_paginate(
+#     ~ ADM1_EN * ADM2_EN,
+#     ncol = n_col,
+#     nrow = n_row,
+#     page = 1
+#   )
+# ggsave(
+#   file.path(fig_dir, "vodafone_vs_codps_2023_pop_pyr_raion1.jpeg"),
+#   plot = last_plot(),
+#   width = 35,
+#   height = 25,
+#   units = "cm",
+#   dpi = 300
+# )
 
-n_col <- 3
-n_row <- 3
-base_pyr +
-  ggforce::facet_wrap_paginate(
-    ~ ADM1_EN * ADM2_EN,
-    ncol = n_col,
-    nrow = n_row,
-    page = 1
-  )
-ggsave(
-  file.path(fig_dir, "vodafone_vs_codps_2023_pop_pyr_raion1.jpeg"),
-  plot = last_plot(),
-  width = 35,
-  height = 25,
-  units = "cm",
-  dpi = 300
-)
+# base_pyr +
+#   ggforce::facet_wrap_paginate(
+#     ~ ADM1_EN * ADM2_EN,
+#     ncol = n_col,
+#     nrow = n_row,
+#     page = 2
+#   )
+# ggsave(
+#   file.path(fig_dir, "vodafone_vs_codps_2023_pop_pyr_raion2.jpeg"),
+#   plot = last_plot(),
+#   width = 35,
+#   height = 25,
+#   units = "cm",
+#   dpi = 300
+# )
+# base_pyr +
+#   ggforce::facet_wrap_paginate(
+#     ~ ADM1_EN * ADM2_EN,
+#     ncol = n_col,
+#     nrow = n_row,
+#     page = 2
+#   )
+# ggsave(
+#   file.path(fig_dir, "vodafone_vs_codps_2023_pop_pyr_raion2.jpeg"),
+#   plot = last_plot(),
+#   width = 35,
+#   height = 25,
+#   units = "cm",
+#   dpi = 300
+# )
 
-base_pyr +
-  ggforce::facet_wrap_paginate(
-    ~ ADM1_EN * ADM2_EN,
-    ncol = n_col,
-    nrow = n_row,
-    page = 2
-  )
-ggsave(
-  file.path(fig_dir, "vodafone_vs_codps_2023_pop_pyr_raion2.jpeg"),
-  plot = last_plot(),
-  width = 35,
-  height = 25,
-  units = "cm",
-  dpi = 300
-)
-base_pyr +
-  ggforce::facet_wrap_paginate(
-    ~ ADM1_EN * ADM2_EN,
-    ncol = n_col,
-    nrow = n_row,
-    page = 2
-  )
-ggsave(
-  file.path(fig_dir, "vodafone_vs_codps_2023_pop_pyr_raion2.jpeg"),
-  plot = last_plot(),
-  width = 35,
-  height = 25,
-  units = "cm",
-  dpi = 300
-)
+# base_pyr +
+#   ggforce::facet_wrap_paginate(
+#     ~ ADM1_EN * ADM2_EN,
+#     ncol = n_col,
+#     nrow = n_row,
+#     page = 3
+#   )
+# ggsave(
+#   file.path(fig_dir, "vodafone_vs_codps_2023_pop_pyr_raion3.jpeg"),
+#   plot = last_plot(),
+#   width = 35,
+#   height = 25,
+#   units = "cm",
+#   dpi = 300
+# )
 
-base_pyr +
-  ggforce::facet_wrap_paginate(
-    ~ ADM1_EN * ADM2_EN,
-    ncol = n_col,
-    nrow = n_row,
-    page = 3
-  )
-ggsave(
-  file.path(fig_dir, "vodafone_vs_codps_2023_pop_pyr_raion3.jpeg"),
-  plot = last_plot(),
-  width = 35,
-  height = 25,
-  units = "cm",
-  dpi = 300
-)
+# base_plot <- ggplot(
+#   comparison23,
+#   aes(x = log(pop1), y = log(pop_estimated), colour = a_name, shape = s_name)
+# ) +
+#   geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+#   geom_point(size = 3.5, stroke = 1.8, alpha = 0.65) +
+#   labs(
+#     title = "Vodafone estimates vs. COD‑PS 2023 - raion level",
+#     subtitle = "Reference date: 1 Jul 2023",
+#     x = "log(COD‑PS 2023)",
+#     y = "log(Vodafone estimate)",
+#     colour = "Age group",
+#     shape = "Sex"
+#   ) +
+#   scale_shape_manual(values = c(F = 3, M = 2)) +
+#   scale_color_viridis_d() +
+#   theme_minimal(base_size = 20)
 
-
-base_plot <- ggplot(
-  comparison23,
-  aes(x = log(pop1), y = log(pop_estimated), colour = a_name, shape = s_name)
-) +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
-  geom_point(size = 3.5, stroke = 1.8, alpha = 0.65) +
-  labs(
-    title = "Vodafone estimates vs. COD‑PS 2023 - raion level",
-    subtitle = "Reference date: 1 Jul 2023",
-    x = "log(COD‑PS 2023)",
-    y = "log(Vodafone estimate)",
-    colour = "Age group",
-    shape = "Sex"
-  ) +
-  scale_shape_manual(values = c(F = 3, M = 2)) +
-  scale_color_viridis_d() +
-  theme_minimal(base_size = 20)
-
-n_col <- 3
-n_row <- 2
-base_plot +
-  ggforce::facet_wrap_paginate(
-    ~ ADM1_EN * ADM2_EN,
-    ncol = n_col,
-    nrow = n_row,
-    page = 1
-  )
-ggsave(
-  file.path(fig_dir, "vodafone_vs_codps_2023_scatterplot_raion1.jpeg"),
-  plot = last_plot(),
-  width = 35,
-  height = 25,
-  units = "cm",
-  dpi = 300
-)
-base_plot +
-  ggforce::facet_wrap_paginate(
-    ~ ADM1_EN * ADM2_EN,
-    ncol = n_col,
-    nrow = n_row,
-    page = 2
-  )
-ggsave(
-  file.path(fig_dir, "vodafone_vs_codps_2023_scatterplot_raion2.jpeg"),
-  plot = last_plot(),
-  width = 35,
-  height = 25,
-  units = "cm",
-  dpi = 300
-)
-base_plot +
-  ggforce::facet_wrap_paginate(
-    ~ ADM1_EN * ADM2_EN,
-    ncol = n_col,
-    nrow = n_row,
-    page = 3
-  )
-ggsave(
-  file.path(fig_dir, "vodafone_vs_codps_2023_scatterplot_raion3.jpeg"),
-  plot = last_plot(),
-  width = 35,
-  height = 25,
-  units = "cm",
-  dpi = 300
-)
-
+# n_col <- 3
+# n_row <- 2
+# base_plot +
+#   ggforce::facet_wrap_paginate(
+#     ~ ADM1_EN * ADM2_EN,
+#     ncol = n_col,
+#     nrow = n_row,
+#     page = 1
+#   )
+# ggsave(
+#   file.path(fig_dir, "vodafone_vs_codps_2023_scatterplot_raion1.jpeg"),
+#   plot = last_plot(),
+#   width = 35,
+#   height = 25,
+#   units = "cm",
+#   dpi = 300
+# )
+# base_plot +
+#   ggforce::facet_wrap_paginate(
+#     ~ ADM1_EN * ADM2_EN,
+#     ncol = n_col,
+#     nrow = n_row,
+#     page = 2
+#   )
+# ggsave(
+#   file.path(fig_dir, "vodafone_vs_codps_2023_scatterplot_raion2.jpeg"),
+#   plot = last_plot(),
+#   width = 35,
+#   height = 25,
+#   units = "cm",
+#   dpi = 300
+# )
+# base_plot +
+#   ggforce::facet_wrap_paginate(
+#     ~ ADM1_EN * ADM2_EN,
+#     ncol = n_col,
+#     nrow = n_row,
+#     page = 3
+#   )
+# ggsave(
+#   file.path(fig_dir, "vodafone_vs_codps_2023_scatterplot_raion3.jpeg"),
+#   plot = last_plot(),
+#   width = 35,
+#   height = 25,
+#   units = "cm",
+#   dpi = 300
+# )
 
 # Compare Vodafone estimates vs. COD-PS 2024 ----
 
@@ -1283,17 +1283,34 @@ for (adm in unique(pyramid_df$ADM1_EN)) {
 # Compare Vodafone estimates vs DTM IDP estimates ----
 
 ## Download IDP numbers from DTM ----
-set_subscription_key(key = env$DTM_API_KEY)
+if (download_DTM_IDP) {
+  set_subscription_key(key = env$DTM_API_KEY)
 
-idp <- get_idp_admin1_data(
-  CountryName = "Ukraine",
-  FromReportingDate = "2022-01-01",
-  ToReportingDate = "2025-12-01"
+  idp <- get_idp_admin1_data(
+    CountryName = "Ukraine",
+    FromReportingDate = "2022-01-01",
+    ToReportingDate = "2025-12-01"
+  )
+
+  write.csv(
+    idp,
+    file.path(
+      in_dir,
+      'IOM',
+      "dtm_idp_admin1_2022_2025.csv"
+    ),
+    row.names = FALSE
+  )
+}
+
+idp <- read.csv(
+  file.path(
+    in_dir,
+    'IOM',
+    "dtm_idp_admin1_2022_2025.csv"
+  )
 )
-
 ## Compute movers from the flows data ----
-
-library(data.table)
 
 movers <- flows_hromada_agesex[
   origin_oblast != destination_oblast,
@@ -1357,7 +1374,7 @@ ggplot(
     x = ''
   ) +
   paletteer::scale_color_paletteer_d("pals::stepped") +
-  lims(y = c(-1, 10000))
+  lims(y = c(-1, 100))
 
 ggsave(
   file.path(fig_dir, "vodafone_vs_dtm_idp_time_series_oblast.jpeg"),
@@ -1367,18 +1384,6 @@ ggsave(
   units = "cm",
   dpi = 300
 )
-ggplot(
-  movers |> filter(!is.na(idp) & t > as.Date("2022-03-01")),
-  aes(x = t, y = diff_perc, col = destination_raion)
-) +
-  geom_line() +
-  facet_wrap(. ~ destination_oblast, scales = "free_y") +
-  theme_minimal() +
-  theme(legend.position = "none") +
-  labs(
-    title = "Difference between IDP and movers: after the start of the war",
-    y = "(Movers-IDP)/IDP (%)"
-  )
 
 ggplot(
   movers |> filter(!is.na(idp)),

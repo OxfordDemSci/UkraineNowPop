@@ -326,31 +326,39 @@ monthlyFlows_ngct <- baselineFlows |>
 
 if (correct_dip202506) {
   dip_change <- monthlyFlows_ngct |>
-    filter(t %in% as.Date(c('2025-05-01', '2025-06-01'))) |>
+    filter(t %in% as.Date(c('2025-05-01', '2025-07-01'))) |>
     group_by(t, s_name, a_name) |>
     summarise(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)) |>
     pivot_wider(names_from = t, values_from = subscribers_monthlyFlow) |>
     mutate(
-      dip_ratio = `2025-05-01` / `2025-06-01`
+      dip_ratio = `2025-05-01` / `2025-07-01`
     )
+
+  monthlyFlows_ngct <- bind_rows(
+    monthlyFlows_ngct |>
+      filter(t != as.Date('2025-06-01')),
+    monthlyFlows_ngct |>
+      filter(t == as.Date('2025-05-01')) |>
+      mutate(t = as.Date('2025-06-01'))
+  )
 
   monthlyFlows_ngct <- monthlyFlows_ngct |>
     left_join(dip_change) |>
     mutate(
       subscribers_monthlyFlow = ifelse(
-        t >= as.Date('2025-06-01'),
+        t >= as.Date('2025-07-01'),
         subscribers_monthlyFlow * dip_ratio,
         subscribers_monthlyFlow
       )
     )
   monthlyFlows_ngct <- monthlyFlows_ngct |>
     select(
-      # -dip_ratio,
-      # -starts_with("2025-0"),
-      # -origin_territory,
-      # -destination_territory,
+      -dip_ratio,
+      -starts_with("2025-0"),
+      -origin_territory,
+      -destination_territory,
       -ends_with("_raion"),
-      # -ends_with("_macroregion")
+      -ends_with("_macroregion")
     )
 }
 
@@ -572,7 +580,7 @@ if (correct_dip202506) {
     ) |>
     mutate(
       subscribers_monthlyFlow_ = ifelse(
-        t >= as.Date('2025-07-01'),
+        t >= as.Date('2025-07-01') & origin_oblast == destination_oblast,
         subscribers_monthlyFlow * dip_ratio_destination,
         subscribers_monthlyFlow
       ),
@@ -588,7 +596,7 @@ if (correct_dip202506) {
     arrange(t, a_name, s_name)
 }
 
-write_csv(
+fwrite(
   monthlyFlows_imputed,
   file.path(
     out_dir,
