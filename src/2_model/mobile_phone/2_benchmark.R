@@ -1360,7 +1360,8 @@ movers |>
 
 ## Plot comparison ----
 ggplot(
-  movers |> filter(!is.na(idp) & t > as.Date("2022-02-01")),
+  movers |>
+    filter(!is.na(idp) & t > as.Date("2022-02-01") & t < as.Date("2025-06-01")),
   aes(x = t, y = diff_perc, col = destination_oblast)
 ) +
   geom_line() +

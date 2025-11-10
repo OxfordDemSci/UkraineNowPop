@@ -399,6 +399,8 @@ hromada_geo_pop <- hromada_geo |>
       rename(hromada_code = hromada)
   )
 
+date_ref <- stocks_hromada_totals_last$t[1]
+date_ref <- as.Date('2025-05-01')
 tm_pop_last <- tm_shape(hromada_geo_pop) +
   tm_polygons(
     fill = "pop_estimated",
@@ -428,7 +430,7 @@ tm_pop_last <- tm_shape(hromada_geo_pop) +
   ) +
   tm_title(paste0(
     "18-64 years old population estimated on ",
-    stocks_hromada_totals_last$t[1]
+    date_ref
   )) +
   tm_credits(
     paste0(
@@ -450,7 +452,7 @@ tmap_save(
     "deterministic",
     "figs",
     output_date,
-    paste0("map_pop_", stocks_hromada_totals_last$t[1], ".png")
+    paste0("map_pop_", date_ref, ".png")
   ),
   width = 8,
   height = 6
@@ -563,6 +565,7 @@ hromada_counts <- stocks_hromada_totals |>
 
 gg_timeserie <- stocks_hromada_totals |>
   filter(oblast != 'Abroad') |>
+  filter(t <= date_ref) |>
   group_by(t, oblast) |>
   summarise(pop_estimated = sum(pop_estimated), .groups = "drop")
 
@@ -596,7 +599,7 @@ ggsave(
     "deterministic",
     "figs",
     output_date,
-    "timeserie_pop_oblast.png"
+    paste0("timeserie_pop_", date_ref, ".png")
   ),
   width = 9,
   height = 6
@@ -611,7 +614,7 @@ ggsave(
 
 top_corridor_last <- flows_hromada_agesex |>
   as_tibble() |>
-  filter(t == max(stocks_hromada_agesex$t)) |>
+  filter(t == date_ref) |>
   rename(pop_estimated = pop_estimated) |>
   ungroup() |>
   filter(origin_hromada != destination_hromada & origin_hromada != "Abroad") |>
@@ -656,9 +659,9 @@ gg_corridor <- ggplot(
     ),
     subtitle = paste0(
       "Between ",
-      as.Date(max(stocks_hromada_agesex$t)) - months(1),
+      date_ref - months(1),
       " and ",
-      max(stocks_hromada_agesex$t)
+      date_ref
     )
   ) +
   scale_fill_manual(values = c(f_color, m_color))
@@ -671,7 +674,7 @@ ggsave(
     "deterministic",
     "figs",
     output_date,
-    "corridor_agesex_top10.png"
+    paste0("corridor_agesex_top10", date_ref, ".png")
   ),
   gg_corridor,
   w = 8,
@@ -680,7 +683,7 @@ ggsave(
 
 movers_by_agesex <- flows_hromada_agesex |>
   as_tibble() |>
-  filter(t == max(stocks_hromada_agesex$t)) |>
+  filter(t == date_ref) |>
   rename(pop_estimated = pop_estimated) |>
   ungroup() |>
   filter(origin_hromada != destination_hromada & origin_hromada != "Abroad") |>
@@ -703,12 +706,26 @@ gg_movers <- ggplot(
     y = "Age group",
     fill = "Gender",
     title = paste0(
-      "Total movers between hromadas by age and sex in the last month"
+      "Total movers between hromadas by age and sex in ",
+      date_ref
     )
   ) +
   scale_fill_manual(values = c(f_color, m_color))
 gg_movers
 
+ggsave(
+  file.path(
+    out_dir,
+    "model",
+    "deterministic",
+    "figs",
+    output_date,
+    paste0("movers_agesex_total_", date_ref, ".png")
+  ),
+  gg_movers,
+  w = 6,
+  height = 4
+)
 
 # Population pyramid for a couple locations baseline vs current ----
 max_change_hromada <- stocks_hromada_change |>
@@ -719,7 +736,7 @@ max_change_hromada <- stocks_hromada_change |>
 
 stocks_hromada_agesex_pyramid <- stocks_hromada_agesex |>
   mutate(t = as.Date(t)) |>
-  filter(t == max(t) | t == max(t) - months(1)) |>
+  filter(t == date_ref | t == date_ref - months(1)) |>
   left_join(
     pcodes |>
       rename(hromada_PCODE = ADM3_PCODE, hromada_name = ADM3_EN)
@@ -748,7 +765,7 @@ gg_pyramid <- ggplot(
     y = "Population",
     fill = "Sex",
     alpha = "Month",
-    title = "Age-sex population in the hromadas that experienced the largest changes",
+    title = "Age-sex population in the hromadas that experienced the largest changes"
   ) +
   theme_minimal() +
   facet_wrap(. ~ hromada_name, scales = "free") +
@@ -763,7 +780,7 @@ ggsave(
     "deterministic",
     "figs",
     output_date,
-    "pyramid_hromada_last.png"
+    paste0("pyramid_hromada_", date_ref, ".png")
   ),
   gg_pyramid,
   w = 8,
@@ -772,8 +789,17 @@ ggsave(
 
 # Map of arrivers from abroad ----
 
-abroad_arrivals_last <- flows_hromada_totals_last |>
-  filter(origin_hromada == "Abroad")
+abroad_arrivals_last <- flows_hromada_agesex |>
+  filter(origin_hromada == "Abroad") |>
+  filter(t == date_ref) |>
+  group_by(
+    destination_hromada,
+    destination_oblast,
+    destination_hromada_PCODE
+  ) |>
+  summarise(
+    pop_estimated = sum(pop_estimated)
+  )
 
 hromada_geo_abroad_arrivals <- hromada_geo |>
   left_join(
@@ -803,7 +829,7 @@ tm_abroad_arrivals_last <- tm_shape(hromada_geo_abroad_arrivals) +
   tm_title(
     paste0(
       "Monthly arrivals from abroad estimated on ",
-      stocks_hromada_totals_last$t[1]
+      date_ref
     )
   ) +
   tm_credits(
@@ -830,8 +856,17 @@ tmap_save(
 
 # Map of leavers to abroad ----
 
-abroad_leavers_last <- flows_hromada_totals_last |>
-  filter(destination_hromada == "Abroad")
+abroad_leavers_last <- flows_hromada_agesex |>
+  filter(destination_hromada == "Abroad") |>
+  filter(t == date_ref) |>
+  group_by(
+    origin_hromada,
+    origin_oblast,
+    origin_hromada_PCODE
+  ) |>
+  summarise(
+    pop_estimated = sum(pop_estimated)
+  )
 
 hromada_geo_abroad_leavers <- hromada_geo |>
   left_join(
@@ -861,7 +896,7 @@ tm_abroad_leavers_last <- tm_shape(hromada_geo_abroad_leavers) +
   ) +
   tm_title(paste(
     "Monthly leavers to abroad estimated on",
-    stocks_hromada_totals_last$t[1]
+    date_ref
   )) +
   tm_credits(
     paste0(
@@ -871,6 +906,7 @@ tm_abroad_leavers_last <- tm_shape(hromada_geo_abroad_leavers) +
     position = c("left", "bottom")
   )
 tm_abroad_leavers_last
+
 tmap_save(
   tm_abroad_leavers_last,
   filename = file.path(
@@ -879,7 +915,7 @@ tmap_save(
     "deterministic",
     "figs",
     output_date,
-    paste0("map_abroad_leavers_", stocks_hromada_totals_last$t[1], ".png")
+    paste0("map_abroad_leavers_", date_ref, ".png")
   ),
 )
 
@@ -899,7 +935,7 @@ tmap_save(
     "deterministic",
     "figs",
     output_date,
-    paste0("map_abroad_combined_", stocks_hromada_totals_last$t[1], ".png")
+    paste0("map_abroad_combined_", date_ref, ".png")
   ),
   width = 12,
   height = 6
@@ -1534,7 +1570,7 @@ stocks_hromada_agesex |>
 
 ##  how many hromadas experienced population change ----
 flows_hromada_agesex_last <- flows_hromada_agesex |>
-  filter(t == max(t))
+  filter(t == date_ref)
 
 flows_hromada_agesex_last |>
   filter(
@@ -1544,6 +1580,27 @@ flows_hromada_agesex_last |>
   ) |>
   summarise(sum(pop_estimated))
 
+flows_hromada_agesex_last |>
+  filter(
+    origin_hromada != destination_hromada &
+      origin_hromada != "Abroad" &
+      destination_hromada != "Abroad"
+  ) |>
+  group_by(a_name) |>
+  summarise(pop = sum(pop_estimated), .groups = "drop") |>
+  mutate(perc = pop / sum(pop) * 100)
+
+flows_hromada_agesex_last |>
+  filter(
+    origin_hromada != destination_hromada &
+      origin_hromada != "Abroad" &
+      destination_hromada != "Abroad"
+  ) |>
+  group_by(s_name) |>
+  summarise(pop = sum(pop_estimated), .groups = "drop") |>
+  mutate(perc = pop / sum(pop) * 100)
+
+
 stocks_hromada_change |>
   left_join(
     pcodes |>
@@ -1551,7 +1608,7 @@ stocks_hromada_change |>
   ) |>
   filter(change_type == "Absolute") |>
   filter(hromada != "Abroad") |>
-  filter(rank(desc(abs(Change))) <= 4) |>
+  filter(rank(desc(abs(Change))) <= 6) |>
   select(hromada, hromada_name, oblast, Change)
 
 stocks_hromada_change |>
@@ -1613,7 +1670,7 @@ abroad_arrivals_last |>
     stocks_hromada_totals |>
       ungroup() |>
       mutate(t = as.Date(t)) |>
-      filter(t == (max(stocks_hromada_totals$t) |> as.Date() - months(1))) |>
+      filter(t == (date_ref |> as.Date() - months(1))) |>
       rename(
         destination_hromada_PCODE = hromada_PCODE,
         stock_pop_estimated = pop_estimated
@@ -1639,13 +1696,12 @@ abroad_arrivals_last |>
 
 ## where have people left to abroad ----
 abroad_leavers_last |>
-  mutate(t = as.Date(t)) |>
   ungroup() |>
   left_join(
     flows_hromada_agesex |>
       ungroup() |>
       mutate(t = as.Date(t)) |>
-      filter(t == (max(stocks_hromada_totals$t) |> as.Date() - months(1))) |>
+      filter(t == (date_ref - months(1))) |>
       group_by(origin_hromada_PCODE) |>
       summarise(stock_pop_estimated = sum(pop_estimated))
   ) |>
