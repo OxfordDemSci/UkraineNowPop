@@ -47,7 +47,7 @@ agg_level <- function(DT, dest_col, level) {
 }
 
 agg_level_flows <- function(DT, dest_col, orig_col, level) {
-  DT[, .(count = sum(count)),
+  DT[get(dest_col) != get(orig_col), .(count = sum(count)),
     by = .(day, age_min, age_max, sex, country,
       destination = get(dest_col), origin = get(orig_col)
     )
@@ -58,7 +58,7 @@ agg_level_flows <- function(DT, dest_col, orig_col, level) {
 
 # --- POP STOCKS --------------------------------------------------------------
 # group once, then reshape to levels
-stocks <- flows[destination_hromada_PCODE != "Abroad",
+stocks <- flows[destination_hromada_PCODE != "Abroad" & t %in% c("2025-05-01", "2025-06-01", "2025-07-01"),
   .(pop = sum(pop_estimated)),
   by = .(
     t, a_name, s_name,
@@ -92,8 +92,7 @@ fwrite(
 # --- POP FLOWS ---------------------------------------------------------------
 flows_dt <- flows[
   origin_hromada != "Unknown" &
-    destination_hromada != "Abroad" &
-    origin_hromada != destination_hromada,
+    destination_hromada != "Abroad" & t %in% c("2025-05-01", "2025-06-01", "2025-07-01"),
   .(count = sum(as.integer(pop_estimated))),
   by = .(
     t, a_name, s_name,
