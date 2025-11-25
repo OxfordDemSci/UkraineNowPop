@@ -107,20 +107,20 @@ for (age_group in ages) {
       for (origin in locations) {
         # If origin equals destination, we increase the migration rate (ie stayers)
         if (origin == destination) {
-          migration_rate[age_group, sex_group, destination, origin, ] <- rnorm(1, mean = 0.5, sd = 0.05)
-        } else if (destination == "Abroad") {
-          migration_rate[age_group, sex_group, destination, origin, ] <- abs(rnorm(1, mean = 0.05, sd = 0.01))
+          migration_rate[age_group, sex_group, destination, origin, ] <- abs(rnorm(1, mean = 0.5, sd = 0.05))
         } else if (destination == "Abroad" & sex_group == "Male") {
           migration_rate[age_group, sex_group, destination, origin, ] <- 0
+        } else if (destination == "Abroad") {
+          migration_rate[age_group, sex_group, destination, origin, ] <- abs(rnorm(1, mean = 0.05, sd = 0.01))
         } else if (origin == "Kharkiv") {
           # If the origin is Kharkiv, we want to increase the out-migration rate
-          migration_rate[age_group, sex_group, destination, origin, ] <- rnorm(1, mean = 0.4, sd = 0.05)
+          migration_rate[age_group, sex_group, destination, origin, ] <- abs(rnorm(1, mean = 0.4, sd = 0.05))
         } else if (origin == "Kharkiv" & sex_group == "Female") {
           # If the origin is Kharkiv, we want to increase the out-migration rate
-          migration_rate[age_group, sex_group, destination, origin, ] <- rnorm(1, mean = 0.3, sd = 0.05)
+          migration_rate[age_group, sex_group, destination, origin, ] <- abs(rnorm(1, mean = 0.3, sd = 0.05))
         } else {
           # For all other origin-destination pairs, use a normal distribution with a lower mean
-          migration_rate[age_group, sex_group, destination, origin, ] <- rnorm(1, mean = 0.15, sd = 0.05)
+          migration_rate[age_group, sex_group, destination, origin, ] <- abs(rnorm(1, mean = 0.15, sd = 0.05))
         }
       }
     }
@@ -207,23 +207,26 @@ population_flowsBaseline_df <- as_tibble(as.table(population_flows_baseline)) |>
   mutate(time = as.Date(time))
 
 # True population plots
-ggplot(population_stocks_df, aes(x = time, y = pop, color = age, linetype = sex)) +
+gg_stocks_true <- ggplot(population_stocks_df, aes(x = time, y = pop, color = age, linetype = sex)) +
   geom_line() +
   theme_minimal() +
   facet_grid(destination ~ .) +
   labs(title = "True population stocks")
+ggsave(gg_stocks_true, filename = file.path(data_dir, "pic/stocks_true.png"), width = 8, height = 6)
 
-ggplot(population_flows_df, aes(x = time, y = pop, color = age, linetype = sex)) +
+gg_flows_true <- ggplot(population_flows_df, aes(x = time, y = pop, color = age, linetype = sex)) +
   geom_line() +
   theme_minimal() +
   facet_grid(origin ~ destination) +
   labs(title = "True population flows")
+ggsave(gg_flows_true, filename = file.path(data_dir, "pic/flows_true.png"), width = 8, height = 6)
 
-ggplot(population_flowsBaseline_df, aes(x = time, y = pop, color = age, linetype = sex)) +
+gg_baselineFlows_true <- ggplot(population_flowsBaseline_df, aes(x = time, y = pop, color = age, linetype = sex)) +
   geom_line() +
   theme_minimal() +
   facet_grid(origin ~ destination) +
   labs(title = "True population baseline flows")
+ggsave(gg_baselineFlows_true, filename = file.path(data_dir, "pic/baselineFlows_true.png"), width = 8, height = 6)
 
 
 if (check) {
@@ -250,12 +253,12 @@ if (check) {
 # constant through time
 
 
-population_detection <- array(NA,
+stocks_detection <- array(NA,
   dim = c(length(ages), length(sexes), length(locations), length(times)),
   dimnames = list(age = ages, sex = sexes, destination = locations, time = times)
 )
 
-population_observed <- array(NA,
+stocks_observed <- array(NA,
   dim = c(length(ages), length(sexes), length(locations), length(times)),
   dimnames = list(age = ages, sex = sexes, destination = locations, time = times)
 )
@@ -265,42 +268,48 @@ for (age_group in ages) {
     for (destination in locations) {
       # If origin is in East lower detection probability
       if (destination == "Abroad") {
-        population_detection[age_group, sex_group, destination, ] <- rep(runif(1, 0.4, 0.5), length(times))
+        stocks_detection[age_group, sex_group, destination, ] <- rep(runif(1, 0.4, 0.5), length(times))
       } else if (destination == "Kharkiv") {
-        population_detection[age_group, sex_group, destination, ] <- rep(runif(1, 0.2, 0.3), length(times))
+        stocks_detection[age_group, sex_group, destination, ] <- rep(runif(1, 0.2, 0.3), length(times))
       } else {
         # For all other origin-destination pairs, use a normal distribution with a lower mean
-        population_detection[age_group, sex_group, destination, ] <- rep(runif(1, 0.7, 0.8), length(times))
+        stocks_detection[age_group, sex_group, destination, ] <- rep(runif(1, 0.7, 0.8), length(times))
       }
     }
   }
 }
 
-# Observed population
+# Observed stocks
 
 for (t in times) {
   for (age_group in ages) {
     for (sex_group in sexes) {
       for (destination in locations) {
         # Add noise to population stocks
-        population_observed[age_group, sex_group, destination, t] <- rbinom(1, as.integer(population_stocks[age_group, sex_group, destination, t]), population_detection[age_group, sex_group, destination, t])
+        stocks_observed[age_group, sex_group, destination, t] <- rbinom(1, as.integer(population_stocks[age_group, sex_group, destination, t]), stocks_detection[age_group, sex_group, destination, t])
       }
     }
   }
 }
 
-population_observed_df <- bind_rows(
-  as_tibble(as.table(population_observed)) |>
-    rename(pop = n) |>
+stocks_detection_df <- as_tibble(as.table(stocks_detection)) |>
+  rename(prob = n)
+
+stocks_observed_df <- as_tibble(as.table(stocks_observed)) |>
+  rename(users = n) |>
+  mutate(time = as.Date(time))
+
+population_observed_df_gg <- bind_rows(
+  stocks_observed_df |>
+    rename(pop = users) |>
     mutate(
-      time = as.Date(time),
-      source = "observed population"
+      source = "observed stocks"
     ),
   population_stocks_df |>
-    mutate(source = "true population")
+    mutate(source = "true stocks")
 )
 
-ggplot(population_observed_df, aes(x = time, y = pop, color = age, linetype = source)) +
+ggplot(population_observed_df_gg, aes(x = time, y = pop, color = age, linetype = source)) +
   geom_line() +
   theme_minimal() +
   facet_grid(destination ~ sex)
@@ -362,15 +371,19 @@ for (t in times[-length(times)]) {
   }
 }
 
+flows_detection_df <- as_tibble(as.table(flows_detection)) |>
+  rename(prob = n)
+
 flows_observed_df <- as_tibble(as.table(flows_observed)) |>
   filter(time != max(times)) |>
-  rename(pop = n) |>
+  rename(users = n) |>
   mutate(
     time = as.Date(time),
     source = "observed flows"
   )
 
 flows_observed_df_plot <- flows_observed_df |>
+  rename(pop = users) |>
   bind_rows(
     population_flows_df |>
       mutate(source = "true flows")
@@ -441,16 +454,20 @@ for (t in times[-length(times)]) {
   }
 }
 
-# plot
+baselineFlows_detection_df <- as_tibble(as.table(baselineFlows_detection)) |>
+  rename(prob = n)
+
 baselineFlows_observed_df <- as_tibble(as.table(baselineFlows_observed)) |>
   filter(time != max(times)) |>
-  rename(pop = n) |>
+  rename(users = n) |>
   mutate(
-    time = as.Date(time),
-    source = "observed flows"
+    time = as.Date(time)
   )
 
+# plot
 baselineFlows_observed_df_plot <- baselineFlows_observed_df |>
+  rename(pop = users) |>
+  mutate(source = "observed flows") |>
   bind_rows(
     population_flowsBaseline_df |>
       mutate(source = "true flows")
@@ -468,13 +485,18 @@ ggplot(
 
 # write output -----------------------------------------------------------
 
-# Observed population
-write_csv(population_observed_df, file.path(out_dir, paste0("mobilePhone_pop_observed.csv")))
+# Observed stocks
+write_csv(stocks_observed_df, file.path(out_dir, paste0("mobilePhone_stocks_observed.csv")))
 write_csv(flows_observed_df, file.path(out_dir, paste0("mobilePhone_flows_observed.csv")))
 write_csv(baselineFlows_observed_df, file.path(out_dir, paste0("mobilePhone_baselineFlows_observed.csv")))
+
+# Detection probability
+write_csv(stocks_detection_df, file.path(out_dir, paste0("mobilePhone_stocks_detection.csv")))
+write_csv(flows_detection_df, file.path(out_dir, paste0("mobilePhone_flows_detection.csv")))
+write_csv(baselineFlows_detection_df, file.path(out_dir, paste0("mobilePhone_baselineFlows_detection.csv")))
 
 # True population
 write_csv(population_flows_df, file.path(out_dir, paste0("mobilePhone_flows.csv")))
 write_csv(population_flowsBaseline_df, file.path(out_dir, paste0("mobilePhone_baselineFlows.csv")))
-write_csv(population_stocks_df, file.path(out_dir, paste0("mobilePhone_pop.csv")))
+write_csv(population_stocks_df, file.path(out_dir, paste0("mobilePhone_stocks.csv")))
 write_csv(migration_rate_df, file.path(out_dir, paste0("mobilePhone_transitions.csv")))
