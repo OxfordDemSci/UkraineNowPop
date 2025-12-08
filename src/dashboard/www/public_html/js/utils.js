@@ -391,8 +391,9 @@ export function isObjectEmpty(objectName)
 export function update_Age_Range_labele(vFirst, vLast , age_ranges_available, age_max_label)
 {
     let age_min = age_ranges_available[0][vFirst];    
+    let age_max = age_ranges_available[1][vLast];
 
-    document.getElementById('label_Age_range').innerHTML = "Ages: "+ age_min +" - "+ age_max_label;
+    document.getElementById('label_Age_range').innerHTML = "Ages: "+ age_min +" - "+ age_max;
 }
 
 
