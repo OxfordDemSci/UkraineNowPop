@@ -4,8 +4,6 @@ library(tmap)
 tmap_options(component.autoscale = F)
 library(data.table)
 
-correct_dip202506 <- F
-
 # Load required helpers
 source(file.path(here::here(), "R_helpers/generic.R"))
 hromada <- read_csv(file.path(in_dir, "KSE-Loc-Data-Hub", "full_dataset.csv"))
@@ -350,44 +348,6 @@ monthlyFlows_ngct <- baselineFlows |>
     subscribers_monthlyFlow
   )
 
-if (correct_dip202506) {
-  dip_change <- monthlyFlows_ngct |>
-    filter(t %in% as.Date(c('2025-05-01', '2025-07-01'))) |>
-    group_by(t, s_name, a_name) |>
-    summarise(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)) |>
-    pivot_wider(names_from = t, values_from = subscribers_monthlyFlow) |>
-    mutate(
-      dip_ratio = `2025-05-01` / `2025-07-01`
-    )
-
-  monthlyFlows_ngct <- bind_rows(
-    monthlyFlows_ngct |>
-      filter(t != as.Date('2025-06-01')),
-    monthlyFlows_ngct |>
-      filter(t == as.Date('2025-05-01')) |>
-      mutate(t = as.Date('2025-06-01'))
-  )
-
-  monthlyFlows_ngct <- monthlyFlows_ngct |>
-    left_join(dip_change) |>
-    mutate(
-      subscribers_monthlyFlow = ifelse(
-        t >= as.Date('2025-07-01'),
-        subscribers_monthlyFlow * dip_ratio,
-        subscribers_monthlyFlow
-      )
-    )
-  monthlyFlows_ngct <- monthlyFlows_ngct |>
-    select(
-      -dip_ratio,
-      -starts_with("2025-0"),
-      -origin_territory,
-      -destination_territory,
-      -ends_with("_raion"),
-      -ends_with("_macroregion")
-    )
-}
-
 write_csv(
   monthlyFlows_ngct,
   file.path(
@@ -573,54 +533,6 @@ monthlyFlows_imputed <- bind_rows(
   filter(!origin_hromada %in% dropping_hromadas$destination_hromada) |>
   filter(!destination_hromada %in% dropping_hromadas$destination_hromada)
 
-
-if (correct_dip202506) {
-  # compute percent change between May 2025 and June 2025 by oblast, age, sex
-
-  change_arounddip_destination <- monthlyFlows_imputed |>
-    filter(t %in% as.Date(c('2025-05-01', '2025-07-01'))) |>
-    group_by(t, destination_hromada, a_name, s_name) |>
-    summarise(subscribers_monthlyFlow = sum(subscribers_monthlyFlow)) |>
-    pivot_wider(names_from = t, values_from = subscribers_monthlyFlow) |>
-    mutate(
-      dip_ratio_destination = `2025-05-01` / `2025-07-01`
-    ) |>
-    select(
-      destination_hromada,
-      a_name,
-      s_name,
-      dip_ratio_destination
-    )
-
-  monthlyFlows_imputed <- bind_rows(
-    monthlyFlows_imputed |>
-      filter(t != as.Date('2025-06-01')),
-    monthlyFlows_imputed |>
-      filter(t == as.Date('2025-05-01')) |>
-      mutate(t = as.Date('2025-06-01'))
-  )
-
-  monthlyFlows_imputed <- monthlyFlows_imputed |>
-    left_join(
-      change_arounddip_destination
-    ) |>
-    mutate(
-      subscribers_monthlyFlow_ = ifelse(
-        t >= as.Date('2025-07-01') & origin_oblast == destination_oblast,
-        subscribers_monthlyFlow * dip_ratio_destination,
-        subscribers_monthlyFlow
-      ),
-      subscribers_monthlyFlow_ = ifelse(
-        is.na(subscribers_monthlyFlow_),
-        subscribers_monthlyFlow,
-        subscribers_monthlyFlow_
-      )
-    ) |>
-    select(-subscribers_monthlyFlow) |>
-    rename(subscribers_monthlyFlow = subscribers_monthlyFlow_) |>
-    select(-starts_with("dip_ratio")) |>
-    arrange(t, a_name, s_name)
-}
 
 fwrite(
   monthlyFlows_imputed,
