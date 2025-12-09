@@ -683,34 +683,64 @@ ggsave(
 
 movers_by_agesex <- flows_hromada_agesex |>
   as_tibble() |>
-  filter(t == date_ref) |>
-  rename(pop_estimated = pop_estimated) |>
+  #filter(t == date_ref) |>
   ungroup() |>
   filter(origin_hromada != destination_hromada & origin_hromada != "Abroad") |>
   filter(origin_hromada != "Unknown") |>
   filter(destination_hromada != "Abroad") |>
-  group_by(a_name, s_name) |>
+  group_by(t, a_name, s_name) |>
   summarise(
     pop_estimated = sum(pop_estimated),
     .groups = "drop"
+  ) |>
+  mutate(
+    type = 'Internal'
+  )
+
+movers_abroad <- flows_hromada_agesex |>
+  as_tibble() |>
+  #filter(t == date_ref) |>
+  ungroup() |>
+  filter(destination_hromada == "Abroad" | origin_hromada == "Abroad") |>
+  group_by(t, a_name, s_name) |>
+  summarise(
+    pop_estimated = sum(pop_estimated),
+    .groups = "drop"
+  ) |>
+  mutate(
+    type = 'International'
   )
 
 gg_movers <- ggplot(
-  movers_by_agesex,
-  aes(x = pop_estimated, y = a_name, fill = s_name)
+  bind_rows(
+    movers_by_agesex,
+    movers_abroad
+  ),
+  aes(x = t, y = pop_estimated, color = s_name, linetype = type)
 ) +
-  geom_col(position = position_dodge2(preserve = "single"), alpha = 0.8) +
+  geom_line(size = 1) +
   theme_minimal() +
   labs(
-    x = "Estimated population",
-    y = "Age group",
-    fill = "Gender",
+    x = '',
+    y = "Estimated population",
+    color = "Gender",
+    linetype = 'Mobility',
     title = paste0(
-      "Total movers between hromadas by age and sex in ",
+      "Total movers between hromadas by age and sex "
+    ),
+    subtitle = paste0(
+      "Between ",
+      date_ref - months(12),
+      " and ",
       date_ref
     )
   ) +
-  scale_fill_manual(values = c(f_color, m_color))
+  scale_color_manual(values = c(f_color, m_color)) +
+  facet_grid(a_name ~ .) +
+  scale_y_continuous(
+    labels = scales::label_number(),
+    sec.axis = sec_axis(~., name = "Age group", breaks = NULL, labels = NULL)
+  )
 gg_movers
 
 ggsave(
@@ -731,8 +761,7 @@ ggsave(
 max_change_hromada <- stocks_hromada_change |>
   filter(change_type == 'Relative') |>
   arrange(Change) |>
-  slice(c(1, 2, 3, n() - 2, n() - 1, n())) |>
-  pull(hromada_PCODE)
+  slice(c(1, 2, 3, n() - 2, n() - 1, n()))
 
 stocks_hromada_agesex_pyramid <- stocks_hromada_agesex |>
   mutate(t = as.Date(t)) |>
@@ -742,7 +771,11 @@ stocks_hromada_agesex_pyramid <- stocks_hromada_agesex |>
       rename(hromada_PCODE = ADM3_PCODE, hromada_name = ADM3_EN)
   ) |>
   filter(
-    hromada_PCODE %in% max_change_hromada
+    hromada_PCODE %in% max_change_hromada$hromada_PCODE
+  ) |>
+  left_join(
+    max_change_hromada |>
+      select(hromada_PCODE, Change)
   )
 
 gg_pyramid <- ggplot(
@@ -768,7 +801,7 @@ gg_pyramid <- ggplot(
     title = "Age-sex population in the hromadas that experienced the largest changes"
   ) +
   theme_minimal() +
-  facet_wrap(. ~ hromada_name, scales = "free") +
+  facet_wrap(. ~ fct_reorder(hromada_name, Change), scales = "free") +
   scale_y_continuous(labels = function(x) scales::comma(abs(x))) +
   scale_fill_manual(values = c(f_color, m_color))
 gg_pyramid
@@ -1600,6 +1633,26 @@ flows_hromada_agesex_last |>
   summarise(pop = sum(pop_estimated), .groups = "drop") |>
   mutate(perc = pop / sum(pop) * 100)
 
+flows_hromada_agesex_last |>
+  filter(
+    origin_hromada != destination_hromada &
+      origin_hromada != "Abroad" &
+      destination_hromada != "Abroad"
+  ) |>
+  group_by(a_name, s_name) |>
+  summarise(pop = sum(pop_estimated), .groups = "drop") |>
+  group_by(a_name) |>
+  mutate(perc = pop / sum(pop) * 100)
+
+flows_hromada_agesex_last |>
+  filter(
+    origin_hromada == "Abroad" |
+      destination_hromada == "Abroad"
+  ) |>
+  group_by(a_name, s_name) |>
+  summarise(pop = sum(pop_estimated), .groups = "drop") |>
+  group_by(a_name) |>
+  mutate(perc = pop / sum(pop) * 100)
 
 stocks_hromada_change |>
   left_join(
@@ -1692,7 +1745,8 @@ abroad_arrivals_last |>
     hromada_name,
     pop_estimated,
     pop_estimated_perc
-  )
+  ) |>
+  arrange(pop_estimated)
 
 ## where have people left to abroad ----
 abroad_leavers_last |>
@@ -1715,4 +1769,5 @@ abroad_leavers_last |>
     pcodes |>
       rename(hromada_name = ADM3_EN, origin_hromada_PCODE = ADM3_PCODE)
   ) |>
-  select(origin_oblast, hromada_name, pop_estimated, pop_estimated_perc)
+  select(origin_oblast, hromada_name, pop_estimated, pop_estimated_perc) |>
+  arrange(pop_estimated)
