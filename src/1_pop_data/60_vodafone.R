@@ -4,7 +4,7 @@ library(tmap)
 tmap_options(component.autoscale = F)
 library(data.table)
 
-correct_dip202506 <- TRUE
+correct_dip202506 <- F
 
 # Load required helpers
 source(file.path(here::here(), "R_helpers/generic.R"))
@@ -79,7 +79,13 @@ stocks_list <- list.files(
   pattern = "Stocks",
   full.names = T
 )
-names(stocks_list) <- c("without_ngct1", "without_ngct2", "with_ngct")
+
+names(stocks_list) <- c(
+  "without_ngct1",
+  "without_ngct2",
+  "with_ngct",
+  "with_ngct_postJune"
+)
 
 stocks <- lapply(stocks_list, function(x) {
   read_csv2(x) |>
@@ -112,6 +118,11 @@ stocks <- stocks[["without_ngct1"]] |>
         !hromada_code %in% unique(stocks[["without_ngct1"]]$hromada_code)
       ) |>
       select(-file)
+  ) |>
+  filter(t < as.Date('2025-06-01')) |>
+  bind_rows(
+    stocks[["with_ngct_postJune"]] |>
+      filter(t >= as.Date('2025-06-01'))
   ) |>
   mutate(
     territory = ifelse(is.na(file), "ngct", "gct")
@@ -163,16 +174,31 @@ write.csv(
 
 # Baseline flows ---------------------------------------------------------
 
-baselineFlows <- read_csv2(file.path(
+baselineFlows_preJune <- read_csv2(file.path(
   in_dir,
   "Vodafone",
   "Baseline Flows_050925.csv"
+))
+
+baselineFlows_preJune <- baselineFlows_preJune |>
+  mutate(t = as.Date(month, "%d.%m.%y") + months(3)) |>
+  filter(t < as.Date('2025-06-01'))
+
+baselineFlows_postJune <- read_csv2(file.path(
+  in_dir,
+  "Vodafone",
+  "Baseline Flows_201125.csv"
 )) |>
+  mutate(t = as.Date(month, "%d.%m.%y") + months(3))
+
+baselineFlows <- bind_rows(
+  baselineFlows_preJune,
+  baselineFlows_postJune
+) |>
   rename(
     destination_hromada = `Current home hromada`,
     origin_hromada = `Home hromada pre-invasion`
   ) |>
-  mutate(t = as.Date(month, "%d.%m.%y") + months(3)) |>
   left_join(
     hromada_geo_names |>
       select(hromada_code, oblast_name_en, macroregion) |>
@@ -614,7 +640,7 @@ fwrite(
 hromada_available <- monthlyFlows |>
   group_by(destination_hromada) |>
   summarise(n_timesteps = n_distinct(t))
-n_distinct(monthlyFlows$t)
+n_timestep <- n_distinct(monthlyFlows$t)
 
 n_hromada_available_total <- hromada_available |>
   filter(destination_hromada != "Abroad") |>
@@ -689,7 +715,10 @@ missing_hromadas_df <- monthlyFlows |>
   ) |>
   left_join(
     missing_hromadas |>
-      mutate(missing_label = paste0(n_timesteps, " timesteps missing\n"))
+      mutate(
+        missing_label = paste0(n_timestep - n_timesteps, " timesteps missing\n")
+      ),
+    by = "destination_hromada"
   ) |>
   group_by(missing_label) |>
   mutate(
@@ -710,7 +739,7 @@ gg_missing <- ggplot(
   )
 ) +
   geom_point() +
-  facet_wrap(fct_reorder(missing_label, n_timesteps) ~ .) +
+  facet_wrap(fct_reorder(missing_label, n_timestep - n_timesteps) ~ .) +
   theme_minimal() +
   theme(legend.position = "None") +
   labs(title = "Timesteps missing for each hromada", x = "")
@@ -779,15 +808,15 @@ ggplot(monthlyFlows_wide_s, aes(x = date, y = value, fill = type)) +
 
 # Monthly flows users evolution ----------------------------------------
 
-monthlyFlows_imputed_ |>
+monthlyFlows_imputed |>
   group_by(t) |>
   summarise(
     subscribers_monthlyFlow = sum(subscribers_monthlyFlow),
-    subscribers_monthlyFlow_ = sum(subscribers_monthlyFlow_)
+    #subscribers_monthlyFlow_ = sum(subscribers_monthlyFlow_)
   ) |>
   ggplot(aes(x = t, y = subscribers_monthlyFlow)) +
   geom_line() +
-  geom_line(aes(y = subscribers_monthlyFlow_), col = "red") +
+  #geom_line(aes(y = subscribers_monthlyFlow_), col = "red") +
   theme_minimal() +
   labs(title = "Evolution of subscribers across time")
 
@@ -935,7 +964,7 @@ ggplot(df_map_ngct, aes(fill = territory, geometry = geom)) +
 
 # Hromada through time
 stocks |>
-  filter(territory = "gct") |>
+  filter(territory == "gct") |>
   group_by(t, oblast_name_en) |>
   summarise(n_hromada = n_distinct(hromada_code)) |>
   left_join(
@@ -1435,11 +1464,11 @@ stocks |>
 
 # Investigate the dip in users in June 2025 ------------------------------------------------
 
-stocks_arounddip <- monthlyFlows_ |>
-  #filter(t > as.Date('2025-03-01')) |>
+stocks_arounddip <- monthlyFlows |>
+  filter(t > as.Date('2025-03-01')) |>
   group_by(t, destination_oblast, a_name, s_name) |>
   summarise(
-    n_users = sum(subscribers_monthlyFlow_),
+    n_users = sum(subscribers_monthlyFlow),
     n_hromada = n_distinct(destination_hromada)
   )
 
@@ -1480,7 +1509,7 @@ ggplot(stocks_arounddip_raion, aes(x = rel_change, y = a_name)) +
 # plot a couploe of hrmaoda by age and sex from monthlflows
 
 sample_hromada <- sample(unique(monthlyFlows$destination_hromada), 10)
-monthlyFlows_ |>
+monthlyFlows |>
   filter(destination_hromada %in% sample_hromada) |>
   group_by(t, destination_hromada, a_name, s_name) |>
   summarise(n_users = sum(subscribers_monthlyFlow)) |>

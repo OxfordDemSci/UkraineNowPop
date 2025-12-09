@@ -1051,6 +1051,7 @@ monthlyFlows_agesex_hat_df_stocks <- monthlyFlows_agesex_rescaled_hat_df |>
     .groups = "drop"
   )
 
+
 monthlyFlows_agesex_hat_df_stocks_oblast <- monthlyFlows_agesex_hat_df_stocks |>
   group_by(t, a_name, s_name, destination_oblast, destination_macroregion) |>
   summarise(

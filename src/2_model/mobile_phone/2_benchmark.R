@@ -13,7 +13,7 @@ source(here::here(".env"), local = env)
 download_DTM_IDP <- FALSE
 
 # Create output directories ----
-output_date <- "20251103"
+output_date <- "20251209"
 
 repo_dir <- env$repo_dir
 src_dir <- file.path(repo_dir, "src", "2_model")

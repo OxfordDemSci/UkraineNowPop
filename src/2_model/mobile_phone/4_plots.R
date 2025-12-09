@@ -8,7 +8,7 @@ library(future.apply)
 library(readxl)
 
 # parameters ----
-output_date <- "20251103"
+output_date <- "20251209"
 output_label <- ""
 dir.create(
   file.path(out_dir, "model", "deterministic", "figs", output_date),
@@ -400,7 +400,7 @@ hromada_geo_pop <- hromada_geo |>
   )
 
 date_ref <- stocks_hromada_totals_last$t[1]
-date_ref <- as.Date('2025-05-01')
+#date_ref <- as.Date('2025-05-01')
 tm_pop_last <- tm_shape(hromada_geo_pop) +
   tm_polygons(
     fill = "pop_estimated",
@@ -850,7 +850,7 @@ tmap_save(
     "deterministic",
     "figs",
     output_date,
-    paste0("map_abroad_arrivals_", stocks_hromada_totals_last$t[1], ".png")
+    paste0("map_abroad_arrivals_", date_ref, ".png")
   ),
 )
 
