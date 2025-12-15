@@ -131,6 +131,22 @@ flows[,
   ) := NULL
 ]
 
+# add oblast pcode
+flows <- merge(
+  flows,
+  pcodes[, c("ADM1_PCODE", "ADM3_PCODE")],
+  by.x = "destination_hromada_PCODE",
+  by.y = "ADM3_PCODE"
+)
+setnames(flows, "ADM1_PCODE", "destination_oblast_PCODE")
+flows <- merge(
+  flows,
+  pcodes[, c("ADM1_PCODE", "ADM3_PCODE")],
+  by.x = "origin_hromada_PCODE",
+  by.y = "ADM3_PCODE"
+)
+setnames(flows, "ADM1_PCODE", "origin_oblast_PCODE")
+
 # aggregate to create stocks ----
 stocks <- flows[,
   .(pop_estimated = sum(pop_estimated, na.rm = TRUE)),
@@ -142,7 +158,8 @@ stocks <- flows[,
     oblast = destination_oblast,
     raion = destination_raion,
     hromada_PCODE = destination_hromada_PCODE,
-    raion_PCODE = destination_raion_PCODE
+    raion_PCODE = destination_raion_PCODE,
+    oblast_PCODE = destination_oblast_PCODE
   )
 ]
 
@@ -215,8 +232,10 @@ for (month in unique(flows$t) |> as.character()) {
     t +
       origin_hromada_PCODE +
       origin_raion_PCODE +
+      orgin_oblast_PCODE +
       destination_hromada_PCODE +
-      destination_raion_PCODE ~
+      destination_raion_PCODE +
+      destination_oblast_PCODE ~
       s_name + a_name,
     value.var = "pop_estimated",
     fill = 0
@@ -228,49 +247,28 @@ for (month in unique(flows$t) |> as.character()) {
       "t",
       "origin_hromada_PCODE",
       "origin_raion_PCODE",
+      'orgin_oblast_PCODE',
       "destination_hromada_PCODE",
-      "destination_raion_PCODE"
+      "destination_raion_PCODE",
+      'destination_oblast_PCODE'
     ),
     new = c(
       "DATE",
       "origin_ADM3_PCODE",
       "origin_ADM2_PCODE",
+      'origin_ADM1_PCODE',
       "destination_ADM3_PCODE",
-      "destination_ADM2_PCODE"
+      "destination_ADM2_PCODE",
+      'destination_ADM1_PCODE'
     )
-  )
-
-  flows_sub_wide <- merge(
-    flows_sub_wide,
-    pcodes |>
-      select(
-        destination_ADM3_PCODE = ADM3_PCODE,
-        destination_ADM2_PCODE = ADM2_PCODE,
-        destination_ADM1_PCODE = ADM1_PCODE
-      ),
-    by.x = c("destination_ADM3_PCODE", "destination_ADM2_PCODE"),
-    by.y = c("destination_ADM3_PCODE", "destination_ADM2_PCODE"),
-    all.x = TRUE
-  )
-
-  flows_sub_wide <- merge(
-    flows_sub_wide,
-    pcodes |>
-      select(
-        origin_ADM3_PCODE = ADM3_PCODE,
-        origin_ADM2_PCODE = ADM2_PCODE,
-        origin_ADM1_PCODE = ADM1_PCODE
-      ),
-    by.x = c("origin_ADM3_PCODE", "origin_ADM2_PCODE"),
-    by.y = c("origin_ADM3_PCODE", "origin_ADM2_PCODE"),
-    all.x = TRUE
   )
 
   stocks_sub_wide <- dcast(
     stocks_sub,
     t +
       hromada_PCODE +
-      raion_PCODE ~
+      raion_PCODE +
+      oblast_PCODE ~
       s_name + a_name,
     value.var = "pop_estimated",
     fill = 0
@@ -281,22 +279,17 @@ for (month in unique(flows$t) |> as.character()) {
     old = c(
       "t",
       "hromada_PCODE",
-      "raion_PCODE"
+      "raion_PCODE",
+      'oblast_PCODE'
     ),
     new = c(
       "DATE",
       "ADM3_PCODE",
-      "ADM2_PCODE"
+      "ADM2_PCODE",
+      'ADM1_PCODE'
     )
   )
 
-  stocks_sub_wide <- merge(
-    stocks_sub_wide,
-    pcodes,
-    by.x = c("ADM3_PCODE", "ADM2_PCODE"),
-    by.y = c("ADM3_PCODE", "ADM2_PCODE"),
-    all.x = TRUE
-  )
   # replace in column names - by _
   setnames(
     flows_sub_wide,
