@@ -95,7 +95,10 @@ def upgrade() -> None:
         sa.Column('pop_quartiles', sa.ARRAY(sa.Integer()), nullable=False),
         sa.PrimaryKeyConstraint('id')
     )
-    op.create_index(op.f('ix_population_day'), 'population', ['day'], unique=False)
+    # add more variable to index
+    op.create_index(op.f('ix_population_day_admin_level_country_agemin_sex'), 'population', ['day', 'admin_level', 'country', 'age_min', 'sex'], unique=False)
+    op.create_index(op.f('ix_migration_day_admin_level_country_agemin_sex'), 'migration', ['day', 'admin_level', 'country', 'age_min', 'sex'], unique=False)
+    
     # ### end Alembic commands ###
 
 
