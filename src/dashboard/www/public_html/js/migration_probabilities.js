@@ -98,8 +98,8 @@ export function update_migration_probabilities(d, series, adminunits_names) {
                             from: key,
                             to: d[key][i].destination,
                             value: d[key][i][typeData],
-                            fromName: adminunits_names.filter(entry => (entry.pcode === key)).map(entry => entry.name),
-                            toName: adminunits_names.filter(entry => (entry.pcode === d[key][i].destination)).map(entry => entry.name)
+                            fromName: adminunits_names.filter(entry => (entry.pcode === key)).map(entry => entry.name)[0],
+                            toName: adminunits_names.filter(entry => (entry.pcode === d[key][i].destination)).map(entry => entry.name)[0]
                         }
                 );
             //}
@@ -121,7 +121,6 @@ export function update_migration_probabilities_LG(d, series, root, adminunits_na
 //    let series_plotChordDiagramt_LG = null;
 //    series_plotChordDiagramt_LG = _init.initialise_migration_probabilities_chart_LG(root_plotChordDiagramt_LG);
 
-
     let typeData = "count";
 
     if (document.getElementById('btnradioPlotChordDiagramCount').checked === true) {
@@ -134,6 +133,8 @@ export function update_migration_probabilities_LG(d, series, root, adminunits_na
 
     for (var key of Object.keys(d)) {
 
+   
+
         for (var i = 0; i < d[key].length; i++) {
 
             values_flows.push(
@@ -141,14 +142,14 @@ export function update_migration_probabilities_LG(d, series, root, adminunits_na
                         from: key,
                         to: d[key][i].destination,
                         value: d[key][i][typeData],
-                        fromName: adminunits_names.filter(entry => (entry.pcode === key)).map(entry => entry.name),
-                        toName: adminunits_names.filter(entry => (entry.pcode === d[key][i].destination)).map(entry => entry.name)
+                        fromName: adminunits_names.filter(entry => (entry.pcode === key)).map(entry => entry.name)[0],
+                        toName: adminunits_names.filter(entry => (entry.pcode === d[key][i].destination)).map(entry => entry.name)[0]
                     }
             );
+
         }
 
     }
-
     series.data.setAll(values_flows);
     
 

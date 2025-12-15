@@ -505,6 +505,8 @@ export function get_adminunits_names(geoJson)
                );
             
     } 
+
+    adminunits_names.push({ pcode: 'Abroad', name: 'Abroad' });
     
     return adminunits_names;
 }
