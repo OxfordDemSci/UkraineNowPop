@@ -7,7 +7,7 @@ source(file.path(here::here(), "R_helpers/generic.R"))
 library(data.table)
 
 output_date <- "20251209"
-sample <- T
+sample <- F
 
 # Script parameter
 
@@ -118,7 +118,7 @@ stocks_lvl[, `:=`(pop_upper = pop, pop_lower = pop)]
 # NOTE: Creating a 100-length posterior string per row is very costly.
 stocks_lvl[,
   pop_posterior := {
-    x <- as.integer(rnorm(50, mean = pop, sd = 1))
+    x <- as.integer(rnorm(2, mean = pop, sd = 1))
     paste0("[", paste(x, collapse = ", "), "]")
   },
   by = .(day, age_min, age_max, sex, country, pcode, admin_level)
