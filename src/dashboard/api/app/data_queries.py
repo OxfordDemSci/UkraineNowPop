@@ -306,14 +306,14 @@ def get_migration_probabilities(
         else func.sum(Migration.count)
     )
     probabilities = defaultdict(list)
-    closest_date_subquery = db.session.query(
-        func.abs(cast(date, DATE) - cast(Migration.day, DATE))
-    ).filter(
-        Migration.day <= cast(date, DATE),
-        Migration.day >= cast(date, DATE) - timedelta(days=7)
-    ).order_by(
-        text("(date(day) - date(:date)) DESC")
-    ).limit(1).params(date=date).scalar_subquery()
+    # closest_date_subquery = db.session.query(
+    #     func.abs(cast(date, DATE) - cast(Migration.day, DATE))
+    # ).filter(
+    #     Migration.day <= cast(date, DATE),
+    #     Migration.day >= cast(date, DATE) - timedelta(days=7)
+    # ).order_by(
+    #     text("(date(day) - date(:date)) DESC")
+    # ).limit(1).params(date=date).scalar_subquery()
 
     conditions = []
 
@@ -348,9 +348,9 @@ def get_migration_probabilities(
         .filter(
             or_(*conditions),
             Migration.admin_level == admin_level,
-            func.abs(func.date(date) - func.date(Migration.day))
-            == closest_date_subquery,
-            closest_date_subquery <= 7,
+            # func.abs(func.date(date) - func.date(Migration.day))
+            # == closest_date_subquery,
+            # closest_date_subquery <= 7,
             Migration.country == country,
             Migration.origin == admin_id if admin_id else True,
         )
@@ -382,16 +382,16 @@ def get_prob_count(
     date: str,
     country: str,
 ) -> dict:
-    closest_date_subquery = db.session.query(
-        func.min(func.abs(func.date(date) - func.date(Migration.day)))
-    ).subquery()
+    # closest_date_subquery = db.session.query(
+    #     func.min(func.abs(func.date(date) - func.date(Migration.day)))
+    # ).subquery()
     query = db.session.query(
         func.sum(Migration.probability).label("probability"),
         func.sum(Migration.count).label("count"),
     ).filter(
         or_(*conditions),
         Migration.admin_level == admin_level,
-        func.abs(func.date(date) - func.date(Migration.day)) == closest_date_subquery,
+        # func.abs(func.date(date) - func.date(Migration.day)) == closest_date_subquery,
         Migration.country == country,
         Migration.origin == destination,
         Migration.destination == origin,

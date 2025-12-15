@@ -57,7 +57,7 @@ def login():
         )
     except Exception as e:
         current_app.logger.error(e)
-        return make_response("An error occurred while fetching the data", 500)
+        return make_response("An error occurred while fetching the data on login", 500)
     return jsonify(access_token=access_token), 200
 
 
@@ -75,7 +75,7 @@ def init(country: str):
         return dq.init(country)
     except Exception as e:
         current_app.logger.error(e)
-        return make_response("An error occurred while fetching the data", 500)
+        return make_response("An error occurred while fetching the data on init", 500)
 
 
 @validate_input
@@ -84,7 +84,7 @@ def get_age_ranges(country: str):
         return dq.get_age_ranges(country)
     except Exception as e:
         current_app.logger.error(e)
-        return make_response("An error occurred while fetching the data", 500)
+        return make_response("An error occurred while fetching the data on age range", 500)
 
 
 @validate_input
@@ -93,7 +93,7 @@ def get_dates(country: str):
         return dq.get_dates(country)
     except Exception as e:
         current_app.logger.error(e)
-        return make_response("An error occurred while fetching the data", 500)
+        return make_response("An error occurred while fetching the data on dates", 500)
 
 
 @validate_input
@@ -114,7 +114,7 @@ def get_admin_units(
         data = dq.get_geodata(country, admin_level)
     except Exception as e:
         current_app.logger.error(e)
-        return make_response("An error occurred while fetching the data", 500)
+        return make_response("An error occurred while fetching the data on admin units", 500)
     return data
 
 
@@ -152,7 +152,7 @@ def get_population(
         )
     except Exception as e:
         current_app.logger.error(e)
-        return make_response("An error occurred while fetching the data", 500)
+        return make_response("An error occurred while fetching the data on population", 500)
     return data
 
 
@@ -194,7 +194,7 @@ def get_migration_probabilities(
         )
     except Exception as e:
         current_app.logger.error(e)
-        return make_response("An error occurred while fetching the data", 500)
+        return make_response("An error occurred while fetching the data on migration", 500)
     return data
 
 

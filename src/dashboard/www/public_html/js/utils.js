@@ -335,8 +335,10 @@ export function round5(x)
 }
 
 
-export function resetSlider_age_selections(d)
+export function resetSlider_age_selections(d, age_max_label)
 {
+    let age_min = d[0][0];    
+
     
         $(".slider_age_selections").slider({
             min: 0,
@@ -348,7 +350,7 @@ export function resetSlider_age_selections(d)
 //            labels: d
 //        })
         .slider("pips", {
-            labels: {first: "0", last: d[0][d[0].length - 1] + "+"}
+            labels: {first: age_min, last: age_max_label}
         });
         
         let age_min = 0;    
@@ -388,7 +390,7 @@ export function isObjectEmpty(objectName)
 }
 
 
-export function update_Age_Range_labele(vFirst, vLast , age_ranges_available)
+export function update_Age_Range_labele(vFirst, vLast , age_ranges_available, age_max_label)
 {
     let age_min = age_ranges_available[0][vFirst];    
     let age_max = age_ranges_available[1][vLast];

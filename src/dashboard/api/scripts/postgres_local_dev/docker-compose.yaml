@@ -1,10 +1,8 @@
-version: '3'
-
 services:
   now_pop_postgres:
     container_name: oxford_now_pop_dashboard_db
     build: .
-    env_file: .env
+    env_file: ../../../../../.env
     networks:
       - now_pop_net
     volumes:
