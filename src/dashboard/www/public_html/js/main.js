@@ -78,16 +78,12 @@ let admin_units_geo = _utils.get_admin_units_geo(API_URL, country_ISO3, admin_le
 let admin_units_geo_baseline = _utils.get_admin_units_geo(API_URL, country_ISO3, '1_baseline')
 let adminunits_names_eng = _utils.get_adminunits_names(admin_units_geo);
 
-//let test  = adminunits_names.filter(entry => (entry.pcode === "UA07")).map(entry => entry.name);
-
 var admin_names = _utils.get_admin_names(initialData);
 var admin_names_total_count = Object.keys(admin_names).length;
 
 _utils.setGeoMenu(admin_names);
 
 var age_ranges_available = _utils.getAgeRanges(initialData);
-
-console.log(age_ranges_available);
 
 var age_min_selected = initialData.age_ranges[0]["age_min"];
 var age_max_selected = initialData.age_ranges[initialData.age_ranges.length - 1]["age_max"];
@@ -257,8 +253,8 @@ var layerCountry = L.geoJson(null, {
                 //                document.getElementById('adminTotalLabel').innerHTML = Number(e.target.feature.properties.population_totals).toLocaleString();;
                 document.getElementById('adminNameLabel').innerHTML = admin_name_en;
                 document.getElementById('adminPCodeLabel').innerHTML = admin_pcode;
-                document.getElementById('controlPanel_BottomRightID_label').innerHTML = txt_Title_Bottom_RightPanel + " to/from [ " + admin_pcode + " ]";
-                document.getElementById('controlPanel_TopRightID_label').innerHTML = txt_Title_Top_RightPanel + " [ " + admin_pcode + " ]";
+                document.getElementById('controlPanel_BottomRightID_label').innerHTML = txt_Title_Bottom_RightPanel + " to/from [" + admin_name_en + "]";
+                document.getElementById('controlPanel_TopRightID_label').innerHTML = txt_Title_Top_RightPanel + " [" + admin_name_en + "]";
 
                 var selGEO = document.getElementById("idSelectGeoLevel");
                 document.getElementById('infoGEOLabel').innerHTML = selGEO.options[selGEO.selectedIndex].text;
@@ -272,7 +268,7 @@ var layerCountry = L.geoJson(null, {
 
 var layerCountry_baseline = L.geoJson(null, {
     style: {
-        weight: 2,
+        weight: 3,
         color: "black",
         fill: false
     }
@@ -351,7 +347,7 @@ $(".Date-slider")
 
 $("#btnExpand_ChordDiagrams").on("click", function () {
 
-    // when open a big windows start shoing animation
+//     // when open a big windows start shoing animation
     series_plotChordDiagramt_LG.bullets.push(function (_root, _series, dataItem) {
         var bullet = am5.Bullet.new(root_plotChordDiagramt_LG, {
             locationY: Math.random(),
@@ -372,6 +368,7 @@ $("#btnExpand_ChordDiagrams").on("click", function () {
         return bullet;
     });
 
+    series_plotChordDiagramt_LG.bulletsContainer._display.visible = false
     $('#idMdPlotChordDiagram').modal('show');
 });
 
