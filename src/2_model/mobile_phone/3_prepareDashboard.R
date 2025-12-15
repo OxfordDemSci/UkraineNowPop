@@ -38,6 +38,15 @@ flows <- fread(
   )
 )
 
+sensitive <- flows[
+  t == min(t),
+  length(unique(destination_hromada_PCODE)),
+  by = .(destination_oblast_PCODE)
+][
+  V1 < 3 & !(destination_oblast_PCODE %in% c('Abroad', 'UA80')),
+  destination_oblast_PCODE
+]
+
 if (sample) {
   flows <- flows[t >= as.Date("2025-02-01") & t <= as.Date("2025-05-01")]
 }
@@ -107,7 +116,11 @@ stocks_lvl <- rbindlist(
   list(
     agg_level(stocks, "destination_hromada_PCODE", 3L),
     agg_level(stocks, "destination_raion_PCODE", 2L),
-    agg_level(stocks, "destination_oblast_PCODE", 1L)
+    agg_level(
+      stocks[destination_oblast_PCODE != sensitive],
+      "destination_oblast_PCODE",
+      1L
+    )
   ),
   use.names = TRUE
 )
@@ -150,7 +163,7 @@ fwrite(
     "app",
     "data",
     "db-data",
-    "pop.csv"
+    "pop_full.csv"
   )
 )
 
@@ -189,7 +202,9 @@ flows_lvl <- rbindlist(
       2L
     ),
     agg_level_flows(
-      flows_dt,
+      flows_dt[
+        destination_oblast_PCODE != sensitive & origin_oblast_PCODE != sensitive
+      ],
       "destination_oblast_PCODE",
       "origin_oblast_PCODE",
       1L
@@ -201,7 +216,7 @@ flows_lvl <- rbindlist(
 # Probability within (day, age band, sex, admin_level)
 flows_lvl[,
   probability := count / sum(count),
-  by = .(day, age_min, age_max, sex, admin_level)
+  by = .(day, age_min, age_max, sex, admin_level, destination)
 ]
 
 setcolorder(
@@ -230,6 +245,6 @@ fwrite(
     "app",
     "data",
     "db-data",
-    "migration.csv"
+    "migration_full.csv"
   )
 )
