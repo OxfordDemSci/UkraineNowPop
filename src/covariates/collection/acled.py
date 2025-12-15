@@ -38,23 +38,21 @@ master_index = master_index[
 time_index = pd.read_csv(out_dir / (country + "_time_index.csv"))
 
 # credentials
-key = os.getenv("ACLED_KEY")
+password = os.getenv("ACLED_PASSWORD")
 email = os.getenv("ACLED_EMAIL")
 country_name = "Ukraine"
 start_date = min(time_index["collection_date"])
 end_date = max(time_index["collection_date"])
 crs = 4326
-accept_acled_terms = True
 
 # get acled data
 incident_gdf = prep.get_acled_data_from_api(
-    api_key=key,
+    password=password,
     email=email,
     country=country_name,
     start_date=start_date,
     end_date=end_date,
-    crs=crs,
-    accept_acleddata_terms=accept_acled_terms,
+    crs=crs
 )
 
 # save acled data to disk
