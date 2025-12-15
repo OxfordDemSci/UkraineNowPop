@@ -6,7 +6,7 @@ gc()
 source(file.path(here::here(), "R_helpers/generic.R"))
 library(data.table)
 
-output_date <- "202508"
+output_date <- "20251209"
 sample <- T
 
 # Script parameter
