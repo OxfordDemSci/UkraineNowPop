@@ -12,6 +12,7 @@ source(here::here(".env"), local = env)
 out_dir <- file.path(env$out_dir, "population_proxy", "crossing_borders")
 dir.create(out_dir, showWarnings = F, recursive = T)
 
+# LAST DATE: 2025-02-28. Now filled manually from pdf
 
 # outward border crossings
 out_refugee_file <- file.path(out_dir, "refugees_out_daily.csv")

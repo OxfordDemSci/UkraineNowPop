@@ -25,7 +25,7 @@ git2r::pull(sirenRepo_dir)
 time_index <- read_csv(file.path(out_dir, paste0(tolower(country), "_time_index.csv")))
 master_index <- read_csv(file.path(out_dir, paste0(tolower(country), "_master_index.csv")))
 master_index <- master_index |>
-  distinct(i_key, i_name, i, t, t_name, t_key, ADM1_PCODE, ADM1_EN)
+  distinct(i_key, i_name, i, t, t_name, t_key, ADM1_PCODE)
 sirens_official <- read_csv(file.path(sirenRepo_dir, "datasets", "official_data_en.csv"))
 sirens_volunteered <- read_csv(file.path(sirenRepo_dir, "datasets", "volunteer_data_en.csv")) |>
   rename(oblast = region)
@@ -51,36 +51,6 @@ sirens <- sirens |>
   unnest_longer(col = collection_date)
 
 # aggregate sirens per oblast
-# Create a dictionary to map oblast names to i_name names
-oblast_map <- c(
-  "Cherkaska Oblast" = "Cherkasy Oblast",
-  "Chernihivska Oblast" = "Chernihiv Oblast",
-  "Chernivetska Oblast" = "Chernivtsi Oblast",
-  "Dnipropetrovska Oblast" = "Dnipropetrovsk Oblast",
-  "Donetska Oblast" = "Donetsk Oblast",
-  "Ivano-Frankivska Oblast" = "Ivano-Frankivsk Oblast",
-  "Kharkivska Oblast" = "Kharkiv Oblast",
-  "Khersonska Oblast" = "Kherson Oblast",
-  "Khmelnytska Oblast" = "Khmelnytska",
-  "Kirovohradska Oblast" = "Kirovohrad Oblast",
-  "Kyiv City" = "Kyiv",
-  "Kyivska Oblast" = "Kiev Oblast",
-  "Lubenskyi raion" = "Poltava Oblast",
-  "Luhanska Oblast" = "Luhansk Oblast",
-  "Lvivska Oblast" = "Lviv Oblast",
-  "Mykolaivska Oblast" = "Mykolaiv Oblast",
-  "Odeska Oblast" = "Odessa Oblast",
-  "Poltavska Oblast" = "Poltava Oblast",
-  "Rivnenska Oblast" = "Rivne Oblast",
-  "Sumska Oblast" = "Sumy Oblast",
-  "Ternopilska Oblast" = "Ternopil Oblast",
-  "Vinnytska Oblast" = "Vinnytsia Oblast",
-  "Volynska Oblast" = "Volyn Oblast",
-  "Zakarpatska Oblast" = "Zakarpattia Oblast",
-  "Zaporizka Oblast" = "Zaporizhia Oblast",
-  "Zhytomyrska Oblast" = "Zhytomyr Oblast"
-)
-
 sirens_oblast_t <- sirens |>
   filter(collection_date <= max(time_index$collection_date)) |>
   filter(collection_date >= min(time_index$collection_date)) |>
@@ -92,18 +62,25 @@ sirens_oblast_t <- sirens |>
   ) |>
   rowwise() |>
   mutate(
-    i_name = str_replace_all(oblast, "oblast", "Oblast"),
-    i_name = oblast_map[i_name]
+    i_name = str_remove(oblast, " oblast"),
+    i_name = str_remove(i_name, " City")
+
   ) |>
   group_by(i_name, t, t_name, t_key) |>
   summarise(sirens = sum(sirens)) |>
-  filter(i_name %in% master_index$i_name) |>
+  filter(i_name %in% master_index$i_name)|>
   right_join(
     master_index
   ) |>
-  ungroup() |>
+  ungroup()|>
   mutate(
+    sirens = ifelse(i_name == 'Luhanska'  &is.na(sirens), max(sirens, na.rm=T), sirens), # permanent sirens
+    sirens = ifelse(i_name == 'Autonomous Republic of Crimea' &is.na(sirens), max(sirens, na.rm=T), sirens),
     sirens = ifelse(is.na(sirens), 0, sirens)
+  ) |>
+  pivot_longer(sirens,
+    names_to = "covariate",
+    values_to = "value"
   )
 
 
@@ -117,6 +94,6 @@ write_csv(
 
 #  viz -------------------------------------------------------------------
 
-ggplot(sirens_oblast_t, aes(x = t, y = sirens, col = i_name)) +
+ggplot(sirens_oblast_t, aes(x = t, y = value, col = i_name)) +
   geom_line() +
   theme(legend.position = "None")

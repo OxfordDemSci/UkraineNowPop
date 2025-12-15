@@ -7,12 +7,12 @@ from alembic.config import Config
 from sqlalchemy import create_engine, inspect
 import psycopg2
 import geopandas as gpd  # type: ignore
-from geoalchemy2 import Geometry, WKBElement
 import pandas as pd
 import fiona
 import dask
 dask.config.set({'dataframe.query-planning': True})
-import dask.dataframe as dd
+import csv 
+import psutil
 
 BASE_DIR = Path(__file__).resolve().parent.parent  # API route
 sys.path.append(str(BASE_DIR))  # API route
@@ -27,7 +27,7 @@ import make_dummy_pop_migration as dummy
 
 logging.basicConfig(level=logging.INFO)
 
-ENV = BASE_DIR.parent.joinpath('.env')
+ENV = BASE_DIR.parent.parent.parent.joinpath('.env')
 GPKG = BASE_DIR.joinpath("app", "data", "db-data", "GEODATA.gpkg")
 DATA = BASE_DIR.parent.parent.parent.joinpath("data/dummy_tables")
 load_dotenv(ENV)
@@ -36,8 +36,10 @@ POSTGRES_USER = os.environ.get("POSTGRES_USER")
 POSTGRES_PASSWORD = os.environ.get("POSTGRES_PASSWORD")
 POSTGRES_DB = os.environ.get("POSTGRES_DB")
 TABLES_DIR = os.environ.get("DATABASE_TABLES_DIR")
-CHUNK_SIZE = 20000
-
+if psutil.virtual_memory().total / (1024**3) < 4:
+    CHUNK_SIZE = 2000
+else:
+    CHUNK_SIZE = 20000
 
 def timer_and_log(func):
     def wrapper(*args, **kwargs):
@@ -216,7 +218,7 @@ def add_migration_data(overwrite_existing: bool = False):
     session.commit()
 
 @timer_and_log
-def add_pop_data(overwrite_existing: bool = False):
+def add_pop_data(overwrite_existing: bool = True):
     def parse_pop_posterior(s):
         parts = s.replace('[', '').replace(']', '').split(',')
         return [int(part) for part in parts]
@@ -229,9 +231,9 @@ def add_pop_data(overwrite_existing: bool = False):
     if query and overwrite_existing:
         session.query(Population).delete(synchronize_session=False)
     if not query or overwrite_existing:
-        for chunk in pd.read_csv(dummy_pop, chunksize=CHUNK_SIZE):
+        for chunk in pd.read_csv(dummy_pop, chunksize=CHUNK_SIZE, encoding='utf-8', quoting=csv.QUOTE_ALL):
             chunk["sex"] = chunk["sex"].replace({"male": 1, "female": 2})
-            chunk['day'] = pd.to_datetime(chunk['day'], dayfirst=True)
+            chunk['day'] = pd.to_datetime(chunk['day'], yearfirst=True)
             chunk = chunk.astype({
                 "country": "string",
                 "admin_level": "int8",

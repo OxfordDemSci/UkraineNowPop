@@ -15,3 +15,12 @@ out_dir <- env$out_dir
 
 country <- "UA"
 output_label <- ""
+
+ggsave_ <- function(gg, filename) {
+  ggsave(
+    gg,
+    filename = filename,
+    width = 8,
+    height = 6
+  )
+}
