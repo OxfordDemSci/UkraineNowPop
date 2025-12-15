@@ -201,7 +201,7 @@
                                                                 <td style="border-bottom-width:0px;"><label id="adminNameLabel" class="info_box_label"></label></td>
                                                             </tr> 
                                                             <tr style="">
-                                                                <td style="border-bottom-width:0px;" class="table-secondary"><label class="info_box_label">PCode:</label></td>
+                                                                <td style="border-bottom-width:0px;" class="table-secondary"><label class="info_box_label">PCODE:</label></td>
                                                                 <td style="border-bottom-width:0px; "><label id="adminPCodeLabel" class="info_box_label"></label></td>
                                                             </tr> 
                                                             <tr>
@@ -284,9 +284,6 @@
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link active" id="plotPopulationPyramid-tab" data-bs-toggle="tab" data-bs-target="#profile" type="button" role="tab" aria-controls="profile" aria-selected="false">Age-sex</button>
                             </li>                            
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="plotProbability-tab" data-bs-toggle="tab" data-bs-target="#home" type="button" role="tab" aria-controls="home" aria-selected="true">Population</button>
-                            </li>
                         </ul>
                         <div class="tab-content" id="myTabContent">
                             <div class="tab-pane fade  show active" id="profile" role="tabpanel" aria-labelledby="plotPopulationPyramid-tab">
@@ -294,11 +291,6 @@
                                     <div id="plotPopulationPyramid" style="height: 230px;width: 240px"></div>
                                 </div>                                
                             </div>                            
-                            <div class="tab-pane fade" id="home" role="tabpanel" aria-labelledby="plotProbability-tab">
-                                <div class="col-12 d-flex flex-column justify-content-between align-items-center p-0">
-                                    <div id="plotProbability" style="height: 230px;width: 240px"></div>
-                                </div>
-                            </div>
                         </div>                        
                     </div>
                 </div>
@@ -344,7 +336,7 @@
                             <label class="btn btn-sm btn-outline-secondary" for="btnradioPlotChordDiagramCount">&nbsp;&nbsp; Counts &nbsp;&nbsp;</label>
 
                             <input type="radio" class="btn-check" name="btnradio" id="btnradioPlotChordDiagramProbability" autocomplete="off">
-                            <label class="btn btn-sm btn-outline-secondary" for="btnradioPlotChordDiagramProbability">Probabilities</label>
+                            <label class="btn btn-sm btn-outline-secondary" for="btnradioPlotChordDiagramProbability">Proportions</label>
 
                         </div>
                     </div>
