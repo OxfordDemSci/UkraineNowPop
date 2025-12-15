@@ -79,7 +79,7 @@ In exchange, you must:
 The materials in this repository are made available as-is with a limitation of liability and no warranty of any kind. See full license text for details `./LICENSE`.
 
 ## Contact
-Please open an issue in the repository to report bugs or contact @doug-leasure with questions or comments.
+Please open an issue in the repository to report bugs or contact [@doug-leasure](https://github.com/doug-leasure) with questions or comments.
 
 ## Acknowledgements
 This work was funded by the World Health Organization in Ukraine and the Leverhulme Centre for Demographic Science at the University of Oxford.
