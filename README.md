@@ -16,7 +16,7 @@ This repository contains the code developed as part of the project, and there ar
 
 ```
 ├── data/                               # Data (public-only) used by the source code
-├── src/                                # Main source directory
+├── src/                                # Main source code directory
 │   ├── data_prep/                      # Prepare input data for analysis
 │   │   ├── pop_data/                   # Digital traces and population data
 │   │   ├── covariates/                 # Geospatial and other covariates
@@ -29,6 +29,13 @@ This repository contains the code developed as part of the project, and there ar
 │   ├── helpers/                        # Functions to be used across scripts
 │   │   ├── py_helpers/                 # Python helper functions
 │   │   ├── R_helpers/                  # R helper functions
+├── wd/                                 # Working directory (.gitignore) for local in/out files
+├── .gitignore                          # Files to be excluded from git tracking
+├── example.env                         # Example environment config (for `.env`)
+├── LICENSE                             # License terms for using the repository
+├── requirements.sh                     # System, R, and Python dependencies
+├── requirements.txt                    # Python dependencies
+├── requirements.R                      # R dependencies
 ```
 
 ### Clone the Repository
