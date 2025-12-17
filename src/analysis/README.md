@@ -1,5 +1,5 @@
 # Analysis
-This folder contains source for population nowcasting analyses.
+This folder contains source code for population nowcasting analyses.
 
 ## vodafone_deterministic
 This is the rapid-response population nowcasting model developed for Vodafone network data in Ukraine. This is a deterministic model that estimates monthly population sizes at the hromada level along with flows of mobile populations among hromadas.
