@@ -7,7 +7,7 @@ library(dtmapi)
 library(tmap)
 library(data.table)
 
-source(file.path(here::here(), "R_helpers/generic.R"))
+source(file.path(here::here(), "src", "helpers", "R_helpers", "generic.R"))
 source(here::here(".env"), local = env)
 
 download_DTM_IDP <- FALSE

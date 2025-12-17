@@ -9,7 +9,7 @@ options(scipen = 999)
 print_check <- F
 
 # Load required helpers
-source(file.path(here::here(), "R_helpers/generic.R"))
+source(file.path(here::here(), "src", "helpers", "R_helpers", "generic.R"))
 
 # Load census data
 hromada <- read_csv(file.path(in_dir, "KSE-Loc-Data-Hub", "full_dataset.csv"))

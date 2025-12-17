@@ -19,7 +19,7 @@ load_dotenv(env_path)
 os.chdir(os.getenv("repo_dir"))
 sys.path.append(os.path.join(os.getenv("repo_dir"), "src", "helpers"))
 
-if not Path('py_helpers/PWTT').exists():
+if not Path('py_helpers/PWTT').exists(): 
     !git clone https://github.com/oballinger/PWTT py_helpers/PWTT
 
 # import local helper modules

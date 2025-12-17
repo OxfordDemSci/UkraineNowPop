@@ -19,7 +19,7 @@ setwd(file.path(here::here(), "wd"))
 # directories
 repo_dir <- env$repo_dir
 data_dir <- file.path(env$repo_dir, "data")
-src_dir <- file.path(repo_dir, "src", "2_model")
+src_dir <- file.path(repo_dir, "src", "analysis", "multi-source_statistical")
 
 in_dir <- env$in_dir
 out_dir <- file.path(env$out_dir)
