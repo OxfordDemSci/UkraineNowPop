@@ -6,8 +6,9 @@ library(jsonlite)
 library(dtmapi)
 library(tmap)
 library(data.table)
+library(tidyverse)
 
-source(file.path(here::here(), "src", "helpers", "R_helpers", "generic.R"))
+source(file.path(here::here(), "R_helpers/generic.R"))
 source(here::here(".env"), local = env)
 
 download_DTM_IDP <- FALSE
@@ -31,7 +32,7 @@ dir.create(fig_dir, showWarnings = FALSE, recursive = TRUE)
 
 
 # Load data ----
-raion_geo <- st_read(file.path(
+raion_geo <- sf::st_read(file.path(
   in_dir,
   "COD-AB",
   "ukr_admbnda_sspe_20230201_SHP",
@@ -94,6 +95,16 @@ codps24 <- readxl::read_excel(
     "COD-PS",
     "2024",
     "[restricted release] UKR_ADM2_POP_2024_Sept_27.xlsx"
+  ),
+  sheet = 2
+)
+
+codps25 <- readxl::read_excel(
+  file.path(
+    data_dir,
+    "COD-PS",
+    "2025",
+    "[restricted release] UKR_ADM2_POP_2025.xlsx"
   ),
   sheet = 2
 )
@@ -232,6 +243,38 @@ codps24 <- codps24 %>%
   dplyr::select(ADM1_PCODE, ADM1_EN, ADM2_PCODE, ADM2_EN, s_name, a_name, pop2)
 
 
+codps25 <- codps25 %>%
+  rename(ADM1_EN = ADM1_NAME, ADM2_EN = ADM2_NAME) %>%
+  transmute(
+    ADM1_PCODE = ADM1_PCODE,
+    ADM1_EN = ADM1_EN,
+    ADM2_PCODE = ADM2_PCODE,
+    ADM2_EN = ADM2_EN,
+    # F_18_24 = 0.4*F_15_19 + F_20_24,
+    # M_18_24 = M_15_19 + M_20_24,
+    F_25_34 = F_25_29 + F_30_34,
+    M_25_34 = M_25_29 + M_30_34,
+    F_35_44 = F_35_39 + F_40_44,
+    M_35_44 = M_35_39 + M_40_44,
+    F_45_54 = F_45_49 + F_50_54,
+    M_45_54 = M_45_49 + M_50_54,
+    F_55_64 = F_55_59 + F_60_64,
+    M_55_64 = M_55_59 + M_60_64
+  ) %>%
+  pivot_longer(
+    cols = 5:12,
+    names_to = "demog",
+    values_to = "pop3"
+  ) %>%
+  separate(demog, into = c("s_name", "age_min", "age_max"), sep = "_") %>%
+  mutate(
+    a_name = paste0(age_min, "-", age_max),
+    ADM2_PCODE = ifelse(is.na(ADM2_PCODE), ADM1_PCODE, ADM2_PCODE),
+    ADM2_EN = ifelse(is.na(ADM2_EN), ADM1_EN, ADM2_EN)
+  ) %>%
+  dplyr::select(ADM1_PCODE, ADM1_EN, ADM2_PCODE, ADM2_EN, s_name, a_name, pop3)
+
+
 # Define geographical scope ----
 
 oblast_hrom_total <- geo %>%
@@ -311,12 +354,21 @@ ggsave(
 
 
 # Compare Vodafone and CODPS in 2023 ----
+target_date23 <- as.Date("2023-07-01")
+
+nearest_date23 <- stocks_hromada_agesex %>%
+  distinct(t) %>%
+  mutate(t = as.Date(t),
+         diff = abs(as.numeric(t - target_date23))) %>%
+  arrange(diff, desc(t)) %>%   
+  slice(1) %>%
+  pull(t)
 
 comparison23 <- stocks_hromada_agesex %>%
   select(-raion, -oblast) %>%
   left_join(geo) %>%
   filter(
-    t == as.Date("2023-07-01"),
+    t == nearest_date23,
     ADM2_PCODE %in% raions_complete$ADM2_PCODE,
     a_name != "18_24"
   ) %>%
@@ -371,7 +423,7 @@ ggplot(plot_nal, aes(x = a_name)) +
   scale_y_continuous(labels = function(x) formattable::comma(abs(x))) +
   labs(
     title = "Vodafone estimates vs. COD-PS 2023 population pyramid",
-    caption = "Date: 1 July 2023 \nGeography: complete raions",
+    caption = "Geography: complete raions",
     x = NULL,
     y = "Population"
   ) +
@@ -432,7 +484,7 @@ ggplot(plot_obl, aes(x = a_name)) +
   labs(
     title = "Vodafone estimates vs. COD-PS 2023 population pyramid",
     x = NULL,
-    caption = "Date: 1 July 2023\nGeographical scope: complete raions",
+    caption = "Geographical scope: complete raions",
     y = "Population (in thousands)"
   ) +
   theme_minimal(base_size = 15) +
@@ -500,7 +552,7 @@ tm_map_raion <- tm_shape(map_raion) +
     text = "Population difference between Vodafone estimates and COD-PS 2023",
   ) +
   tm_credits(
-    text = "Date: 1 July 2023 \nGeographical scope: complete raions",
+    text = "Geographical scope: complete raions",
     position = c("left", "bottom"),
     size = 0.7
   )
@@ -712,12 +764,22 @@ tmap_save(
 # )
 
 # Compare Vodafone estimates vs. COD-PS 2024 ----
+target_date24 <- as.Date("2024-07-17")
+
+nearest_date24 <- stocks_hromada_agesex %>%
+  distinct(t) %>%
+  mutate(t = as.Date(t),
+         diff = abs(as.numeric(t - target_date24))) %>%
+  arrange(diff, desc(t)) %>%   
+  slice(1) %>%
+  pull(t)
+
 
 comparison24 <- stocks_hromada_agesex %>%
   select(-raion, -oblast) %>%
   left_join(geo) %>%
   filter(
-    t == as.Date("2023-09-01"),
+    t == nearest_date24,
     ADM2_PCODE %in% raions_complete$ADM2_PCODE,
     a_name != "18_24"
   ) %>%
@@ -769,7 +831,7 @@ ggplot(plot_nal, aes(x = a_name)) +
   scale_y_continuous(labels = function(x) formattable::comma(abs(x))) +
   labs(
     title = "Vodafone estimates vs. COD-PS 2024 population pyramid",
-    caption = "Date: 1 July 2024 \nGeography: complete raions",
+    caption = "Geography: complete raions",
     x = NULL,
     y = "Population"
   ) +
@@ -829,7 +891,7 @@ ggplot(plot_obl, aes(x = a_name)) +
   labs(
     title = "Vodafone estimates vs. COD-PS 2024 population pyramid",
     x = NULL,
-    caption = "Date: 1 July 2024\nGeographical scope: complete raions",
+    caption = "Geographical scope: complete raions",
     y = "Population (in thousands)"
   ) +
   theme_minimal(base_size = 15) +
@@ -894,7 +956,7 @@ tm_map_raion_2024 <- tm_shape(map_raion) +
     text = "Population difference between Vodafone estimates and COD-PS 2024",
   ) +
   tm_credits(
-    text = "Date: 1 July 2024 \nGeographical scope: complete raions",
+    text = "Geographical scope: complete raions",
     position = c("left", "bottom"),
     size = 0.7
   )
@@ -1034,7 +1096,7 @@ base_plot <- ggplot(
   geom_point(size = 3.5, stroke = 1.8, alpha = 0.65) +
   labs(
     title = "Vodafone estimates vs. COD‑PS 2024 - raion level",
-    subtitle = "Reference date: 1 Sep 2024",
+    #subtitle = "Reference date: 17 Jul 2024",
     x = "log(COD‑PS 2024)",
     y = "log(Vodafone estimate)",
     colour = "Age group",
@@ -1092,6 +1154,396 @@ ggsave(
   dpi = 300
 )
 
+
+# Compare Vodafone estimates vs. COD-PS 2025 ----
+target_date25 <- as.Date("2025-07-15")
+
+nearest_date <- stocks_hromada_agesex %>%
+  distinct(t) %>%
+  mutate(t = as.Date(t),
+         diff = abs(as.numeric(t - target_date25))) %>%
+  arrange(diff, desc(t)) %>%  
+  slice(1) %>%
+  pull(t)
+
+comparison25 <- stocks_hromada_agesex %>%
+  select(-raion, -oblast) %>%
+  left_join(geo) %>%
+  filter(
+    t == nearest_date,
+    ADM2_PCODE %in% raions_complete$ADM2_PCODE,
+    a_name != "18_24"
+  ) %>%
+  group_by(ADM1_PCODE, ADM1_EN, ADM2_PCODE, ADM2_EN, a_name, s_name) %>%
+  summarise(pop_estimated = sum(pop_estimated), .groups = "drop") %>%
+  left_join(codps25) %>%
+  filter(a_name != "18_24" & a_name != "18-24")
+
+## Total comparison at National level ----
+
+plot_nal <- comparison25 %>%
+  group_by(a_name, s_name) %>%
+  summarise(
+    pop_estimated_nal = sum(pop_estimated, na.rm = T),
+    pop3 = sum(pop3, na.rm = T)
+  ) %>%
+  ungroup() %>%
+  mutate(
+    pop_estimated_nal = ifelse(
+      s_name == "M",
+      pop_estimated_nal * (-1),
+      pop_estimated_nal
+    ),
+    pop_bench_nal = ifelse(s_name == "M", pop3 * (-1), pop3)
+  )
+
+ggplot(plot_nal, aes(x = a_name)) +
+  geom_col(
+    aes(y = pop_estimated_nal, fill = s_name),
+    width = 0.9,
+    alpha = 0.6
+  ) +
+  geom_line(
+    aes(y = pop_bench_nal, colour = s_name, group = s_name),
+    linewidth = 1.2
+  ) +
+  geom_point(aes(y = pop_bench_nal, colour = s_name), size = 2) +
+  coord_flip() +
+  scale_fill_manual(
+    values = c(M = "#8C86A0", F = "#CF932C"),
+    name = NULL,
+    labels = c(F = "Female (Vodafone est.)", M = "Male (Vodafone est.)")
+  ) +
+  scale_colour_manual(
+    values = c(M = "#8C86A0", F = "#CF932C"),
+    name = NULL,
+    labels = c(F = "Female (COD‑PS 2025)", M = "Male (COD‑PS 2025)")
+  ) +
+  scale_y_continuous(labels = function(x) formattable::comma(abs(x))) +
+  labs(
+    title = "Vodafone estimates vs. COD-PS 2025 population pyramid",
+    caption = "Geography: complete raions",
+    x = NULL,
+    y = "Population"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "bottom")
+
+ggsave(
+  file.path(fig_dir, "vodafone_vs_codps_2025_pop_pyr_nal.jpeg"),
+  width = 25,
+  height = 20,
+  units = "cm",
+  dpi = 300
+)
+
+## Total comparison at Oblast level ----
+
+plot_obl <- comparison25 %>%
+  group_by(ADM1_EN, a_name, s_name) %>%
+  summarise(
+    pop_estimated_obl = sum(pop_estimated),
+    pop_bench_obl = sum(pop3)
+  ) %>%
+  ungroup() %>%
+  mutate(
+    pop_estimated_obl = ifelse(
+      s_name == "M",
+      -pop_estimated_obl,
+      pop_estimated_obl
+    ),
+    pop_bench_obl = ifelse(s_name == "M", -pop_bench_obl, pop_bench_obl)
+  )
+
+ggplot(plot_obl, aes(x = a_name)) +
+  geom_col(
+    aes(y = pop_estimated_obl / 1000, fill = s_name),
+    width = 0.9,
+    alpha = 0.6
+  ) +
+  geom_line(
+    aes(y = pop_bench_obl / 1000, colour = s_name, group = s_name),
+    linewidth = 1.2
+  ) +
+  geom_point(aes(y = pop_bench_obl / 1000, colour = s_name), size = 2) +
+  coord_flip() +
+  facet_wrap(~ADM1_EN, scales = "free_x") +
+  scale_y_continuous(labels = function(x) round(abs(x), 1)) +
+  scale_fill_manual(
+    values = c(F = "#CF932C", M = "#8C86A0"),
+    name = NULL,
+    labels = c(F = "Female (Vodafone est.)", M = "Male (Vodafone est.)")
+  ) +
+  scale_colour_manual(
+    values = c(F = "#CF932C", M = "#8C86A0"),
+    name = NULL,
+    labels = c(F = "Female (COD-PS 2025)", M = "Male (COD-PS 2025)")
+  ) +
+  labs(
+    title = "Vodafone estimates vs. COD-PS 2025 population pyramid",
+    x = NULL,
+    caption = "Geographical scope: complete raions",
+    y = "Population (in thousands)"
+  ) +
+  theme_minimal(base_size = 15) +
+  theme(legend.position = "bottom")
+
+ggsave(
+  file.path(fig_dir, "vodafone_vs_codps_2025_pop_pyr_obl.jpeg"),
+  units = "cm",
+  width = 35,
+  height = 30
+)
+
+## Total comparison at raion level ----
+
+plot_raion <- comparison25 %>%
+  left_join(plot_obl) %>%
+  group_by(ADM2_EN, a_name, s_name, pop_estimated, pop_bench_obl) %>%
+  summarise(
+    pop_estimated = sum(pop_estimated, na.rm = TRUE),
+    pop3 = sum(pop3, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  ungroup() %>%
+  mutate(
+    pop_estimated_raion = ifelse(s_name == "M", -pop_estimated, pop_estimated),
+    pop_bench_raion = ifelse(s_name == "M", -pop3, pop3)
+  )
+map_raion <- raion_geo |>
+  left_join(
+    comparison25 |>
+      group_by(ADM2_EN) %>%
+      summarise(
+        pop_estimated = sum(pop_estimated, na.rm = TRUE),
+        pop3 = sum(pop3, na.rm = TRUE),
+        .groups = "drop"
+      ) |>
+      mutate(
+        pop_diff = pop3 - pop_estimated
+      )
+  )
+tm_map_raion_2025 <- tm_shape(map_raion) +
+  tm_polygons(
+    fill = "pop_diff",
+    fill.scale = tm_scale_intervals(
+      values = c("#722d08ff", "white", "#75871B"),
+      midpoint = 0,
+      value.na = "grey"
+    ),
+    col = 'white',
+    lwd = 0.1,
+    fill.legend = tm_legend(
+      title = "COD-PS 2025 - Vodafone",
+      position = tm_pos_in("right", "bottom"),
+      frame = F
+    )
+  ) +
+  tm_layout(
+    frame = FALSE,
+    asp = 1.5
+  ) +
+  tm_title(
+    text = "Population difference between Vodafone estimates and COD-PS 2025",
+  ) +
+  tm_credits(
+    text = "Geographical scope: complete raions",
+    position = c("left", "bottom"),
+    size = 0.7
+  )
+tm_map_raion_2025
+tmap_save(
+  tm = tm_map_raion_2025,
+  filename = file.path(fig_dir, "vodafone_vs_codps_2025_pop_map_raion.jpeg"),
+  width = 35,
+  height = 25,
+  units = "cm",
+  dpi = 300
+)
+
+## Proportion comparison at raion level ----
+
+plot_obl_prop <- comparison25 %>%
+  group_by(ADM1_EN, a_name, s_name) %>%
+  summarise(
+    pop_estimated = sum(pop_estimated, na.rm = TRUE),
+    pop3 = sum(pop3, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  group_by(ADM1_EN) %>%
+  mutate(
+    total_est_obl = sum(pop_estimated),
+    total_bench_obl = sum(pop3),
+    prop_bench_obl = pop3 / total_bench_obl,
+    prop_bench_obl = ifelse(s_name == "M", -prop_bench_obl, prop_bench_obl)
+  ) %>%
+  ungroup() %>%
+  select(ADM1_EN, a_name, s_name, prop_bench_obl)
+
+
+plot_raion_prop <- comparison25 %>%
+  left_join(plot_obl_prop) %>%
+  group_by(ADM2_EN) %>%
+  mutate(
+    total_est = sum(pop_estimated, na.rm = TRUE),
+    total_bench = sum(pop3, na.rm = TRUE)
+  ) %>%
+  ungroup() %>%
+  mutate(
+    prop_est = pop_estimated / total_est,
+    prop_bench = pop3 / total_bench,
+    prop_est = ifelse(s_name == "M", -prop_est, prop_est),
+    prop_bench = ifelse(s_name == "M", -prop_bench, prop_bench)
+  )
+
+base_pyr <- ggplot(plot_raion_prop, aes(x = a_name)) +
+  geom_col(aes(y = prop_est, fill = s_name), width = 0.9, alpha = 0.65) +
+  geom_line(
+    aes(y = prop_bench, colour = s_name, group = s_name),
+    linewidth = 1.1
+  ) +
+  geom_line(
+    aes(y = prop_bench_obl, colour = s_name, group = s_name),
+    linewidth = 1.1,
+    linetype = 2
+  ) +
+  coord_flip() +
+  scale_fill_manual(
+    values = c(M = "#8C86A0", F = "#CF932C"),
+    name = NULL,
+    labels = c(F = "Female (Vodafone est.)", M = "Male (Vodafone est.)")
+  ) +
+  scale_colour_manual(
+    values = c(M = "#8C86A0", F = "#CF932C"),
+    name = NULL,
+    labels = c(F = "Female (COD‑PS 2025)", M = "Male (COD‑PS 2025)")
+  ) +
+  scale_y_continuous(labels = function(x) round(abs(x), 2)) +
+  labs(
+    title = "Vodafone estimates vs. COD‑PS 2025 population pyramid by Raion (1 September 2025)",
+    subtitle = "Solid lines: COD-PS 2025 - raion level; Dashed lines: COD-PS 2025 - oblast level ",
+    x = NULL,
+    y = "Population"
+  ) +
+  theme_minimal(base_size = 16) +
+  theme(legend.position = "bottom")
+
+n_col <- 3
+n_row <- 3
+base_pyr +
+  ggforce::facet_wrap_paginate(
+    ~ ADM1_EN * ADM2_EN,
+    ncol = n_col,
+    nrow = n_row,
+    page = 1
+  )
+ggsave(
+  file.path(fig_dir, "vodafone_vs_codps_2025_pop_pyr_raion1.jpeg"),
+  plot = last_plot(),
+  width = 35,
+  height = 25,
+  units = "cm",
+  dpi = 300
+)
+
+base_pyr +
+  ggforce::facet_wrap_paginate(
+    ~ ADM1_EN * ADM2_EN,
+    ncol = n_col,
+    nrow = n_row,
+    page = 2
+  )
+ggsave(
+  file.path(fig_dir, "vodafone_vs_codps_2025_pop_pyr_raion2.jpeg"),
+  plot = last_plot(),
+  width = 35,
+  height = 25,
+  units = "cm",
+  dpi = 300
+)
+
+base_pyr +
+  ggforce::facet_wrap_paginate(
+    ~ ADM1_EN * ADM2_EN,
+    ncol = n_col,
+    nrow = n_row,
+    page = 3
+  )
+ggsave(
+  file.path(fig_dir, "vodafone_vs_codps_2025_pop_pyr_raion3.jpeg"),
+  plot = last_plot(),
+  width = 35,
+  height = 25,
+  units = "cm",
+  dpi = 300
+)
+
+
+base_plot <- ggplot(
+  comparison25,
+  aes(x = log(pop3), y = log(pop_estimated), colour = a_name, shape = s_name)
+) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  geom_point(size = 3.5, stroke = 1.8, alpha = 0.65) +
+  labs(
+    title = "Vodafone estimates vs. COD‑PS 2025 - raion level",
+    #subtitle = "Reference date: 15 Jul 2025",
+    x = "log(COD‑PS 2025)",
+    y = "log(Vodafone estimate)",
+    colour = "Age group",
+    shape = "Sex"
+  ) +
+  scale_shape_manual(values = c(F = 3, M = 2)) +
+  scale_color_viridis_d() +
+  theme_minimal(base_size = 20)
+
+n_col <- 3
+n_row <- 2
+base_plot +
+  ggforce::facet_wrap_paginate(
+    ~ ADM1_EN * ADM2_EN,
+    ncol = n_col,
+    nrow = n_row,
+    page = 1
+  )
+ggsave(
+  file.path(fig_dir, "vodafone_vs_codps_2025_scatterplot_raion1.jpeg"),
+  plot = last_plot(),
+  width = 35,
+  height = 25,
+  units = "cm",
+  dpi = 300
+)
+base_plot +
+  ggforce::facet_wrap_paginate(
+    ~ ADM1_EN * ADM2_EN,
+    ncol = n_col,
+    nrow = n_row,
+    page = 2
+  )
+ggsave(
+  file.path(fig_dir, "vodafone_vs_codps_2025_scatterplot_raion2.jpeg"),
+  plot = last_plot(),
+  width = 35,
+  height = 25,
+  units = "cm",
+  dpi = 300
+)
+base_plot +
+  ggforce::facet_wrap_paginate(
+    ~ ADM1_EN * ADM2_EN,
+    ncol = n_col,
+    nrow = n_row,
+    page = 3
+  )
+ggsave(
+  file.path(fig_dir, "vodafone_vs_codps_2025_scatterplot_raion3.jpeg"),
+  plot = last_plot(),
+  width = 35,
+  height = 25,
+  units = "cm",
+  dpi = 300
+)
 # Compare Vodafone estimates vs Facebook estimates ----
 
 parent_dir <- file.path(
@@ -1168,6 +1620,7 @@ estimates_adm1 <- stocks_hromada_agesex %>%
   select(-raion, -oblast) %>%
   left_join(geo, by = key) %>%
   filter(
+    t == nearest_date,
     ADM1_PCODE %in% oblasts_complete$ADM1_PCODE,
     a_name != "18-24"
   ) %>%
