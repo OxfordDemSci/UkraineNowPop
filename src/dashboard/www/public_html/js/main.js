@@ -1,8 +1,7 @@
 import * as _env from './env.js'
 
-//var API_URL = _env.get_api_url();
-// var API_URL = "http://127.0.0.1:8000/api";
-var API_URL = "/api";
+var API_URL = _env.get_api_url();
+//var API_URL = "http://127.0.0.1:8000/api";
 
 import * as _api from './api.js?version=0.98'
 import * as _init from './init.js?version=0.24'
