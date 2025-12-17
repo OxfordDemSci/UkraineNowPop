@@ -1,3 +1,6 @@
+# This script obtains population displacement data from the 
+# IOM Displacement Tracking Matrix (DTM) AOI
+
 # Load required libraries
 # https://dtm.iom.int/online-interactive-resources/ukraine-regional-response-dashboard/index.html?category=Demographic%20Profile&survey=crossings
 library(jsonlite)

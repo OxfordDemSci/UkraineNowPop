@@ -1,10 +1,13 @@
+# This script creates a master index for all unique combinations of time steps, regions, age, 
+# and sex groups. This index will be used in downstream modelling scripts.
+
 # cleanup
 rm(list = ls())
 gc()
 
 # Load required helpers
-source(file.path(here::here(), "R_helpers/generic.R"))
-source(file.path(here::here(), "R_helpers/data_querying.R"))
+source(file.path(here::here(), "src", "helpers", "R_helpers", "generic.R"))
+source(file.path(here::here(), "src", "helpers", "R_helpers", "data_querying.R"))
 
 # Input parameters -------------------------------------------------------
 

@@ -1,5 +1,7 @@
+# This script obtains data on age-sex demographics of Ukrainian refugees from Eurostat and UNHCR
+
 library(tidyverse)
-source(file.path(here::here(), "R_helpers/generic.R"))
+source(file.path(here::here(), "src", "helpers", "R_helpers", "generic.R"))
 
 download_eurostat <- T
 

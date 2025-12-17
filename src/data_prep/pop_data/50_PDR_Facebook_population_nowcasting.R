@@ -1,10 +1,15 @@
+# This script prepares population estimates based on Facebook audience sizes from Leasure et al 2023 (Population and Development Review)
+
 library("tidyverse")
 library("readr")
 
-source("R_helpers/generic.R")
+source(file.path(here::here(), "src", "helpers", "R_helpers", "generic.R"))
+
 master_index <- read_csv(file.path(out_dir, paste0(tolower(country), "_master_index.csv")))|>
   distinct(i_key, i_name, i, ADM1_PCODE, macroregion, t, t_key, t_name)
+
 time_index <- read_csv(file.path(out_dir, paste0(tolower(country), "_time_index.csv")))
+
 # parameters
 parent_dir <- file.path(in_dir, "/Ukraine_population_estimates_2023/oblast_daily_population/model")
 all_subdirs <- list.dirs(path = parent_dir, full.names = TRUE, recursive = FALSE)

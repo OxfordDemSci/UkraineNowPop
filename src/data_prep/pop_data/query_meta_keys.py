@@ -1,14 +1,21 @@
-import py_helpers
+# This script queries Meta's regional identifiers from Oxford's social media database
+
 import os
+import sys
 from dotenv import load_dotenv
 from pathlib import Path
 import pandas as pd
 
-
-# create directories
-# Load the .env file
+# load the .env file
 env_path = Path(".") / ".env"
 load_dotenv(env_path)
+
+# working directory and system path
+os.chdir(os.getenv("repo_dir"))
+sys.path.append(os.path.join(os.getenv("repo_dir"), "src", "helpers"))
+
+# import local helper module
+import py_helpers
 
 # Access the environment variables
 data_dir = os.path.join(Path(os.getenv("repo_dir")), "data")

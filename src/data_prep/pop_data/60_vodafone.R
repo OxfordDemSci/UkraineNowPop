@@ -1,3 +1,5 @@
+# This script prepares Vodafone mobile network data for Ukraine
+
 rm(list = ls())
 gc()
 library(tmap)
@@ -5,7 +7,9 @@ tmap_options(component.autoscale = F)
 library(data.table)
 
 # Load required helpers
-source(file.path(here::here(), "R_helpers/generic.R"))
+source(file.path(here::here(), "src", "helpers", "R_helpers", "generic.R"))
+
+# load data
 hromada <- read_csv(file.path(in_dir, "KSE-Loc-Data-Hub", "full_dataset.csv"))
 master_index <- read_csv(file.path(out_dir, "ua_master_index.csv"))
 hromada_geo <- st_read(file.path(out_dir, "ua_master_hromada.gpkg"))

@@ -1,3 +1,6 @@
+# This script queries a UNHCR API endpoint to retrieve daily counts of border crossings at 
+# the Ukrainian border.
+
 # cleanup
 rm(list = ls())
 gc()
@@ -58,37 +61,3 @@ dat_refugees <- dat_refugees[!is.na(dat_refugees$individuals), ]
 # save to disk
 write.csv(dat_refugees, file.path(out_dir, "dat_refugees.csv"), row.names = F)
 
-
-
-
-
-
-# #---- impute missing data ----#
-#
-# # libraries
-# library("imputeTS")
-#
-# # daily time step
-# refugees_totd <- expand.grid(
-#   date = seq(as.Date("2022-02-27"),
-#              as.Date("2024-05-14"), by = "day") %>% as.character()) %>%
-#   left_join(dat_refugees_in, by=c("date")) %>%
-#   left_join(dat_refugees_out, by=c("date")) %>%
-#   mutate(ref_inc = imputeTS::na_interpolation(ref_in, option = "linear"),
-#          ref_outc = imputeTS::na_interpolation(ref_out, option = "linear"),
-#          net = ref_in-ref_out,
-#          netc = ref_inc-ref_outc,
-#          date = as.Date(date))
-#
-# # weekly time step
-# refugees_totw <- expand.grid(
-#   date = seq(as.Date("2022-02-27"),
-#              as.Date("2024-05-14"), by = "day") %>%
-#     .[weekdays(.) == "Sunday"] %>% as.character()) %>%
-#   left_join(dat_refugees_in, by = c("date")) %>%
-#   left_join(dat_refugees_out, by = c("date")) %>%
-#   mutate(ref_inc = imputeTS::na_interpolation(ref_in, option = "linear"),
-#          ref_outc = imputeTS::na_interpolation(ref_out, option = "linear"),
-#          net = ref_in-ref_out,
-#          netc = ref_inc-ref_outc,
-#          date = as.Date(date))

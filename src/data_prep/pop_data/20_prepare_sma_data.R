@@ -1,10 +1,14 @@
+# This script queries Oxford's social media audience database to retrieve available counts of 
+# daily and monthly active users of Facebook and Instagram for specified time periods, locations, 
+# and age-sex groups.
+
 # cleanup
 rm(list = ls())
 gc()
 
 # Load required helpers
-source(file.path(here::here(), "R_helpers/generic.R"))
-source(file.path(here::here(), "R_helpers/data_querying.R"))
+source(file.path(here::here(), "src", "helpers", "R_helpers", "generic.R"))
+source(file.path(here::here(), "src", "helpers", "R_helpers", "data_querying.R"))
 
 # Set up output directory
 out_dir_pop <- file.path(out_dir, "population_proxy", "social_media_audience")
