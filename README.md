@@ -8,23 +8,27 @@ This repository contains the code developed as part of the project, and there ar
 2. Population nowcasting using Vodafone mobile network data;
 3. Statistical population nowcasting that integrate Facebook and Instagram advertising data;
 4. Web-based dashboard to interactively display population nowcasting results; and
-5. Work-in-progress that includes experimental sand box of source code.
+5. Work-in-progress that includes experimental sandbox of source code.
 
 ## Getting Started  
 
 ### Repository Organisation
 
 ```
-├── data/                    # Data (public-only) used by the source code
-├── py_helpers/              # Python helper functions
-├── R_helpers/               # R helper functions
-├── src/                     # Main source directory
-│   ├── pop_data/            # Data wrangling: Digital traces and population data
-│   ├── covariates/          # Data wrangling: Geospatial and other covariates
-│   ├── model_vodafone/      # Model code: Rapid-response deterministic model based on Vodafone data
-│   ├── model_statistical/   # Model code: Bayesian statistical model to integrate Facebook and Instagram data
-│   ├── dashboard/           # Dashboard: Visualisation and reporting tools
-│   ├── simulation/          # Simulations used to inform modelling decisions
+├── data/                               # Data (public-only) used by the source code
+├── src/                                # Main source directory
+│   ├── data_prep/                      # Prepare input data for analysis
+│   │   ├── pop_data/                   # Digital traces and population data
+│   │   ├── covariates/                 # Geospatial and other covariates
+│   ├── analysis/                       # Data analyses for population nowcasting
+│   │   ├── vodafone_deterministic/     # Rapid-response deterministic model based on Vodafone data
+│   │   ├── multi-source_statistical/   # Bayesian statistical model to integrate Facebook and Instagram data
+│   ├── dashboard/                      # Dashboard: Visualisation and reporting tools
+│   ├── sandbox/                        # Experimental code and works-in-progress
+│   │   ├── simulation/                 # Simulations used to inform modelling decisions
+│   ├── helpers/                        # Functions to be used across scripts
+│   │   ├── py_helpers/                 # Python helper functions
+│   │   ├── R_helpers/                  # R helper functions
 ```
 
 ### Clone the Repository
