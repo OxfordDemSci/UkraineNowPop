@@ -73,7 +73,7 @@ This project integrates data from multiple sources, including:
 Contributions are welcomed. To contribute please open an issue and/or submit a pull request to merge commits into the `dev` branch that resolve a specific issue or set of issues. 
 
 ## License
-This repository is published under a [GNU General Public License v3](https://www.gnu.org/licenses/gpl-3.0.en.html) (see `./LICENSE`). 
+This repository is published under a [GNU General Public License v3](https://www.gnu.org/licenses/gpl-3.0.en.html) (see [`./LICENSE`](./LICENSE). 
 
 This guarantees your freedom to:  
 1. Use the software for any purpose,
@@ -87,7 +87,7 @@ In exchange, you must:
 3. Use the same license for your modifications, and 
 4. Document changes that you make to the materials.
 
-The materials in this repository are made available as-is with a limitation of liability and no warranty of any kind. See full license text for details `./LICENSE`.
+The materials in this repository are made available as-is with a limitation of liability and no warranty of any kind. See full license text for details [`./LICENSE`](./LICENSE).
 
 ## Contact
 Please open an issue in the repository to report bugs or contact [@doug-leasure](https://github.com/doug-leasure) with questions or comments.
