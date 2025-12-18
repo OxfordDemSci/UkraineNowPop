@@ -12,6 +12,17 @@ class RankBy(Enum):
     PROBABILITY = "probability"
 
 
+class FileTypes(Enum):
+    CSV = "csv"
+    JSON = "json"
+
+
+class SexType(Enum):
+    BOTH = "both"
+    MALE = "male"
+    FEMALE = "female"
+
+
 class CountriesEnum2(Enum):
     AW = "Aruba"
     AF = "Afghanistan"
