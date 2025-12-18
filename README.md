@@ -73,7 +73,7 @@ This project integrates data from multiple sources, including:
 Contributions are welcomed. To contribute please open an issue and/or submit a pull request to merge commits into the `dev` branch that resolve a specific issue or set of issues. 
 
 ## License
-This repository is published under a [GNU General Public License v3](https://www.gnu.org/licenses/gpl-3.0.en.html) (see [`./LICENSE`](./LICENSE). 
+This repository is published under a [GNU General Public License v3](https://www.gnu.org/licenses/gpl-3.0.en.html) (see [`./LICENSE`](./LICENSE)). 
 
 This guarantees your freedom to:  
 1. Use the software for any purpose,
