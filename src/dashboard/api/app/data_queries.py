@@ -342,7 +342,7 @@ def get_migration_probabilities(
         db.session.query(
             Migration.origin,
             Migration.destination,
-            func.sum(Migration.proportion).label("proportion"),
+            func.avg(Migration.proportion).label("proportion"),
             func.sum(Migration.count).label("count"),
         )
         .filter(
@@ -386,7 +386,7 @@ def get_prob_count(
     #     func.min(func.abs(func.date(date) - func.date(Migration.day)))
     # ).subquery()
     query = db.session.query(
-        func.sum(Migration.proportion).label("proportion"),
+        func.avg(Migration.proportion).label("proportion"),
         func.sum(Migration.count).label("count"),
     ).filter(
         or_(*conditions),

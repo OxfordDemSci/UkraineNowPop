@@ -197,7 +197,7 @@ def add_migration_data(overwrite_existing: bool = False):
                 "age_min": "int8",
                 "age_max": "int16",
                 "sex": "int8",
-                "proportion": "float32",
+                "proportion": "int16",
                 "count": "int32",
             })
             data = []

@@ -92,7 +92,7 @@ def add_migration(db_session):
                 "age_min": "int8",
                 "age_max": "int8",
                 "sex": "int8",
-                "proportion": "float32",
+                "proportion": "int16",
                 "count": "int32",            
         })
     data = []

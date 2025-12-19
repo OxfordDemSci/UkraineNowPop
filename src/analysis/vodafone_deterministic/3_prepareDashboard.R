@@ -7,7 +7,7 @@ source(file.path(here::here(), "src", "helpers", "R_helpers", "generic.R"))
 library(data.table)
 
 output_date <- "20251209"
-sample <- T
+sample <- F
 
 # Script parameter
 
@@ -219,9 +219,10 @@ flows_lvl <- rbindlist(
 
 # Probability within (day, age band, sex, admin_level, destination)
 flows_lvl[,
-  proportion := round(count / sum(count) * 100, 2),
+  proportion := round(count / sum(count) * 100 |> as.integer()),
   by = .(day, age_min, age_max, sex, admin_level, destination)
 ]
+flows_lvl$proportion <- as.integer(flows_lvl$proportion)
 
 setcolorder(
   flows_lvl,
