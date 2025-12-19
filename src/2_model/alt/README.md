@@ -1,1 +1,0 @@
-This folder is for stashing alternative model iterations developed while working towards one of the primary models in `./src/2_model/models/`. 

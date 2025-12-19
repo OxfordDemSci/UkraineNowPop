@@ -4,7 +4,8 @@ venv*
 *.exe
 **/.idea/
 **/.DS_Store
-/wd/
+/wd/*
+!/wd/README.md
 /data/control/
 /py_helpers/PWTT/
 

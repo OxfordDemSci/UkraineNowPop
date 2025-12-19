@@ -273,3 +273,11 @@ option:disabled {
   background: #2b2b2b;
   border-color: transparent;
 }*/
+
+
+.datepicker table tr td.disabled,
+.datepicker table tr td.disabled:hover {
+  background: none;
+  color: #ddd;
+  cursor: default;
+}

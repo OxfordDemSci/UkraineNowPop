@@ -11,7 +11,7 @@ from sqlalchemy.sql import text
 
 from app import db
 
-from .datatypes import RankBy
+from .datatypes import RankBy, FileTypes, SexType
 from .models import AdminUnits, Countries, Languages, Migration, Population, User
 
 
@@ -402,3 +402,91 @@ def get_prob_count(
         "proportion": result.proportion,
         "count": result.count,
     }
+
+
+def data_download(
+        country: str,
+        admin_level: int,
+        date_start: str,
+        date_end: str,
+        age_min: int = 0,
+        age_max: int = 990,
+        sex: SexType = SexType.BOTH,
+        file_format: FileTypes = FileTypes.CSV,
+):
+    sex_value = 1 if sex.value == "male" else 2
+    if sex == SexType.BOTH:
+        sex_filter = or_(Population.sex == 1, Population.sex == 2)
+    else:
+        sex_filter = Population.sex == sex_value
+
+    pop_posteriors_query = db.session.query(Population.pcode, Population.day, Population.pop_posterior).filter(
+        Population.country == country,
+        Population.admin_level == admin_level,
+        Population.day >= date_start,
+        Population.day <= date_end,
+        Population.age_min >= age_min,
+        Population.age_max <= age_max,
+        sex_filter
+    ).group_by(Population.pcode, Population.day, Population.pop_posterior)
+    pop_posteriors_results = pop_posteriors_query.all()
+
+    posteriors_in_pcode_day: defaultdict[str, defaultdict[str, List[int]]] = defaultdict(lambda: defaultdict(list))
+    for pcode, day, posterior in pop_posteriors_results:
+        day_str = day.strftime("%Y-%m-%d")
+        posteriors_in_pcode_day[pcode][day_str].append(posterior)
+    summed_pop_posteriors: Dict[str, Dict[str, np.ndarray]] = {}
+    for pcode, days in posteriors_in_pcode_day.items():
+        summed_pop_posteriors[pcode] = {}
+        for day, posteriors in days.items():
+            summed_pop_posteriors[pcode][day] = np.sum(posteriors, axis=0)
+
+    data = []
+    for pcode, days in summed_pop_posteriors.items():
+        for day, summed_posterior in days.items():
+            data.append({
+                "date": day,
+                'admin_unit': pcode,
+                "age_min": age_min,
+                "age_max": age_max,
+                "sex": sex.value,
+                'pop': np.mean(summed_posterior),
+                "pop_lower": np.quantile(summed_posterior, 0.025),
+                "pop_upper": np.quantile(summed_posterior, 0.975),
+            })
+
+    if file_format == FileTypes.CSV:
+        return generate_csv(data)
+    elif file_format == FileTypes.JSON:
+        return generate_json(data)
+
+
+def generate_csv(data):
+    import csv
+    from io import StringIO
+    from flask import make_response
+    si = StringIO()
+    cw = csv.writer(si)
+    cw.writerow(["date", "admin_unit", "age_min", "age_max", "sex", "pop", "pop_lower", "pop_upper"])
+    for row in data:
+        cw.writerow(
+            [
+                row["date"],
+                row["admin_unit"],
+                row["age_min"],
+                row["age_max"],
+                row["sex"],
+                row["pop"],
+                row["pop_lower"],
+                row["pop_upper"]
+            ]
+        )
+    output = make_response(si.getvalue())
+    output.headers["Content-Disposition"] = "attachment; filename=data.csv"
+    output.headers["Content-type"] = "text/csv"
+    return output
+
+
+def generate_json(data):
+    from flask import jsonify
+    return jsonify(data)

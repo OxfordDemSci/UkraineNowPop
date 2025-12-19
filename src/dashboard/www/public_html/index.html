@@ -14,7 +14,8 @@
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/themes/base/jquery-ui.min.css">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/themes/base/theme.min.css">        
         <link rel="stylesheet" href="./lib/slider/jquery-ui-slider-pips.min.css">
-        <link rel="stylesheet" href="./css/style.css?version=0.79">
+        <link rel="stylesheet" href="./lib/bootstrap_datepicker_1_9_0/css/bootstrap-datepicker3.min.css">
+        <link rel="stylesheet" href="./css/style.css?version=0.8">
        
         <script src="https://cdn.amcharts.com/lib/version/5.9.9/index.js"></script>
         <script src="https://cdn.amcharts.com/lib/version/5.9.9/flow.js"></script>
@@ -33,9 +34,12 @@
     <button class="btn btn-labeled btn-light btn-sm" type="button" id="btnAboutPortal">
         <span class="btn-label"><i class="fas fa-info-circle"></i></span> 
     </button>             
+    <button class="btn btn-labeled btn-light btn-sm" type="button" id="btnDownload">
+        <span class="btn-label"><i class="fas fa-download"></i></span> 
+    </button>  
     <button class="btn btn-labeled btn-light btn-sm" type="button" id="btnSettings">
         <span class="btn-label"><i class="fas fa-cog"></i></span> 
-    </button> 
+    </button>        
     </div>
   </div>
 </nav>            
@@ -372,6 +376,104 @@
         </div> 
         <!--  Modal END  -->
         
+
+        <!--  Modal Download -->
+        <div class="modal fade" data-backdrop="false" id="idMdDownload" tabindex="-1" aria-labelledby="ModalDownload"
+             style="opacity: 0.95;z-index: 2200; padding-top: 120px">
+            <div class="modal-dialog modal-sm" role="document" id="idModalDownload-dialog">
+                <div class="modal-content">
+                    <div class="modal-header" style="padding: 0.4rem">
+                        <p class="modal-title" id="ModalDownloadLabel">Download</p>
+                        <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <div class="container">
+                            
+                            
+                              <div class="row align-items-center">
+                                  <div class="col-sm-12">
+
+                                <table class="table table-sm" style="margin-bottom: 0.10rem; padding: 0rem">
+                                    <tr>
+                                        <td style="border-bottom-width:0px; width: 4rem" class="table-light"><strong><label class="mt-2">Geo</label></strong></td>
+                                        <td style="border-bottom-width:0px; "><label id="idGeoLabelDownloadWindow" class="info_box_label mt-2"></label></td>
+                                    </tr>  
+                                    <tr>
+                                        <td style="border-bottom-width:0px;" class="table-light"><strong><label class="">Sex</label></strong></td>
+                                        <td style="border-bottom-width:0px; "><label id="idSexLabelDownloadWindow" class="info_box_label"></label></td>
+                                    </tr>                                      
+                                    <tr>
+                                        <td style="border-bottom-width:0px;" class="table-light"><strong><label class="">Ages</label></strong></td>
+                                        <td style="border-bottom-width:0px; "><label id="idAgesLabelDownloadWindow" class="info_box_label"></label></td>
+                                    </tr>                                         
+                                </table>
+                                      
+                                  </div>    
+                            </div>                          
+                    
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-2 pb-2 mb-1 border-bottom"></div>
+                                </div>
+                            </div>
+
+                            <div class="row mt-2">
+                                <div class="col-sm-10">
+                                    <label class="form-check-label label_settings" for="">
+                                        <strong>Choose start and end dates</strong>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="row mt-2">
+                                <div class="col-sm-4">
+                                    <label class="form-check-label label_settings mt-1" for="">
+                                        Start date
+                                    </label>
+                                </div>
+                                <div class="col-sm-8">
+                                    <div class="input-group date" data-provide="datepicker" id="datepickerStartDate">
+                                        <input type="text" class="form-control" style="padding: 0;">
+                                        <div class="input-group-addon">
+                                            <span class="input-group-text bg-light d-block" style="line-height: 0">
+                                                <i class="fa fa-calendar"></i>
+                                            </span>
+                                        </div>
+                                    </div>                            
+                                </div>
+                            </div>
+
+                            <div class="row mt-1">
+                                <div class="col-sm-4">
+                                    <label class="form-check-label label_settings mt-1" for="">
+                                        End date
+                                    </label>
+                                </div>
+                                <div class="col-sm-8">
+                                    <div class="input-group date" data-provide="datepicker" id="datepickerEndDate">
+                                        <input type="text" class="form-control" style="padding: 0;">
+                                        <div class="input-group-addon">
+                                            <span class="input-group-text bg-light d-block" style="line-height: 0">
+                                                <i class="fa fa-calendar"></i>
+                                            </span>
+                                        </div>
+                                    </div>   
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="modal-footer p-1">
+                        <button type="button" class="btn btn-secondary btn-sm mr-2" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary btn-sm" id="btnDownlaodTable">Download</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- end  modals Download -->         
+        
 <!--  Modal Settings -->
 <div class="modal fade" data-backdrop="false" id="idMdSettings" tabindex="-1" aria-labelledby="ModalSettings"
      style="opacity: 0.95;z-index: 2200">
@@ -690,5 +792,6 @@
 <!--// https://developers.google.com/speed/libraries-->
 
 <script src="//cdn.jsdelivr.net/npm/jstat@latest/dist/jstat.min.js"></script>
+<script src="./lib/bootstrap_datepicker_1_9_0/js/bootstrap-datepicker.min.js"></script>
 
-<script src="./js/main.js?version=2.15" type="module"></script>
+<script src="./js/main.js?version=2.23" type="module"></script>
