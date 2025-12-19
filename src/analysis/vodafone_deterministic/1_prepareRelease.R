@@ -232,7 +232,7 @@ for (month in unique(flows$t) |> as.character()) {
     t +
       origin_hromada_PCODE +
       origin_raion_PCODE +
-      orgin_oblast_PCODE +
+      origin_oblast_PCODE +
       destination_hromada_PCODE +
       destination_raion_PCODE +
       destination_oblast_PCODE ~
@@ -247,7 +247,7 @@ for (month in unique(flows$t) |> as.character()) {
       "t",
       "origin_hromada_PCODE",
       "origin_raion_PCODE",
-      'orgin_oblast_PCODE',
+      'origin_oblast_PCODE',
       "destination_hromada_PCODE",
       "destination_raion_PCODE",
       'destination_oblast_PCODE'
