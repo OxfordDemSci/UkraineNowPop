@@ -78,7 +78,7 @@ def test_get_migration_probabilities(app, session, db):
     # Check if the dictionary contains the expected keys
     for key in result.keys():
         assert 'destination' in result[key][0]
-        assert 'probability' in result[key][0]
+        assert 'proportion' in result[key][0]
         assert 'count' in result[key][0]
 
 

@@ -406,9 +406,9 @@ paths:
             required: false
             schema:
               type: "string"
-              enum: ["count", "probability"]
+              enum: ["count", "proportion"]
               default: "count"
-            description: "Rank results by count or probability"
+            description: "Rank results by count or proportion"
           - name: "limit"
             in: "query"
             required: false

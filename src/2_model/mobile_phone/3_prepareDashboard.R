@@ -7,7 +7,7 @@ source(file.path(here::here(), "R_helpers/generic.R"))
 library(data.table)
 
 output_date <- "20251209"
-sample <- F
+sample <- T
 
 # Script parameter
 
@@ -69,6 +69,7 @@ parse_age_sex <- function(DT) {
 }
 
 agg_level <- function(DT, dest_col, level) {
+  DT[pop == 0, pop := 1]
   # Summarize to one admin level; renames destination_* into `pcode`
   DT[,
     .(pop = sum(pop)),
@@ -76,9 +77,11 @@ agg_level <- function(DT, dest_col, level) {
   ][,
     `:=`(admin_level = level, pop = as.integer(round(pop)))
   ]
+  # replace 0 by 1 in pop
 }
 
 agg_level_flows <- function(DT, dest_col, orig_col, level) {
+  DT[count == 0, count := 1]
   DT[
     get(dest_col) != get(orig_col),
     .(count = sum(count)),
@@ -215,7 +218,7 @@ flows_lvl <- rbindlist(
 
 # Probability within (day, age band, sex, admin_level)
 flows_lvl[,
-  probability := count / sum(count),
+  proportion := round(count / sum(count) * 100, 2),
   by = .(day, age_min, age_max, sex, admin_level, destination)
 ]
 
@@ -231,7 +234,7 @@ setcolorder(
     "origin",
     "destination",
     "count",
-    "probability"
+    "proportion"
   )
 )
 

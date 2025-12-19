@@ -20,7 +20,7 @@ export function get_migration_probabilities2(api_url, country, admin_level = 1, 
         age_max_male: age_max_male_f,
         age_min_female: age_min_female,
         age_max_female: age_max_female_f,
-        rank_by: "probability",
+        rank_by: "proportion",
         limit: $('#numberMigrationLimit').children("option:selected").val()
     };
     
@@ -84,7 +84,7 @@ export function update_migration_probabilities(d, series, adminunits_names) {
     if(document.getElementById('btnradioPlotChordDiagramCount').checked === true) {   
          typeData="count";   
         } else {  
-         typeData="probability";   
+         typeData="proportion";   
     }      
 
     var values_flows = [];
@@ -92,7 +92,7 @@ export function update_migration_probabilities(d, series, adminunits_names) {
     for (var key of Object.keys(d)) {
 
         for (var i = 0; i < d[key].length; i++) {
-            //if (d[key][i].probability > 10.3) {
+            //if (d[key][i].proportion > 10.3) {
                 values_flows.push(
                         {
                             from: key,
@@ -126,7 +126,7 @@ export function update_migration_probabilities_LG(d, series, root, adminunits_na
     if (document.getElementById('btnradioPlotChordDiagramCount').checked === true) {
         typeData = "count";
     } else {
-        typeData = "probability";
+        typeData = "proportion";
     }
 
     var values_flows = [];

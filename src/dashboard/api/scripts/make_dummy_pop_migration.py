@@ -108,7 +108,7 @@ def make_dummy_migration_data(df, admin_levels : list[int]):
             assert probabilities.sum() >= 0.99999999, f"Probabilities do not sum to 1: {probabilities.sum()}"
             for origin, destination, age_min, sex in product(admin_units, admin_units, age_groups, sexes):
                 if origin != destination:
-                    probability = round(probabilities[counter], 8)
+                    proportion = round(probabilities[counter], 8)
                     data.append({
                         "country": "UKR",
                         "admin_level": level,
@@ -118,13 +118,13 @@ def make_dummy_migration_data(df, admin_levels : list[int]):
                         "age_min": age_min,
                         "age_max": age_min + 4,
                         "sex": 1 if sex == 'male' else 2, 
-                        "probability": probability,
-                        "count": int(probability * UKRAINE_POPULATION)
+                        "proportion": proportion,
+                        "count": int(proportion * UKRAINE_POPULATION)
                     })
                     counter += 1
     df = pd.DataFrame(data)
     for day in days:
-        assert df[df.day == day].probability.sum() >= 0.9999, f"Probabilities do not sum to 1: {df[df.day == day].probability.sum()}"
+        assert df[df.day == day].proportion.sum() >= 0.9999, f"Probabilities do not sum to 1: {df[df.day == day].proportion.sum()}"
     return df
 
 

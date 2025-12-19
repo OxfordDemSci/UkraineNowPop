@@ -9,7 +9,7 @@ class UserRoleEnum(Enum):
 
 class RankBy(Enum):
     COUNT = "count"
-    PROBABILITY = "probability"
+    PROPORTION = "proportion"
 
 
 class CountriesEnum2(Enum):

@@ -76,7 +76,7 @@ def upgrade() -> None:
         sa.Column('age_min', sa.SMALLINT(), nullable=False),
         sa.Column('age_max', sa.SMALLINT(), nullable=False),
         sa.Column('sex', sa.SMALLINT(), nullable=False),
-        sa.Column('probability', sa.Numeric(precision=5, scale=4), nullable=False),
+        sa.Column('proportion', sa.Numeric(precision=5, scale=4), nullable=False),
         sa.PrimaryKeyConstraint('id')
     )
     op.create_table(

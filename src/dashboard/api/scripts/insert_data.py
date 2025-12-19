@@ -197,7 +197,7 @@ def add_migration_data(overwrite_existing: bool = False):
                 "age_min": "int8",
                 "age_max": "int16",
                 "sex": "int8",
-                "probability": "float32",
+                "proportion": "float32",
                 "count": "int32",
             })
             data = []
@@ -211,7 +211,7 @@ def add_migration_data(overwrite_existing: bool = False):
                     "age_min": row["age_min"],
                     "age_max": row["age_max"],
                     "sex": row["sex"],
-                    "probability": row["probability"],
+                    "proportion": row["proportion"],
                     "count": row["count"]
                 })
             session.bulk_insert_mappings(Migration, data)

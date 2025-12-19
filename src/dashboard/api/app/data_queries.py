@@ -301,8 +301,8 @@ def get_migration_probabilities(
             age_ranges, age_min_female, age_max_female
         )
     rank_col = (
-        func.sum(Migration.probability)
-        if rank_by == RankBy.PROBABILITY
+        func.sum(Migration.proportion)
+        if rank_by == RankBy.PROPORTION
         else func.sum(Migration.count)
     )
     probabilities = defaultdict(list)
@@ -342,7 +342,7 @@ def get_migration_probabilities(
         db.session.query(
             Migration.origin,
             Migration.destination,
-            func.sum(Migration.probability).label("probability"),
+            func.sum(Migration.proportion).label("proportion"),
             func.sum(Migration.count).label("count"),
         )
         .filter(
@@ -361,9 +361,9 @@ def get_migration_probabilities(
 
     results = sub_query.all()
     if results:
-        for origin, destination, probability, count in results:
+        for origin, destination, proportion, count in results:
             probabilities[origin].append(
-                {"destination": destination, "probability": probability, "count": count}
+                {"destination": destination, "proportion": proportion, "count": count}
             )
             probabilities[destination].append(
                 get_prob_count(
@@ -386,7 +386,7 @@ def get_prob_count(
     #     func.min(func.abs(func.date(date) - func.date(Migration.day)))
     # ).subquery()
     query = db.session.query(
-        func.sum(Migration.probability).label("probability"),
+        func.sum(Migration.proportion).label("proportion"),
         func.sum(Migration.count).label("count"),
     ).filter(
         or_(*conditions),
@@ -399,6 +399,6 @@ def get_prob_count(
     result = query.one()
     return {
         "destination": origin,
-        "probability": result.probability,
+        "proportion": result.proportion,
         "count": result.count,
     }

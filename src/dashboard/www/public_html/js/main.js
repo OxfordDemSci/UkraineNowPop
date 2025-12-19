@@ -391,7 +391,7 @@ $('#plotChordDiagramDisplaySelect input').on("click", function () {
 
     } else if (this.id === "btnradioPlotChordDiagramProbability") {
 
-        migrationProbRank_by = "probability";
+        migrationProbRank_by = "proportion";
         //document.getElementById('idMdPlotChordDiagram_lable').innerHTML = "Population Mobility (Probabilities)";
     }
 
