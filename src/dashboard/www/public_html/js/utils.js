@@ -396,8 +396,9 @@ export function update_Age_Range_labele(vFirst, vLast , age_ranges_available, ag
     if (vLast === age_ranges_available[1].length-1){
           age_max = age_ranges_available[0][age_ranges_available[0].length - 1] + "+";
     }    
-    document.getElementById('label_Age_range').innerHTML = "Ages: "+ age_min +" - "+ age_max;
-    document.getElementById('idAgesLabelDownloadWindow').innerHTML = age_min +" - "+ age_max;
+    document.getElementById('label_Age_range').innerHTML = "Ages: "+ age_min +" - "+ age_max_label;
+    document.getElementById('idAgesLabelDownloadWindow').innerHTML = age_min +" - "+     document.getElementById('label_Age_range').innerHTML = "Ages: "+ age_min +" - "+ age_max_label;
+    ;
 }
 
 
