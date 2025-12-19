@@ -16,7 +16,7 @@ import * as _migrationProb from './migration_probabilities.js?version=2.06'
 
 let txt_Geo_DropDown = "Geography";
 let txt_Sex_DropDown = "Sex";
-let txt_Country_Total_Title = "Population";
+let txt_Country_Total_Title = "Population totals";
 let txt_Title_Top_RightPanel = "Demographics";
 let txt_Title_Bottom_RightPanel = "Mobility";
 let txt_Date_Bottom_Panel = "&nbsp;";
@@ -122,7 +122,9 @@ var mapOptions = {
     layers: [basemaps.OpenStreetMaps]
 };
 
+
 var map = L.map("map", mapOptions);
+
 map.invalidateSize();
 
 var CopyrightLayer = L.control({ position: 'bottomleft' });
