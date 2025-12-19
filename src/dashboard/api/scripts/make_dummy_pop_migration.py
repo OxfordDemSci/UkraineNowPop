@@ -124,7 +124,7 @@ def make_dummy_migration_data(df, admin_levels : list[int]):
                     counter += 1
     df = pd.DataFrame(data)
     for day in days:
-        assert df[df.day == day].proportion.sum() >= 0.9999, f"Probabilities do not sum to 1: {df[df.day == day].proportion.sum()}"
+        assert df[df.day == day].proportion.sum() >= 100, f"Proportion do not sum to 100: {df[df.day == day].proportion.sum()}"
     return df
 
 

@@ -66,3 +66,6 @@ po/*~
 # RStudio Connect folder
 rsconnect/
 
+# Complete dataset
+*migration_full.csv
+*pop_full.csv
