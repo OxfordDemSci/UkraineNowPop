@@ -156,6 +156,7 @@ setcolorder(
   )
 )
 
+pop_name <- ifelse(sample, "pop.csv", "pop_full.csv")
 fwrite(
   stocks_lvl,
   file = file.path(
@@ -166,7 +167,7 @@ fwrite(
     "app",
     "data",
     "db-data",
-    "pop_full.csv"
+    pop_name
   )
 )
 
@@ -238,6 +239,7 @@ setcolorder(
   )
 )
 
+flow_name <- ifelse(sample, "migration.csv", "migration_full.csv")
 fwrite(
   flows_lvl,
   file = file.path(
@@ -248,6 +250,94 @@ fwrite(
     "app",
     "data",
     "db-data",
-    "migration_full.csv"
+    flow_name
   )
 )
+
+# adapt geographies
+
+library(sf)
+geo <- st_read('./src/dashboard/api/app/data/db-data/GEODATA_full.gpkg')
+pop <- read_csv('./src/dashboard/api/app/data/db-data/pop.csv') |>
+  filter(admin_level == 3 & day == min(day)) |>
+  distinct(pcode)
+
+geo_3 <- geo |>
+  filter(admin_level == 3) |>
+  left_join(
+    pop |>
+      mutate(
+        gct = T
+      )
+  ) |>
+  mutate(
+    pcode_1 = str_sub(pcode, 1, 4),
+    pcode_2 = str_sub(pcode, 1, 6)
+  )
+
+geo_ <- bind_rows(
+  geo_3 |> select(pcode, geom, gct) |> mutate(admin_level = 3),
+  geo_3 |>
+    group_by(
+      pcode_1,
+      gct
+    ) |>
+    summarise() |>
+    select(pcode = pcode_1, gct, geom) |>
+    mutate(admin_level = 1),
+  geo_3 |>
+    group_by(
+      pcode_2,
+      gct
+    ) |>
+    summarise(n = n()) |>
+    select(pcode = pcode_2, gct, geom) |>
+    mutate(admin_level = 2)
+)
+
+geo_t <- geo_ |>
+  full_join(
+    geo |>
+      st_drop_geometry()
+  )
+
+geo_t <- st_buffer(geo_t, 0.0)
+
+geo_t <- geo_t |>
+  mutate(
+    country = 'UKR',
+    pcode = ifelse(is.na(gct), paste0('Missing ', pcode), pcode),
+    name_en = ifelse(is.na(gct), paste0('Missing ', name_en), name_en)
+  ) |>
+  select(-gct)
+
+st_write(
+  geo_t,
+  './src/dashboard/api/app/data/db-data/GEODATA.gpkg',
+  append = FALSE,
+  layer = 'UKR'
+)
+
+st_write(
+  geo_t |> filter(admin_level == 1),
+  './src/dashboard/www/public_html/data/admin_UKR_level_1.geojson'
+)
+
+st_write(
+  geo_t |> filter(admin_level == 2),
+  './src/dashboard/www/public_html/data/admin_UKR_level_2.geojson',
+  append = F
+)
+
+st_write(
+  geo_t |> filter(admin_level == 3),
+  './src/dashboard/www/public_html/data/admin_UKR_level_3.geojson',
+  append = FALSE
+)
+
+st_write(
+  geo |> filter(admin_level == 1),
+  './src/dashboard/www/public_html/data/admin_UKR_level_1_baseline.geojson',
+)
+tm_shape(geo_t |> filter(admin_level == 1)) +
+  tm_polygons("name_en")
