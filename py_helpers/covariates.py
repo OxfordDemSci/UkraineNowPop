@@ -77,22 +77,40 @@ def get_acled_data_from_csv(
     ].copy()
     return make_incident_data(df, crs, outfile=outfile)
 
+# Function to get access token using username and password
+def get_access_token(username, password, token_url):
+    headers = {
+        'Content-Type': 'application/x-www-form-urlencoded',
+    }
+    data = {
+          'username': username,
+          'password': password,
+          'grant_type': "password",
+          'client_id': "acled"
+    }
+
+    response = requests.post(token_url, headers=headers, data=data)
+
+    if response.status_code == 200:
+        token_data = response.json()
+        return token_data['access_token']
+    else:
+        raise Exception(f"Failed to get access token: {response.status_code} {response.text}")
 
 def get_acled_data_from_api(
-    api_key: str,
+    password: str,
     email: str,
     country: str,
     start_date: str,
     end_date: str,
     crs: int,
-    accept_acleddata_terms: bool,
     outfile: Path | str | None = None,
 ) -> gpd.GeoDataFrame:
     """Get ACLED data from the ACLED API in date range. This function will return a geodataframe of the data and
     requires an API key and email address to access the data. The data will be subset to columns required for analysis.
 
     Args:
-        api_key (str): API key for ACLED
+        password (str): Password used to access ACLED data
         email (str): Email used to access ACLED data
         country (str): Full country name (i.e. "Ukraine" not "UKR")
         start_date (str): Start date in format "YYYY-MM-DD"
@@ -107,21 +125,26 @@ def get_acled_data_from_api(
     Returns:
         gpd.GeoDataFrame: GeoDataFrame of ACLED point data in specified CRS
     """
+    my_token = get_access_token(
+    username=email,
+    password=password,
+    token_url="https://acleddata.com/oauth/token",
+    )
+
     df_list = []
     page = 1
     while True:
         url = (
-            f"https://api.acleddata.com/acled/read?terms={accept_acleddata_terms}"
-            f"&key={api_key}"
-            f"&email={email}"
+            f"https://acleddata.com/api/acled/read?_format=json"
             f"&country={country}"
             f"&event_date={start_date}|{end_date}&event_date_where=BETWEEN"
             f"&page={page}"
-            f"&export_type=csv"
         )
-        response = requests.get(url)
-        if data := json.loads(response.text).get("data"):
-            df_list.append(pd.DataFrame(data))
+        response = requests.get(url,
+                                headers={"Authorization": f"Bearer {my_token}", "Content-Type": "application/json"})
+
+        if response.json()['status']==200:
+            df_list.append(pd.DataFrame(response.json()['data']))
             page += 1
         else:
             break
