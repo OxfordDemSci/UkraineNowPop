@@ -60,8 +60,6 @@ def add_migration_data(overwrite_existing: bool = False):
     Session = sessionmaker(bind=engine)
     session = Session()
     dummy_migration = GPKG.parent.joinpath("migration_full.csv")
-    if not dummy_migration.exists():
-        dummy.main_migration(dummy_migration, [1])
     query = session.query(Migration).first()
     if query and overwrite_existing:
         session.query(Migration).delete(synchronize_session=False)
@@ -76,7 +74,7 @@ def add_migration_data(overwrite_existing: bool = False):
                 "age_min": "int8",
                 "age_max": "int16",
                 "sex": "int8",
-                "proportion": "float32",
+                "proportion": "int16",
                 "count": "int32",
             })
             data = []
@@ -104,8 +102,6 @@ def add_pop_data(overwrite_existing: bool = True):
     Session = sessionmaker(bind=engine)
     session = Session()
     dummy_pop = GPKG.parent.joinpath("pop_full.csv")
-    if not dummy_pop.exists():
-        dummy.main_pop(dummy_pop)
     query = session.query(Population).first()
     if query and overwrite_existing:
         session.query(Population).delete(synchronize_session=False)
