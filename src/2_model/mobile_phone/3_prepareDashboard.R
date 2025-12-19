@@ -217,7 +217,7 @@ flows_lvl <- rbindlist(
   use.names = TRUE
 )
 
-# Probability within (day, age band, sex, admin_level)
+# Probability within (day, age band, sex, admin_level, destination)
 flows_lvl[,
   proportion := round(count / sum(count) * 100, 2),
   by = .(day, age_min, age_max, sex, admin_level, destination)
