@@ -105,7 +105,7 @@ def make_dummy_migration_data(df, admin_levels : list[int]):
             counter = 0
             num_probabilities = len(admin_units) * (len(admin_units) - 1) * len(age_groups) * len(sexes)
             probabilities = np.random.dirichlet(np.ones(num_probabilities), size=1)[0]
-            assert probabilities.sum() >= 0.99999999, f"Probabilities do not sum to 1: {probabilities.sum()}"
+            assert probabilities.sum() >= 99.9999, f"Proportion do not sum to 100: {probabilities.sum()}"
             for origin, destination, age_min, sex in product(admin_units, admin_units, age_groups, sexes):
                 if origin != destination:
                     proportion = round(probabilities[counter], 8)
