@@ -76,7 +76,7 @@ var initBounding_centroid = initialCountries[0].centroid;
 let initialData = _init.getInitData(API_URL, country_ISO3);
 
 let admin_units_geo = _utils.get_admin_units_geo(API_URL, country_ISO3, admin_level);
-let admin_units_geo_baseline = _utils.get_admin_units_geo(API_URL, country_ISO3, '1_baseline')
+let admin_units_geo_baseline = _utils.get_admin_units_geo(API_URL, country_ISO3, '1_baseline');
 let adminunits_names_eng = _utils.get_adminunits_names(admin_units_geo);
 
 var admin_names = _utils.get_admin_names(initialData);
