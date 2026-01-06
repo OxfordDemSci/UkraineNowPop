@@ -337,7 +337,8 @@ export function round5(x)
 
 export function resetSlider_age_selections(d, age_max_label)
 {
-
+        let age_min = d[0][0];    
+        let age_max = d[0][d[0].length - 1];
     
         $(".slider_age_selections").slider({
             min: 0,
@@ -352,8 +353,7 @@ export function resetSlider_age_selections(d, age_max_label)
             labels: {first: age_min, last: age_max_label}
         });
         
-        let age_min = d[0][0];    
-        let age_max = d[0][d[0].length - 1];
+
         document.getElementById('label_Age_range').innerHTML = "Ages: "+ age_min +" - "+ age_max_label;
         document.getElementById('idAgesLabelDownloadWindow').innerHTML = age_min +" - "+ age_max_label;
         event.preventDefault();
