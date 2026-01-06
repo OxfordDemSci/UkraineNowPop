@@ -398,7 +398,6 @@ export function update_Age_Range_labele(vFirst, vLast , age_ranges_available, ag
     }    
     document.getElementById('label_Age_range').innerHTML = "Ages: "+ age_min +" - "+ age_max_label;
     document.getElementById('idAgesLabelDownloadWindow').innerHTML = age_min +" - "+ age_max_label;
-    ;
 }
 
 
