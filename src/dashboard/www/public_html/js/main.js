@@ -340,7 +340,7 @@ $(".Date-slider")
     .slider("pips", {
         rest: "label",
         labels: dates_available_string,
-        step: Math.ceil(dates_available.length / 6)
+        step: Math.ceil(dates_available.length / 8)
     })
     .on("slidechange", function (e, ui) {
         if (e.originalEvent) {
