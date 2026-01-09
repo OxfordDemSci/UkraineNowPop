@@ -129,7 +129,7 @@ export function initialise_migration_probabilities_chart_LG(root) {
 //});            
 
         series.links.template.setAll({
-            tooltipText: "From: {fromName}\nTo: {toName}\nValue: {value}"
+            tooltipText: "From: {fromName}\nTo: {toName}\nFlow: {value}"
         });     
 
 //        series.bullets.push(function (_root, _series, dataItem) {
