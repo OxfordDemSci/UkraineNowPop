@@ -26,7 +26,7 @@ html, body, #map {
 }
 
 #controlPanel_DateTimeID{
-    width: 650px;
+    width: 750px;
     height: 90px;
     background-color: #fff;
     border-left: 1px solid #ccc;
@@ -35,7 +35,8 @@ html, body, #map {
     box-shadow: 0 0 15px rgba(0,0,0,0.2);
     opacity: 0.98;
     filter: alpha(opacity=10);
-    margin-bottom: 100px
+    margin-bottom: 100px;
+    padding-right: 4em
 }
 
 #controlPanel_ControlsID{
@@ -108,13 +109,13 @@ option:disabled {
 }
 
 #controlPanel_DateTimeID .ui-slider-pips .ui-slider-label{
-    width: 7em;
+    width: 8em;
     left: 0%;
     margin-left: -2.5em
 }
 
 #controlPanel_DateTimeID .ui-slider-pips .ui-slider-tip, .ui-slider-float .ui-slider-tip-label {
-    width: 7em;
+    width: 8em;
     margin-left: -2.7em;
     left: 0%;
 }
