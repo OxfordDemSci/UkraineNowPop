@@ -493,7 +493,7 @@ export function preproces_results_for_updatePopulationMap(result)
 export function parsing_string_date_new_format(d)
 {
     var odate = new Date(d);
-    let ndate= odate.toISOString().replace(/^(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+).(\d+)Z$/, function (a,y,m,d) {return [d,['Jan','Feb','Mar','Apr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][m-1],y].join('-');});
+    let ndate= odate.toISOString().replace(/^(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+).(\d+)Z$/, function (a,y,m,d) {return [d,['Jan','Feb','Mar','Apr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dec'][m-1],y].join('-');});
     return ndate;
 }
 
