@@ -80,6 +80,7 @@ def get_dates(country: str) -> dict[str, list[str]]:
     dates_migration: List[Row] = (
         db.session.query(distinct(Migration.day))
         .filter(Migration.country == country)
+        .order_by(Migration.day)
         .all()
     )
     return {

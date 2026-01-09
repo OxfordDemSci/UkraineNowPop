@@ -3,6 +3,7 @@ from geoalchemy2.shape import to_shape
 from sqlalchemy import (ARRAY, SMALLINT, Column, Date, Enum, Integer, Numeric,
                         String)
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.schema import Identity
 
 import app
 
@@ -28,12 +29,18 @@ class User(Base):  # type: ignore
 
 class Population(Base):  # type: ignore
     __tablename__ = "population"
+    __table_args__ = (
+        # This is the key: make the parent partitioned
+        {"postgresql_partition_by": "RANGE (day)"},
+    )
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    # Composite PK required for partitioned PK/unique enforcement
+    day = Column(Date, primary_key=True, nullable=False, index=True)
+
+    id = Column(Integer, Identity(), primary_key=True)
     country = Column(String(3), nullable=False)
     admin_level = Column(SMALLINT, nullable=False)
     pcode = Column(String(20), nullable=False)
-    day = Column(Date, nullable=False, index=True)
     age_min = Column(SMALLINT, nullable=False)
     age_max = Column(SMALLINT, nullable=False)
     sex = Column(SMALLINT, nullable=False)
@@ -99,13 +106,18 @@ class Languages(Base):  # type: ignore
 
 class Migration(Base):  # type: ignore
     __tablename__ = "migration"
+    __table_args__ = (
+        # This is the key: make the parent partitioned
+        {"postgresql_partition_by": "RANGE (day)"},
+    )
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    day = Column(Date, primary_key=True, nullable=False, index=True)
+    id = Column(Integer, Identity(), primary_key=True)
+    
     country = Column(String(3))
     admin_level = Column(SMALLINT, nullable=False)
     origin = Column(String(20), nullable=False)
     destination = Column(String(20), nullable=False)
-    day = Column(Date, nullable=False)
     age_min = Column(SMALLINT, nullable=False)
     age_max = Column(SMALLINT, nullable=False)
     sex = Column(SMALLINT, nullable=False)
