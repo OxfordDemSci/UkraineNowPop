@@ -262,8 +262,8 @@ var layerCountry = L.geoJson(null, {
                 document.getElementById('controlPanel_BottomRightID_label').innerHTML = txt_Title_Bottom_RightPanel + " to/from [" + admin_name_en + "]";
                 document.getElementById('controlPanel_TopRightID_label').innerHTML = txt_Title_Top_RightPanel + " [" + admin_name_en + "]";
 
-                var selGEO = document.getElementById("idSelectGeoLevel");
-                document.getElementById('infoGEOLabel').innerHTML = selGEO.options[selGEO.selectedIndex].text;
+                // var selGEO = document.getElementById("idSelectGeoLevel");
+                // document.getElementById('infoGEOLabel').innerHTML = selGEO.options[selGEO.selectedIndex].text;
 
                 _popMap.highlightFeaturePopulationMapSelected(e, map);
             }
@@ -340,7 +340,7 @@ $(".Date-slider")
     .slider("pips", {
         rest: "label",
         labels: dates_available_string,
-        step: Math.ceil(dates_available.length / 7)
+        step: Math.ceil(dates_available.length / 6)
     })
     .on("slidechange", function (e, ui) {
         if (e.originalEvent) {
