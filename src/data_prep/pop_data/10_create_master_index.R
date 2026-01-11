@@ -2,9 +2,8 @@
 rm(list = ls())
 gc()
 
-source(file.path(here::here(), "R_helpers/generic.R"))
-source(file.path(here::here(), "R_helpers/data_querying.R"))
-
+source(file.path(here::here(), "src", "helpers", "R_helpers", "generic.R"))
+source(file.path(here::here(), "src", "helpers", "R_helpers", "data_querying.R"))
 
 agesex <- c("F_20_29", "F_30_39", "F_40_49", "F_50_59", "F_60Plus", "F_15_19",
             "M_20_29", "M_30_39", "M_40_49", "M_50_59", "M_60Plus", "M_15_19")
