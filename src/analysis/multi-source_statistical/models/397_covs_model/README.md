@@ -50,5 +50,5 @@ The evaluation script expects these files to exist:
 - `out_dir/modelling/397_covs_model/mcmc/md_397_covs_model.rds`: input data created by `397_covs_model_config.R`.
 - `out_dir/modelling/397_covs_model/mcmc/fit_397_covs_model.rds`: fitted model create by `1_mcmc_397.R`.
 
-Bear in mind that the resulted MCMC file (`fit_397_covs_model.rds`) is around 6.3MB. The model takes nearly 6.2 hours to run with settings specified in `1_mcmc_397.R`.
+Bear in mind that the resulted MCMC file (`fit_397_covs_model.rds`) is around 6.3MB. The model takes nearly 8.4 hours to run with settings specified in `1_mcmc_397.R`.
 
