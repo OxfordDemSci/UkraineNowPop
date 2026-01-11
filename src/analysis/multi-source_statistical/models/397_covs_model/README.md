@@ -12,13 +12,13 @@ The case study is Ukraine (oblast level). The workflow fits a Bayesian model tha
 
 Some inputs used by the scripts are restricted and must not be committed to a public repository. In particular, the COD-PS 2023 and 2024.
 
-## Software requirements:
+## Software requirements
 
 - R (recent version)
 - CmdStan and the R interface `cmdstanr`
 - R packages used by the modelling and evaluation scripts include: `cmdstanr`, `posterior`, `bayesplot`, `ggplot2`, `tidyverse`, `tidyr`, `readxl`, `patchwork`, `purrr`, and others used by helper scripts. 
 
-## Configuration via .env:
+## Configuration via .env
 
 The modelling scripts load a `.env` file, where key directories such as `repo_dir`, `in_dir`, and `out_dir` are defined. 
 
@@ -45,7 +45,7 @@ This workflow is currently model specific. Therefore, the Stan model file named 
 
 If you run `1_mcmc_397.R` directly, it will source the model configuration script `397_covs_model_config.R`.
 
-## Outputs:
+## Outputs
 The evaluation script expects these files to exist:
 - `out_dir/modelling/397_covs_model/mcmc/md_397_covs_model.rds`: input data created by `397_covs_model_config.R`.
 - `out_dir/modelling/397_covs_model/mcmc/fit_397_covs_model.rds`: fitted model create by `1_mcmc_397.R`.
