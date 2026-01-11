@@ -43,7 +43,7 @@ observation_cov_select = read.csv(file.path(in_dir, "ua_p_covariates_oblast_sele
 
 chains <- 4
 warmup <- 500
-samples <- 1000
+samples <- 1500
 
 md <- readRDS(file.path("/data/home/andrea/git/OxfordDemSci/UkraineNowPop/wd/out/modelling", model_name, "mcmc", paste0("md_", model_name, ".rds")))
 inits <- lapply(1:chains, function(id) init_generator(md = md, chain_id = id))
