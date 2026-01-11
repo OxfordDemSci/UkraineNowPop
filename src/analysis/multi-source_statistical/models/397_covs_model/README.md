@@ -3,24 +3,29 @@
 This repository contains code and documentation to reproduce the modelling workflow for the paper:
 
 **Beyond crisis nowcasting: A Bayesian framework for integrating multiple social media sources into population estimates**  
+
 Target journal: **Proceedings of the National Academy of Sciences of the United States of America (PNAS)**
 
 The case study is Ukraine (oblast level). The workflow fits a Bayesian model that integrates Facebook and Instagram audience data into weekly age and sex specific population estimates.
 
 ## Data notes and access constraints
+
 Some inputs used by the scripts are restricted and must not be committed to a public repository. In particular, the COD-PS 2023 and 2024.
 
 ## Software requirements
+
 - R (recent version)
 - CmdStan and the R interface `cmdstanr`
 - R packages used by the modelling and evaluation scripts include: `cmdstanr`, `posterior`, `bayesplot`, `ggplot2`, `tidyverse`, `tidyr`, `readxl`, `patchwork`, `purrr`, and others used by helper scripts. 
 
 ## Configuration via .env
+
 The modelling scripts load a `.env` file, where key directories such as `repo_dir`, `in_dir`, and `out_dir` are defined. 
 
 Create a `.env` file at the repository root. Use `example.env` as a template.
 
 ## Workflow
+
 **Step 1. Build population proxy inputs**
 Run these scripts (in order) from the folder `src/data_prep/pop_data/1_pop_data/`:
 
