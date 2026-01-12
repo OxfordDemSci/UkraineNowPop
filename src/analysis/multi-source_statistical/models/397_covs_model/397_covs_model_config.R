@@ -23,9 +23,9 @@ idx = read.csv(file.path(out_dir, paste0(tolower(country), "_master_index", ".cs
 idx_F = read.csv(file.path(out_dir, "population_proxy", "social_media_audience", paste0(tolower(country), "_facebook_audience", ".csv")))
 idx_G = read.csv(file.path(out_dir, "population_proxy", "social_media_audience", paste0(tolower(country), "_instagram_audience", ".csv")))
 covs = read.csv(file.path(out_dir, "covariates", "final", "ua_covariates_oblast.csv"))
-codps22 = read.csv(file.path(data_dir, "cod-ps", "population_baseline.csv"))
-codps23 = read.csv(file.path(in_dir, "cod-ps_2023", "DO_NOT_SHARE_UKR_ADM2_POP_2023.csv")) 
-codps24 = read.csv(file.path(in_dir, "cod-ps_2024", "DO_NOT_SHARE_UKR_ADM2_POP_2024_Sept_27.csv"))
+codps = read.csv(file.path(data_dir, "cod-ps", "population_baseline.csv"))
+codps_N1 = read.csv(file.path(in_dir, "cod-ps_2023", "DO_NOT_SHARE_UKR_ADM2_POP_2023.csv")) 
+codps_N2 = read.csv(file.path(in_dir, "cod-ps_2024", "DO_NOT_SHARE_UKR_ADM2_POP_2024_Sept_27.csv"))
 outside_border = read.csv(file.path(out_dir, "population_proxy", "crossing_borders", "dat_refugees.csv"))
 last_date = "2024-05-14"
 process_drop_locations = c()
@@ -153,7 +153,7 @@ cols_to_pivot <- c(
 )
 
 date_start <- "2022-02-25"
-date_end   <- "2024-05-14"
+date_end   <- last_date
 
 time_index_expanded <- tibble(
   collection_date = seq(as.Date(date_start), as.Date(date_end), by = 1)
@@ -171,7 +171,7 @@ time_index <- time_index_expanded |>
 ###############
 # COD-PS 2022
 ###############
-md$N010 <- codps22 %>%
+md$N010 <- codps %>%
   select(ADM1_PCODE, fb_key, all_of(cols_to_pivot)) %>%
   pivot_longer(
     cols      = all_of(cols_to_pivot),
@@ -239,12 +239,12 @@ md$A0 <- md$N010 |>
   filter(a != 7) %>%
   pull(value)
 
-md$N01 <- codps22 |>
+md$N01 <- codps |>
   filter(fb_key %in% selected_locations_key) %>%
   arrange(match(fb_key, i_idx$i_key)) |>
   pull(T_TL)
 
-full_pop22 <- codps22 %>%
+full_pop22 <- codps %>%
   select(fb_key, all_of(cols_to_pivot)) %>%
   pivot_longer(
     cols      = all_of(cols_to_pivot),
@@ -266,7 +266,7 @@ prop_sel22
 ##############
 # COD-PS 2023
 ##############
-md$N110 <- codps23 %>%
+md$N110 <- codps_N1 %>%
   select(ADM1_PCODE, ADM2_PCODE, all_of(cols_to_pivot)) %>%
   pivot_longer(
     cols      = all_of(cols_to_pivot),
@@ -275,7 +275,7 @@ md$N110 <- codps23 %>%
   ) |>
   group_by(ADM1_PCODE, demog) |>
   summarise(pop1 = sum(pop1, na.rm = TRUE), .groups = "drop") |>
-  left_join(codps22[, c("ADM1_PCODE", "fb_key")], by = "ADM1_PCODE") %>%
+  left_join(codps[, c("ADM1_PCODE", "fb_key")], by = "ADM1_PCODE") %>%
   separate(demog, into = c("sex", "age_min", "age_max"), sep = "_") |>
   filter(sex != "T", age_min != "TL") |>
   rename(pcode = ADM1_PCODE, i_key = fb_key) |>
@@ -337,7 +337,7 @@ md$A1 <- md$N110 |>
   filter(a != 7) %>%
   pull(value)
 
-md$N11 <- codps23 %>%
+md$N11 <- codps_N1 %>%
   select(ADM1_PCODE, ADM2_PCODE, all_of(cols_to_pivot)) %>%
   pivot_longer(
     cols      = all_of(cols_to_pivot),
@@ -346,7 +346,7 @@ md$N11 <- codps23 %>%
   ) |>
   group_by(ADM1_PCODE) |>
   summarise(pop1 = sum(pop1, na.rm = TRUE), .groups = "drop") |>
-  left_join(codps22[, c("ADM1_PCODE", "fb_key")], by = "ADM1_PCODE") %>%
+  left_join(codps[, c("ADM1_PCODE", "fb_key")], by = "ADM1_PCODE") %>%
   filter(fb_key %in% selected_locations_key) %>%
   arrange(match(fb_key, i_idx$i_key)) %>%
   pull(pop1)
@@ -358,7 +358,7 @@ t_pop1 <- time_index %>%
   pull(t)
 t_pop1
 
-full_pop23 <- codps23 %>%
+full_pop23 <- codps_N1 %>%
   select(ADM1_PCODE, ADM2_PCODE, all_of(cols_to_pivot)) %>%
   pivot_longer(
     cols      = all_of(cols_to_pivot),
@@ -373,7 +373,7 @@ full_pop23 <- codps23 %>%
 total_pop_all23 <- sum(full_pop23$pop1, na.rm = TRUE)
 
 full_pop23_sel <- full_pop23 %>%
-  left_join(codps22 %>% select(ADM1_PCODE, fb_key), by = "ADM1_PCODE") %>%
+  left_join(codps %>% select(ADM1_PCODE, fb_key), by = "ADM1_PCODE") %>%
   filter(fb_key %in% selected_locations_key)
 
 total_pop_sel23 <- sum(full_pop23_sel$pop1, na.rm = TRUE)
@@ -383,7 +383,7 @@ prop_sel23
 ################
 # COD-PS 2024
 ################
-md$N210 <- codps24 %>%
+md$N210 <- codps_N2 %>%
   select(ADM1_PCODE, ADM2_PCODE, all_of(cols_to_pivot)) %>%
   pivot_longer(
     cols      = all_of(cols_to_pivot),
@@ -392,7 +392,7 @@ md$N210 <- codps24 %>%
   ) %>%
   group_by(ADM1_PCODE, demog) %>%
   summarise(pop2 = sum(pop2, na.rm = TRUE), .groups = "drop") %>%
-  left_join(codps22[, c("ADM1_PCODE", "fb_key")], by = "ADM1_PCODE") %>%
+  left_join(codps[, c("ADM1_PCODE", "fb_key")], by = "ADM1_PCODE") %>%
   separate(demog, into = c("sex", "age_min", "age_max"), sep = "_") %>%
   filter(sex != "T", age_min != "TL") %>%
   rename(pcode = ADM1_PCODE, i_key = fb_key) %>%
@@ -454,7 +454,7 @@ md$A2 <- md$N210 |>
   filter(a != 7) %>%
   pull(value)
 
-md$N21 <- codps24 %>%
+md$N21 <- codps_N2 %>%
   select(ADM1_PCODE, ADM2_PCODE, all_of(cols_to_pivot)) %>%
   pivot_longer(
     cols      = all_of(cols_to_pivot),
@@ -463,7 +463,7 @@ md$N21 <- codps24 %>%
   ) |>
   group_by(ADM1_PCODE) |>
   summarise(pop2 = sum(pop2, na.rm = TRUE), .groups = "drop") |>
-  left_join(codps22[, c("ADM1_PCODE", "fb_key")], by = "ADM1_PCODE") %>%
+  left_join(codps[, c("ADM1_PCODE", "fb_key")], by = "ADM1_PCODE") %>%
   arrange(match(fb_key, i_idx$i_key)) %>%
   pull(pop2)
 
@@ -474,7 +474,7 @@ t_pop2 <- time_index %>%
   pull(t)
 t_pop2
 
-full_pop24 <- codps24 %>%
+full_pop24 <- codps_N2 %>%
   select(ADM1_PCODE, ADM2_PCODE, all_of(cols_to_pivot)) %>%
   pivot_longer(
     cols      = all_of(cols_to_pivot),
@@ -489,7 +489,7 @@ full_pop24 <- codps24 %>%
 total_pop_all24 <- sum(full_pop24$pop2, na.rm = TRUE)
 
 full_pop24_sel <- full_pop24 %>%
-  left_join(codps22 %>% select(ADM1_PCODE, fb_key), by = "ADM1_PCODE") %>%
+  left_join(codps %>% select(ADM1_PCODE, fb_key), by = "ADM1_PCODE") %>%
   filter(fb_key %in% selected_locations_key)
 
 total_pop_sel24 <- sum(full_pop24_sel$pop2, na.rm = TRUE)
