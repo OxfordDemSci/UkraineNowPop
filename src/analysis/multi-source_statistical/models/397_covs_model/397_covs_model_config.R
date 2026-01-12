@@ -1,7 +1,6 @@
 library(dplyr)
 library(lubridate)
 library(tidyr)
-library(readxl)
 
 env <- new.env()
 
@@ -13,7 +12,6 @@ setwd(wd_dir)
 
 repo_dir <- env$repo_dir
 data_dir <- file.path(repo_dir, "data")
-src_dir  <- file.path(repo_dir, "src", "data_prep", "pop_data")
 in_dir   <- env$in_dir
 out_dir  <- file.path(env$out_dir)
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
@@ -25,9 +23,9 @@ idx = read.csv(file.path(out_dir, paste0(tolower(country), "_master_index", ".cs
 idx_F = read.csv(file.path(out_dir, "population_proxy", "social_media_audience", paste0(tolower(country), "_facebook_audience", ".csv")))
 idx_G = read.csv(file.path(out_dir, "population_proxy", "social_media_audience", paste0(tolower(country), "_instagram_audience", ".csv")))
 covs = read.csv(file.path(out_dir, "covariates", "final", "ua_covariates_oblast.csv"))
-codps22 = read.csv(file.path(data_dir, "COD-PS", "2022", "population_baseline22.csv"))
-codps23 = read.csv(file.path(data_dir, "COD-PS", "2023", "DO_NOT_SHARE_UKR_ADM2_POP_2023.csv")) 
-codps24 = readxl::read_excel(file.path(data_dir, "COD-PS", "2024", "[restricted release] UKR_ADM2_POP_2024_Sept_27.xlsx"), sheet = 2)
+codps22 = read.csv(file.path(data_dir, "cod-ps", "population_baseline.csv"))
+codps23 = read.csv(file.path(in_dir, "cod-ps_2023", "DO_NOT_SHARE_UKR_ADM2_POP_2023.csv")) 
+codps24 = read.csv(file.path(in_dir, "cod-ps_2024", "DO_NOT_SHARE_UKR_ADM2_POP_2024_Sept_27.csv"))
 outside_border = read.csv(file.path(out_dir, "population_proxy", "crossing_borders", "dat_refugees.csv"))
 last_date = "2024-05-14"
 process_drop_locations = c()
@@ -767,4 +765,4 @@ md$X_p_sds   <- sapply(std_p$stats, `[[`, "sd")
 md$X_p <- as.matrix(Xp_df["pwtt_sum_24week_none_none"])
 md$K_p <- ncol(md$X_p)
 
-#saveRDS(md, file.path(out_dir, "modelling", model_name, "mcmc", paste0("md_", model_name, ".rds")))
+saveRDS(md, file.path(out_dir, "modelling", model_name, "mcmc", paste0("md_", model_name, ".rds")))
