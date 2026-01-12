@@ -56,7 +56,7 @@ master_index_without_t <- master_index |>
     agesex = paste(s_name, a_name, sep = "_")
   )
 
-process_sma_data <- function(sma_data, metric = audience_metric) {
+process_sma_data <- function(sma_data, metric) {
   sma_data_ <- sma_facebook |>
     mutate(t_name = floor_date(collection_date, "week", week_start = 1)) |>
     rename(
@@ -74,9 +74,12 @@ process_sma_data <- function(sma_data, metric = audience_metric) {
   return(sma_data_)
 }
 
-sma_facebook_processed <- process_sma_data(sma_facebook, metric = "dau")
-sma_instagram_processed <- process_sma_data(sma_instagram, metric = "dau")
+sma_facebook_processed <- process_sma_data(sma_facebook, metric = audience_metric)
+sma_instagram_processed <- process_sma_data(sma_instagram, metric = audience_metric)
 
 # Write processed data to CSV files
+saveRDS(sma_facebook, file.path(out_dir_pop, paste0(tolower(country), "_facebook_audience_raw", output_label, ".rds")))
+saveRDS(sma_instagram, file.path(out_dir_pop, paste0(tolower(country), "_instagram_audience_raw", output_label, ".rds")))
+
 write_csv(sma_facebook_processed, file.path(out_dir_pop, paste0(tolower(country), "_facebook_audience", output_label, ".csv")))
 write_csv(sma_instagram_processed, file.path(out_dir_pop, paste0(tolower(country), "_instagram_audience", output_label, ".csv")))
