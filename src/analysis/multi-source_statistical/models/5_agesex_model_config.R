@@ -58,7 +58,7 @@ model_data <- function(
       a_key, a_name, s_key, s_name
     )
 
-  md$A <- length(unique(md$idx$a))  # 7
+  md$A <- length(unique(md$idx$a)) + length(drop_ages)  # 7
   md$S <- length(unique(md$idx$s))  # 2
   md$I <- length(unique(md$idx$i))  # 23
   md$T <- length(unique(md$idx$t))  # 117
