@@ -41,16 +41,16 @@ source(file.path(src_dir, "models", paste0(model_name, "_config.R")))
 dir.create(file.path(out_dir, "modelling", model_name, "mcmc"), recursive = T, showWarnings = F)
 
 # load data
-if (file.exists(file.path(in_dir, "cod-ps_2023", "DO_NOT_SHARE_UKR_ADM2_POP_2023.csv"))) {
-  codps_N1 <- read.csv(file.path(in_dir, "cod-ps_2023", "DO_NOT_SHARE_UKR_ADM2_POP_2023.csv"))
+if (file.exists(file.path(in_dir, "COD-PS", "2023", "DO_NOT_SHARE_UKR_ADM2_POP_2023.csv"))) {
+  codps_N1 <- read.csv(file.path(in_dir, "COD-PS", "2023", "DO_NOT_SHARE_UKR_ADM2_POP_2023.csv"))
 } else {
-  codps_N1 <- read.csv(file.path(in_dir, "cod-ps_2023", "UKR_ADM2_POP_2023_sim.csv"))
+  codps_N1 <- read.csv(file.path(in_dir, "COD-PS", "2023", "UKR_ADM2_POP_2023_sim.csv"))
 }
 
-if (file.exists(file.path(in_dir, "cod-ps_2024", "DO_NOT_SHARE_UKR_ADM2_POP_2024_Sept_27.csv"))) {
-  codps_N2 <- read.csv(file.path(in_dir, "cod-ps_2024", "DO_NOT_SHARE_UKR_ADM2_POP_2024_Sept_27.csv"))
+if (file.exists(file.path(in_dir, "COD-PS", "2024", "DO_NOT_SHARE_UKR_ADM2_POP_2024_Sept_27.csv"))) {
+  codps_N2 <- read.csv(file.path(in_dir, "COD-PS", "2024", "DO_NOT_SHARE_UKR_ADM2_POP_2024_Sept_27.csv"))
 } else {
-  codps_N2 <- read.csv(file.path(in_dir, "cod-ps_2024", "UKR_ADM2_POP_2023_sim.csv"))
+  codps_N2 <- read.csv(file.path(in_dir, "COD-PS", "2024", "UKR_ADM2_POP_2024_sim.csv"))
 }
 
 # create model data
