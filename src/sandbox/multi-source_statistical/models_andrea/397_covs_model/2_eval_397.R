@@ -506,9 +506,8 @@ t_values_to_plot <- seq(1, md$T, by = 20)
 
 grid_info_all <- idx1 %>%
   left_join(
-    idx %>% distinct(t, i, s, t_name, i_name, s_name, i_key),
-    by = c("t", "i", "s")
-  ) %>%
+    idx %>% filter(i_key %in% selected_locations_key) %>% distinct(t, s, t_name, i_key, i_name, s_name),
+    by = c("t", "i_key", "s")) %>%
   mutate(
     a_name = case_when(
       a == 7 ~ "00-14",
