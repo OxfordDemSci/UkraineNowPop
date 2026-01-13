@@ -19,22 +19,15 @@ model_data <- function(
   set.seed(seed)
   md$seed <- seed
 
-  combined_drop_locations <- c(process_drop_locations, observation_drop_locations)
+  # drop age groups
+  drop_ages <- c(7)
 
-  selected_locations <- as.integer(setdiff(seq_len(27), c(11, 5, 13, 19)))
+  # drop locations
+  combined_drop_locations <- unique(c(process_drop_locations, observation_drop_locations))
 
-  selected_locations_key <- as.integer(c(
-    3800, 3801, 3781, 3804, 3802, 3803, 3783, 3790, 3787,
-    3792, 3793, 3794, 3795, 3796, 3798, 3799, 3784, 3785,
-    3786, 3778, 3780, 3779, 4290
-  ))
-
-  selected_locations_pcode <- c(
-    # "UA01", "UA14", "UA44", "UA85",
-    "UA71", "UA74", "UA73", "UA12", "UA26", "UA63", "UA65", "UA68", "UA35",
-    "UA32", "UA46", "UA48", "UA51", "UA53", "UA56", "UA59", "UA61", "UA05",
-    "UA07", "UA21", "UA23", "UA18", "UA80"
-  )
+  # revise master index
+  selected_locations <- idx %>% filter(!i_key %in% combined_drop_locations) %>% distinct(i) %>% pull()  
+  selected_locations_key <- idx %>% filter(!i_key %in% combined_drop_locations) %>% distinct(i_key) %>% pull()
 
   i_idx <- idx %>%
     select(i_key) %>%
@@ -44,7 +37,7 @@ model_data <- function(
     mutate(i = row_number())
 
   md$idx <- idx %>%
-    filter(i %in% selected_locations, a != 7) %>%
+    filter(i %in% selected_locations, !a %in% drop_ages) %>%
     select(
       t, t_key, t_name, i_key, i_name,
       a, a_key, a_name, s, s_key, s_name
@@ -65,10 +58,10 @@ model_data <- function(
       a_key, a_name, s_key, s_name
     )
 
-  md$A <- 7
-  md$S <- 2
-  md$I <- 23
-  md$T <- 117
+  md$A <- length(unique(md$idx$a))  # 7
+  md$S <- length(unique(md$idx$s))  # 2
+  md$I <- length(unique(md$idx$i))  # 23
+  md$T <- length(unique(md$idx$t))  # 117
   md$C_full <- md$I * md$A * md$S
   md$C_adult <- md$I * (md$A - 1) * md$S
   md$C_young <- md$I * md$S
@@ -748,6 +741,8 @@ model_data <- function(
 
   md$X_p <- as.matrix(Xp_df["pwtt_sum_24week_none_none"])
   md$K_p <- ncol(md$X_p)
+
+  return(md)
 }
 
 #---- function to generate initial values ----#
