@@ -570,8 +570,8 @@ md$ratio_children_female <- expand.grid(
   i = seq_len(md$I),
   s = seq_len(md$S)
 ) %>%
-  left_join(children, by = c("t", "i")) %>%
-  left_join(female_repo, by = c("t", "i")) %>%
+  left_join(children) %>%
+  left_join(female_repo) %>%
   mutate(ratio_children_female = children / female_repo) %>%
   group_by(i, s) %>%
   arrange(t, .by_group = TRUE) %>%
