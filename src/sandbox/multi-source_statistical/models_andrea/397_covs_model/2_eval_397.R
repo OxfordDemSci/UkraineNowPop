@@ -276,7 +276,6 @@ idx1 <- expand.grid(t = 1:T, i = 1:I, a = 1:A, s = 1:S) %>%
 idx1$tias_adult[idx1$a != 7L] <- seq_len(sum(idx1$a != 7L))
 idx1$tias_young[idx1$a == 7L] <- seq_len(sum(idx1$a == 7L))
 
-
 plot_df_adult <- tibble(
   parameter = names(params_mean),
   predicted = params_mean,
@@ -288,6 +287,7 @@ plot_df_adult <- tibble(
   tias_young = NA_real_) %>%
 filter(param == "N_adult"| param =="r" | param =="p_F"|param =="p_G") %>%
 left_join(idx1 %>% dplyr::select(tias_adult, tias, t, i_key, a, s)) %>%
+#dplyr::select(-tias_adult) %>%
 dplyr::select(parameter, predicted, lower, upper, param, tias, t, i_key, a, s, tias_young, tias_adult)
 
 
@@ -302,9 +302,9 @@ plot_df_young <- tibble(
     tias_adult = NA_real_) %>%
 filter(param %in% c("N_young")) %>%
 left_join(idx1 %>% dplyr::select(tias_young, tias, t, i_key, a, s)) %>%
+#dplyr::select(-tias_young) %>%
 dplyr::select(parameter, predicted, lower, upper, param, tias, t, i_key, a, s, tias_young, tias_adult)
   
-
 
 plot_df <- plot_df_adult %>% rbind(plot_df_young) %>%
   mutate(param = ifelse(param=="N_young"|param=="N_adult", "N", param)) %>%  
@@ -318,17 +318,13 @@ plot_df <- plot_df_adult %>% rbind(plot_df_young) %>%
                             a == 5 ~ "60+")) %>%
   arrange(t,i,a,s)
   
-param_vec    <- c("N", "r", "p_F", "p_G")
 
-param_labels <- c(
-  N   = "Total population (N)",
-  r   = "Growth rate (r)",
-  p_F = "Facebook penetration (p_F)",
-  p_G = "Instagram penetration (p_G)"
-)
+plot_df <- plot_df %>%
+  filter(!(param %in% c("p_F", "p_G") & a == 6L))
 
 plot_df <- plot_df %>%
   mutate(t_name = factor(t_name, levels = sort(unique(t_name))))
+
 
 out_dir_plots <- file.path(out_dir, model_name, "eval", "time_series_plots")
 dir.create(out_dir_plots, recursive = TRUE, showWarnings = FALSE)
@@ -342,6 +338,11 @@ for (name in unique(plot_df$i_name)) {
 
     p_code <- param_vec[k]
     df_p   <- filter(df_i, param == p_code)
+
+    if (p_code %in% c("p_F", "p_G")) {
+      df_p <- df_p %>%
+        mutate(a_name = factor(a_name, levels = c("20-29","30-39","40-49","50-59","60+")))
+    }
 
     labs <- unique(df_p$t_name)
     breaks_vec <- if (length(labs) >= 5) labs[seq(1, length(labs), 5)] else labs
