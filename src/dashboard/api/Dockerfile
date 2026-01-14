@@ -2,7 +2,7 @@ FROM python:3.11-slim-bullseye
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y postgresql-client
+RUN apt-get update && apt-get install -y postgresql-client libexpat1
 RUN pip3 install --upgrade pip
 COPY requirements.txt requirements.txt
 RUN pip3 install -r requirements.txt
