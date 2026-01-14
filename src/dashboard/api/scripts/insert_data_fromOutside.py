@@ -24,6 +24,7 @@ GPKG = BASE_DIR.joinpath("app", "data", "db-data", "GEODATA.gpkg")
 
 POSTGRES_USER = os.environ.get("POSTGRES_USER")
 POSTGRES_PASSWORD = os.environ.get("POSTGRES_PASSWORD")
+POSTGRES_HOST = os.environ.get("POSTGRE_HOST")
 POSTGRES_DB = os.environ.get("POSTGRES_DB")
 TABLES_DIR = os.environ.get("DATABASE_TABLES_DIR")
 if psutil.virtual_memory().total / (1024**3) < 4:
@@ -47,11 +48,11 @@ conn = psycopg2.connect(
     database=POSTGRES_DB,
     user=POSTGRES_USER,
     password=POSTGRES_PASSWORD,
-    host="15.188.235.225",
+    host=POSTGRES_HOST,
     port="5432",
 )
 engine = create_engine(
-    f"postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PASSWORD}@15.188.235.225:5432/{POSTGRES_DB}"
+    f"postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:5432/{POSTGRES_DB}"
 )
 pg_host = "now_pop_postgres"
 

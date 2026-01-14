@@ -369,25 +369,25 @@ for (month in unique(flows$t) |> as.character()) {
     "ADM1_PCODE",
     "ADM2_PCODE",
     "ADM3_PCODE",
-    "ADM1_EN",
-    "ADM2_EN",
-    "ADM3_EN",
-    "ADM1_UA",
-    "ADM2_UA",
-    "ADM3_UA",
+    # "ADM1_EN",
+    # "ADM2_EN",
+    # "ADM3_EN",
+    # "ADM1_UA",
+    # "ADM2_UA",
+    # "ADM3_UA",
     names(stocks_sub_wide)[
       !(names(stocks_sub_wide) %in%
         c(
           "DATE",
           "ADM1_PCODE",
           "ADM2_PCODE",
-          "ADM3_PCODE",
-          "ADM1_EN",
-          "ADM2_EN",
-          "ADM3_EN",
-          "ADM1_UA",
-          "ADM2_UA",
-          "ADM3_UA"
+          "ADM3_PCODE"#,
+          # "ADM1_EN",
+          # "ADM2_EN",
+          # "ADM3_EN",
+          # "ADM1_UA",
+          # "ADM2_UA",
+          # "ADM3_UA"
         ))
     ]
   )

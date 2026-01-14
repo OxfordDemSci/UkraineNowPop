@@ -1,3 +1,6 @@
+# This script estimates population sizes and flows from Vodafone data for Ukraine. 
+# ./src/analysis/data_prep/60_vodafone.R must be run as a pre-requisite to prepare input data required for this script. 
+
 rm(list = ls())
 gc()
 library(sf)
