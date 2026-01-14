@@ -262,7 +262,7 @@ fwrite(
 # adapt geographies
 
 geo <- st_read("./src/dashboard/api/app/data/db-data/GEODATA_full.gpkg")
-pop <- read_csv("./src/dashboard/api/app/data/db-data/pop.csv") |>
+pop <- read_csv(file.path("./src/dashboard/api/app/data/db-data", pop_name)) |>
   filter(admin_level == 3 & day == min(day)) |>
   distinct(pcode)
 
