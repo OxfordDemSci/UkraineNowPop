@@ -324,7 +324,8 @@ st_write(
 
 st_write(
   geo_t |> filter(admin_level == 1),
-  "./src/dashboard/www/public_html/data/admin_UKR_level_1.geojson"
+  "./src/dashboard/www/public_html/data/admin_UKR_level_1.geojson",
+  append = FALSE
 )
 
 st_write(
@@ -343,5 +344,6 @@ st_write(
   geo |> filter(admin_level == 1),
   "./src/dashboard/www/public_html/data/admin_UKR_level_1_baseline.geojson",
 )
-tm_shape(geo_t |> filter(admin_level == 1)) +
-  tm_polygons("name_en")
+
+tmap::tm_shape(geo_t |> filter(admin_level == 1)) +
+  tmap::tm_polygons("name_en")
