@@ -5,7 +5,10 @@ install_if_missing <- function(packages) {
     if (!requireNamespace(pkg, quietly = TRUE)) {
       message(paste("\nInstalling package:", pkg, "\n"))
       if (pkg == "cmdstanr") {
-        install.packages("cmdstanr", repos = c("https://stan-dev.r-universe.dev", getOption("repos")))
+        install.packages(
+          "cmdstanr",
+          repos = c("https://stan-dev.r-universe.dev", getOption("repos"))
+        )
       } else {
         install.packages(pkg, dependencies = TRUE)
       }
