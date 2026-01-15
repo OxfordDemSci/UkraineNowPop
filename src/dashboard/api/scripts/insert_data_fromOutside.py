@@ -63,20 +63,6 @@ engine = create_engine(
 pg_host = "now_pop_postgres"
 
 
-def print_counter(x):
-    if x <= 10:
-        divisible_by = 1
-    elif x <= 100:
-        divisible_by = 10
-    elif x <= 1000:
-        divisible_by = 50
-    else:
-        divisible_by = 100
-
-    if x % divisible_by == 0:
-        print("   Chunk " + str(x))
-
-
 @timer_and_log
 def add_migration_data(overwrite_existing: bool = False):
     Session = sessionmaker(bind=engine)
