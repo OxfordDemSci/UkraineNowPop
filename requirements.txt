@@ -25,3 +25,4 @@ flask_limiter
 flask_sqlalchemy
 connexion
 pdm-backend
+tqdm

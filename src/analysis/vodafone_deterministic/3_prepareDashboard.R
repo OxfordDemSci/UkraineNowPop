@@ -157,7 +157,7 @@ setcolorder(
   )
 )
 
-pop_name <- ifelse(sample, "pop.csv", "pop_full.csv")
+pop_name <- "pop.csv"
 fwrite(
   stocks_lvl,
   file = file.path(
@@ -242,7 +242,7 @@ setcolorder(
   )
 )
 
-flow_name <- ifelse(sample, "migration.csv", "migration_full.csv")
+flow_name <- "migration.csv"
 fwrite(
   flows_lvl,
   file = file.path(
@@ -329,7 +329,7 @@ st_write(
 st_write(
   geo_t |> filter(admin_level == 2),
   "./src/dashboard/www/public_html/data/admin_UKR_level_2.geojson",
-  append = F
+  append = FALSE
 )
 
 st_write(
