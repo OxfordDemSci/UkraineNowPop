@@ -55,8 +55,7 @@ if (sample) {
 parse_age_sex <- function(DT) {
   # Split "a_name" like "0-4" or "65Plus"
   DT[, c("age_min0", "age_max0") := tstrsplit(a_name, "-", fixed = TRUE)]
-  DT[
-    ,
+  DT[,
     age_min := fifelse(
       grepl("Plus", a_name),
       as.integer(gsub("\\D", "", a_name)),
@@ -76,8 +75,7 @@ agg_level <- function(DT, dest_col, level) {
   DT[,
     .(pop = sum(pop)),
     by = .(day, age_min, age_max, sex, country, pcode = get(dest_col))
-  ][
-    ,
+  ][,
     `:=`(admin_level = level, pop = as.integer(round(pop)))
   ]
   # replace 0 by 1 in pop
@@ -97,8 +95,7 @@ agg_level_flows <- function(DT, dest_col, orig_col, level) {
       destination = get(dest_col),
       origin = get(orig_col)
     )
-  ][
-    ,
+  ][,
     `:=`(admin_level = level, count = as.integer(round(count)))
   ]
 }
@@ -211,7 +208,8 @@ flows_lvl <- rbindlist(
     ),
     agg_level_flows(
       flows_dt[
-        !(destination_oblast_PCODE %in% sensitive) & !(origin_oblast_PCODE %in% sensitive)
+        !(destination_oblast_PCODE %in% sensitive) &
+          !(origin_oblast_PCODE %in% sensitive)
       ],
       "destination_oblast_PCODE",
       "origin_oblast_PCODE",
@@ -343,6 +341,7 @@ st_write(
 st_write(
   geo |> filter(admin_level == 1),
   "./src/dashboard/www/public_html/data/admin_UKR_level_1_baseline.geojson",
+  append = FALSE
 )
 
 tmap::tm_shape(geo_t |> filter(admin_level == 1)) +

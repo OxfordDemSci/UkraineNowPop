@@ -21,6 +21,7 @@ pkgs <- c(
   "tidyquant",
   "data.table",
   "sf",
+  "tmap",
   "cmdstanr",
   "posterior",
   "bayesplot",

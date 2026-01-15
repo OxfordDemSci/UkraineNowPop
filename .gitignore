@@ -14,6 +14,11 @@ venv*
 data/dummy_tables/dummy_migration.*
 data/dummy_tables/dummy_pop.*
 
+#---- alembic ----#
+alembic.ini
+env.py
+README
+script.py.mako
 
 #---- R ignore ----#
 
