@@ -54,34 +54,38 @@ sudo rm -rf /var/lib/apt/lists/*
 # ---- python steps (run as current user) ----#
 cd "$REPO_PATH"
 
-# create venv if missing (use python3.12 explicitly)
-if [[ ! -d "venv" ]]; then
-  python3.12 -m venv ./venv
+# create venv if missing (use python3.12 explicitly, fallback to python3)
+PY=python3.12
+if ! command -v "$PY" >/dev/null 2>&1; then
+  PY=python3
 fi
 
-# activate venv
-# shellcheck disable=SC1091
-source ./venv/bin/activate
+if [[ ! -d "venv" ]]; then
+  "$PY" -m venv ./venv
+fi
+
+# use the venv python executable explicitly (no activation)
+VENV_PY=./venv/bin/python
 
 # upgrade pip/build tools (inside venv)
-python -m pip install --upgrade pip setuptools wheel
+"$VENV_PY" -m pip install --upgrade pip setuptools wheel
 
 # install psycopg2 (do not include in requirements.txt because it fails in Docker containers)
-python -m pip install psycopg2
+"$VENV_PY" -m pip install psycopg2
 
 # install from requirements
 if [[ -f "requirements.txt" ]]; then
-  python -m pip install -r requirements.txt
+  "$VENV_PY" -m pip install -r requirements.txt
 else
   echo "Warning: requirements.txt not found in $REPO_PATH"
 fi
 
-# install the github package 
-python -m pip install --no-deps --no-build-isolation git+https://github.com/GISRedeDev/PyNetworkFriction
+# install the github package
+"$VENV_PY" -m pip install --no-deps --no-build-isolation git+https://github.com/GISRedeDev/PyNetworkFriction
 
-# init alembic only if missing 
+# init alembic only if missing (use alembic from venv)
 if [[ ! -d "alembic" && ! -f "alembic.ini" ]]; then
-  alembic init alembic
+  ./venv/bin/alembic init alembic
 else
   echo "alembic already initialized; skipping 'alembic init'."
 fi
