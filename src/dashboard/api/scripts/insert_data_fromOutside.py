@@ -63,7 +63,7 @@ engine = create_engine(
 pg_host = "now_pop_postgres"
 
 
-#--- insert population data ---#
+# --- insert population data ---#
 @timer_and_log
 def add_pop_data(overwrite_existing: bool = True):
     def parse_pop_posterior(s):
@@ -156,7 +156,7 @@ def add_pop_data(overwrite_existing: bool = True):
             session.close()
 
 
-#--- insert migration data ---#
+# --- insert migration data ---#
 @timer_and_log
 def add_migration_data(overwrite_existing: bool = False):
     Session = sessionmaker(bind=engine)

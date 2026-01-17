@@ -209,6 +209,7 @@ def insert_admin_units_meta_data(overwrite_existing: bool = False):
             session.bulk_insert_mappings(AdminUnitsMetadata, data)
     session.commit()
 
+
 def main():
     upgrade_alembic(pg_host)
     insert_admin_units()

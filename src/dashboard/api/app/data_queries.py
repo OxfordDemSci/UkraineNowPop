@@ -11,8 +11,8 @@ from sqlalchemy.sql import text
 
 from app import db
 
-from .datatypes import RankBy, FileTypes, SexType
-from .models import AdminUnits, Countries, Languages, Migration, Population, User
+from app.datatypes import RankBy, FileTypes, SexType
+from app.models import AdminUnits, Countries, Languages, Migration, Population, User
 
 
 def get_user(username: str) -> Optional[User]:    
@@ -70,24 +70,47 @@ def get_age_ranges(country: str) -> list[dict]:
     return [{"age_min": age_min, "age_max": age_max} for age_min, age_max in age_ranges]
 
 
-def get_dates(country: str) -> dict[str, list[str]]:    
-    dates_pop: List[Row] = (
-        db.session.query(distinct(Population.day))
-        .filter(Population.country == country)
-        .order_by(Population.day)
-        .all()
-    )
-    dates_migration: List[Row] = (
-        db.session.query(distinct(Migration.day))
-        .filter(Migration.country == country)
-        .order_by(Migration.day)
-        .all()
-    )
-    return {
-        "dates_pop": [date for date, in dates_pop],
-        "dates_migration": [date for date, in dates_migration],
-    }
+# def get_dates_slow(country: str) -> dict[str, list[str]]:    
+#     dates_pop: List[Row] = (
+#         db.session.query(distinct(Population.day))
+#         .filter(Population.country == country)
+#         .order_by(Population.day)
+#         .all()
+#     )
+#     dates_migration: List[Row] = (
+#         db.session.query(distinct(Migration.day))
+#         .filter(Migration.country == country)
+#         .order_by(Migration.day)
+#         .all()
+#     )
+#     return {
+#         "dates_pop": [date for date, in dates_pop],
+#         "dates_migration": [date for date, in dates_migration],
+#     }
 
+def get_dates(country: str) -> dict[str, list[str]]:
+    def run_loose_scan(table_name: str):
+            # 1. Format the raw string with the table name
+            # 2. Wrap in text() for SQLAlchemy
+            sql = text(f"""
+                WITH RECURSIVE t AS (
+                (SELECT day FROM {table_name} WHERE country = :country ORDER BY day LIMIT 1)
+                UNION ALL
+                SELECT (SELECT day FROM {table_name} 
+                        WHERE country = :country AND day > t.day 
+                        ORDER BY day LIMIT 1)
+                FROM t WHERE t.day IS NOT NULL
+                )
+                SELECT day FROM t WHERE day IS NOT NULL;
+            """)
+            
+            # 3. Execute passing 'country' as a bind parameter
+            return db.session.execute(sql, {"country": country}).scalars().all()
+
+    return {
+        "dates_pop": list(run_loose_scan("population")),
+        "dates_migration": list(run_loose_scan("migration")),
+    }
 
 def init(country: str) -> dict:    
     init_data: Dict[str, Any] = {}
