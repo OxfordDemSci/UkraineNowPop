@@ -41,7 +41,8 @@ DATABASE_TABLES_DIR='/app/data/db-data/'
 NOWPOP_API_URL = "/api"
 
 # API mode
-ENV="dev" # local, dev, prod, test
+# local, dev, prod, test
+ENV="dev" 
 
 # main database connection strings 
 # (Make sure the database user names and passwords match the database config above)
@@ -58,7 +59,8 @@ SECRET_KEY="key1"
 
 # JSON Web Token secret (used by Flask-JWT-Extended)
 JWT_SECRET_KEY="key2"
-JWT_ACCESS_TOKEN_EXPIRES=2  # Hours before tokens expire
+# Hours before tokens expire
+JWT_ACCESS_TOKEN_EXPIRES=2  
 
 
 #--- dashboard config ---#
