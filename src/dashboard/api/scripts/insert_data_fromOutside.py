@@ -63,83 +63,7 @@ engine = create_engine(
 pg_host = "now_pop_postgres"
 
 
-@timer_and_log
-def add_migration_data(overwrite_existing: bool = False):
-    Session = sessionmaker(bind=engine)
-    migration_data = GPKG.parent.joinpath("migration.csv")
-
-    # if overwrite, delete everything first
-    if overwrite_existing:
-        session = Session()
-        try:
-            session.query(Migration).delete(synchronize_session=False)
-            session.commit()
-        except Exception:
-            session.rollback()
-        finally:
-            session.close()
-
-    # check for empty table
-    session_check = Session()
-    try:
-        has_any = session_check.query(Migration).first() is not None
-    finally:
-        session_check.close()
-
-    # insert data if table is empty
-    if not has_any:
-        # open sql session
-        session = Session()
-
-        try:
-            print("Processing migration data...")
-
-            for chunk in tqdm(
-                pd.read_csv(migration_data, chunksize=CHUNK_SIZE), total=1912
-            ):
-                chunk["day"] = pd.to_datetime(chunk["day"], dayfirst=True)
-                chunk = chunk.astype(
-                    {
-                        "country": "string",
-                        "admin_level": "int8",
-                        "origin": "string",
-                        "destination": "string",
-                        "age_min": "int8",
-                        "age_max": "int16",
-                        "sex": "int8",
-                        "proportion": "int16",
-                        "count": "int32",
-                    }
-                )
-                data = []
-                for _, row in chunk.iterrows():
-                    data.append(
-                        {
-                            "country": row["country"],
-                            "admin_level": row["admin_level"],
-                            "origin": row["origin"],
-                            "destination": row["destination"],
-                            "day": row["day"],
-                            "age_min": row["age_min"],
-                            "age_max": row["age_max"],
-                            "sex": row["sex"],
-                            "proportion": row["proportion"],
-                            "count": row["count"],
-                        }
-                    )
-
-                # insert chunk
-                session.bulk_insert_mappings(Migration, data)
-
-            # commit when all chunks completed
-            session.commit()
-
-        except Exception:
-            session.rollback()
-        finally:
-            session.close()
-
-
+#--- insert population data ---#
 @timer_and_log
 def add_pop_data(overwrite_existing: bool = True):
     def parse_pop_posterior(s):
@@ -184,7 +108,7 @@ def add_pop_data(overwrite_existing: bool = True):
                 total=28,
             ):
                 chunk["sex"] = chunk["sex"].replace({"male": 1, "female": 2})
-                chunk["day"] = pd.to_datetime(chunk["day"], yearfirst=True)
+                chunk["day"] = pd.to_datetime(chunk["day"], format="%Y-%m-%d")
                 chunk = chunk.astype(
                     {
                         "country": "string",
@@ -222,6 +146,84 @@ def add_pop_data(overwrite_existing: bool = True):
 
                 # insert chunk
                 session.bulk_insert_mappings(Population, data)
+
+            # commit when all chunks completed
+            session.commit()
+
+        except Exception:
+            session.rollback()
+        finally:
+            session.close()
+
+
+#--- insert migration data ---#
+@timer_and_log
+def add_migration_data(overwrite_existing: bool = False):
+    Session = sessionmaker(bind=engine)
+    migration_data = GPKG.parent.joinpath("migration.csv")
+
+    # if overwrite, delete everything first
+    if overwrite_existing:
+        session = Session()
+        try:
+            session.query(Migration).delete(synchronize_session=False)
+            session.commit()
+        except Exception:
+            session.rollback()
+        finally:
+            session.close()
+
+    # check for empty table
+    session_check = Session()
+    try:
+        has_any = session_check.query(Migration).first() is not None
+    finally:
+        session_check.close()
+
+    # insert data if table is empty
+    if not has_any:
+        # open sql session
+        session = Session()
+
+        try:
+            print("Processing migration data...")
+
+            for chunk in tqdm(
+                pd.read_csv(migration_data, chunksize=CHUNK_SIZE), total=1912
+            ):
+                chunk["day"] = pd.to_datetime(chunk["day"], format="%Y-%m-%d")
+                chunk = chunk.astype(
+                    {
+                        "country": "string",
+                        "admin_level": "int8",
+                        "origin": "string",
+                        "destination": "string",
+                        "age_min": "int8",
+                        "age_max": "int16",
+                        "sex": "int8",
+                        "proportion": "int16",
+                        "count": "int32",
+                    }
+                )
+                data = []
+                for _, row in chunk.iterrows():
+                    data.append(
+                        {
+                            "country": row["country"],
+                            "admin_level": row["admin_level"],
+                            "origin": row["origin"],
+                            "destination": row["destination"],
+                            "day": row["day"],
+                            "age_min": row["age_min"],
+                            "age_max": row["age_max"],
+                            "sex": row["sex"],
+                            "proportion": row["proportion"],
+                            "count": row["count"],
+                        }
+                    )
+
+                # insert chunk
+                session.bulk_insert_mappings(Migration, data)
 
             # commit when all chunks completed
             session.commit()
