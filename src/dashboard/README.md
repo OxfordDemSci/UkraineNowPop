@@ -1,28 +1,7 @@
 # Ukraine Population Nowcasting Dashboard
 
 
-**NOTE** Environment variables need to be set before running the app. This should be saved to `./.env`. Please seee the `./example_env` on the format to use and variables to set.
-
-Example environment variables. Please do not copy these secrets. Replace them with secure passwords/keys. 
-
-```
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=secret_password
-POSTGRES_READONLY=user
-POSTGRES_READONLY_PASSWORD=another_secret_password
-POSTGRES_DB=now_pop
-POSTGRES_DB_TEST=now_pop_test
-DATABASE_TABLES_DIR=app/data/db-data
-basedir=<PATH_TO_PROJECTS ROOT>
-SECRET_KEY="asdlkfjasd;flj"
-DATABASE_URL_LOCAL="postgresql://postgres:secret_password@localhost:5432/now_pop"
-DATABASE_URL_TEST = "postgresql://postgres:secret_password@localhost:5432/now_pop_test"
-DATABASE_URL="postgresql://postgres:secret_password@now_pop_postgres:5432/now_pop"
-DATABASE_URL_READONLY="postgresql://user:another_secret_password@now_pop_postgres:5432/now_pop"
-ENV="prod"  # local, dev, prod, test
-JWT_SECRET_KEY="as;dlkfjasdfljad"
-JWT_ACCESS_TOKEN_EXPIRES=2  # Hours before tokens expire
-```
+**NOTE** Environment variables need to be set before running the app. These should be saved in `./.env`. Please see `./example_env` on the format to use and variables to set.
 
 **To use any of the python code in this application, the dependencies defined in the requirements.txt file should be installed `pip install -r requirements.txt`. For some reason, the package `psycopg2` AND `psycopg2-binary` was required for the scripts and database migrations, but only `psycopg2-binary` could be installed in the Docker containers. If you have problems in running any of the scripts outside of Docker, you may need to install `psycopg2`, but do not add this to the `requirements.txt` file as this cannot be installed in Docker. This application was written using `Python 3.11.3`**
 

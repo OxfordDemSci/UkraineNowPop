@@ -1,0 +1,91 @@
+#--- repository config ---#
+
+# local path to UkraineNowPop repository base directory
+repo_dir="/home/user/git/OxfordDemSci/UkraineNowPop"
+
+# path to input data
+in_dir="/home/user/git/OxfordDemSci/UkraineNowPop/wd/in"
+
+# path to write output data
+out_dir="/home/user/git/OxfordDemSci/UkraineNowPop/wd/out"
+
+
+#--- database config ---#
+
+# main database
+POSTGRES_DB='now_pop'
+
+POSTGRES_USER='postgres'
+POSTGRES_PASSWORD='password1'
+
+POSTGRES_READONLY='user'
+POSTGRES_READONLY_PASSWORD='password2'
+
+# test database
+POSTGRES_DB_TEST='now_pop_test'
+
+
+# load data:  target database hostname
+# ./src/dashboard/api/scripts/insert_data_fromOutside.py
+POSTGRES_HOST='127.0.0.1'
+
+# load data:  path to source data
+# ./src/dashboard/api/scripts/insert_data.py
+# ./src/dashboard/api/scripts/insert_data_fromOutside.py
+DATABASE_TABLES_DIR='/app/data/db-data/'
+
+
+#--- API config ---#
+
+# relative URL for API
+NOWPOP_API_URL = "/api"
+
+# API mode
+ENV="dev" # local, dev, prod, test
+
+# main database connection strings 
+# (Make sure the database user names and passwords match the database config above)
+# (Note: Do not change "@now_pop_postgres". This is the docker container to use as database host for connections over the docker network)
+DATABASE_URL="postgresql://postgres:password1@now_pop_postgres:5432/now_pop"
+DATABASE_URL_READONLY="postgresql://user:password2@now_pop_postgres:5432/now_pop"
+
+# dev and test database connection strings
+DATABASE_URL_LOCAL="postgresql://postgres:password1@localhost:5432/now_pop"
+DATABASE_URL_TEST="postgresql://postgres:password2@localhost:5432/now_pop_test"
+
+# Flask key to cryptographically sign session cookies
+SECRET_KEY="key1"
+
+# JSON Web Token secret (used by Flask-JWT-Extended)
+JWT_SECRET_KEY="key2"
+JWT_ACCESS_TOKEN_EXPIRES=2  # Hours before tokens expire
+
+
+#--- dashboard config ---#
+UN_STAFF_USERNAME='anonymous'
+UN_STAFF_PASSWORD='password3'
+
+
+#--- data prep config ---#
+# ./src/data_prep/
+
+# Oxford social media audience database and API (http://digitrace-datahub.ndph.ox.ac.uk/api/v1)
+# .../pop_data/20_prepare_sma_data.R
+sma_API_token= "token1"
+smaDB_host = 'digitrace-datahub.ndph.ox.ac.uk'
+smaDB_port = 5432
+smaDB_dbname = 'social_media_audience'
+smaDB_user='reader'
+smaDB_password='password4'
+
+
+# ACLED conflict events API
+# .../covariates/processing/21_main.py
+ACLED_KEY="key3"
+ACLED_EMAIL="user.name@email.com"
+
+# Google Earth Engine
+# .../covariates/collection/pwtt.py
+ee_project='ee-username'
+ggdrive='/gdrive'
+ggfolder='pwtt'
