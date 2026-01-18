@@ -27,3 +27,4 @@ connexion
 pdm-backend
 tqdm
 scipy
+psutil

@@ -370,13 +370,14 @@ def get_migration_probabilities(
             func.sum(Migration.count).label("count"),
         )
         .filter(
-            or_(*conditions),
+            Migration.day == date,
+            Migration.country == country,
             Migration.admin_level == admin_level,
+            Migration.origin == admin_id if admin_id else True,
+            or_(*conditions),
             # func.abs(func.date(date) - func.date(Migration.day))
             # == closest_date_subquery,
             # closest_date_subquery <= 7,
-            Migration.country == country,
-            Migration.origin == admin_id if admin_id else True,
         )
         .group_by(Migration.origin, Migration.destination)
         .order_by(rank_col.desc())
