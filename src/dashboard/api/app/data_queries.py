@@ -399,7 +399,10 @@ def get_migration_probabilities(
             Migration.day == date,
             Migration.country == country,
             Migration.admin_level == admin_level,
-            Migration.origin == admin_id if admin_id else True,
+            or_(
+                Migration.origin == admin_id if admin_id else True, 
+                Migration.destination == admin_id if admin_id else True
+            ),
             or_(*conditions),
             # func.abs(func.date(date) - func.date(Migration.day))
             # == closest_date_subquery,
@@ -416,11 +419,11 @@ def get_migration_probabilities(
             probabilities[origin].append(
                 {"destination": destination, "proportion": proportion, "count": count}
             )
-            probabilities[destination].append(
-                get_prob_count(
-                    destination, origin, admin_level, conditions, date, country
-                )
-            )
+            # probabilities[destination].append(
+            #     get_prob_count(
+            #         destination, origin, admin_level, conditions, date, country
+            #     )
+            # )
 
     return dict(probabilities)
 

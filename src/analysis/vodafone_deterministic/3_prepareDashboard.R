@@ -174,8 +174,7 @@ fwrite(
 
 # --- POP FLOWS ---------------------------------------------------------------
 flows_dt <- flows[
-  origin_hromada != "Unknown" &
-    destination_hromada != "Abroad",
+  origin_hromada != "Unknown",
   .(count = sum(as.integer(pop_estimated))),
   by = .(
     t,
@@ -307,9 +306,9 @@ geo_t <- st_buffer(geo_t, 0.0)
 
 geo_t <- geo_t |>
   mutate(
-    country = "UKR",
-    pcode = ifelse(is.na(gct), paste0("Missing ", pcode), pcode),
-    name_en = ifelse(is.na(gct), paste0("Missing ", name_en), name_en)
+    country = "UKR"
+    # pcode = ifelse(is.na(gct), paste0("Missing ", pcode), pcode),
+    # name_en = ifelse(is.na(gct), paste0("Missing ", name_en), name_en)
   ) |>
   select(-gct)
 
