@@ -1,4 +1,4 @@
-# This script queries a UNHCR API endpoint to retrieve daily counts of border crossings at 
+# This script queries a UNHCR API endpoint to retrieve daily counts of border crossings at
 # the Ukrainian border.
 
 # cleanup
@@ -34,7 +34,6 @@ dat_refugees_out <- read.csv(out_refugee_file,
 names(dat_refugees_out) <- c("date", "individuals")
 
 
-
 # inward border crossings
 in_refugee_file <- file.path(out_dir, "refugees_in_daily.csv")
 
@@ -60,4 +59,3 @@ dat_refugees <- dat_refugees[!is.na(dat_refugees$individuals), ]
 
 # save to disk
 write.csv(dat_refugees, file.path(out_dir, "dat_refugees.csv"), row.names = F)
-

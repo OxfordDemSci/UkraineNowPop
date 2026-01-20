@@ -1,5 +1,5 @@
-# This script estimates population sizes and flows from Vodafone data for Ukraine. 
-# ./src/analysis/data_prep/60_vodafone.R must be run as a pre-requisite to prepare input data required for this script. 
+# This script estimates population sizes and flows from Vodafone data for Ukraine.
+# ./src/analysis/data_prep/60_vodafone.R must be run as a pre-requisite to prepare input data required for this script.
 
 rm(list = ls())
 gc()
@@ -405,8 +405,7 @@ borderCrossing_in_monthly <- borderCrossing_in |>
   filter(t < "2025-02-01") |>
   arrange(t) |>
   mutate(
-    inflows = individuals - lag(individuals),
-    ,
+    inflows = individuals - lag(individuals), 
     inflows = ifelse(is.na(inflows), individuals, inflows)
   ) |>
   group_by(t) |>
@@ -1372,40 +1371,40 @@ ggplot(
     title = "Oblast average age-sex estimated proportion per macroregion"
   )
 
-# Visualise age-sex profile of flows to abroad
-abroad_profile <- monthlyFlows_agesexMacroregion_hat_df |>
-  filter(
-    destination_macroregion == "Abroad" & origin_macroregion != "Abroad"
-  ) |>
-  group_by(t, a_name, s_name) |>
-  summarise(
-    monthlyFlow_hat = sum(monthlyFlow_hat),
-    .groups = "drop"
-  ) |>
-  group_by(t) |>
-  mutate(
-    pi_hat = monthlyFlow_hat / sum(monthlyFlow_hat)
-  ) |>
-  left_join(
-    borderCrossing |>
-      rename(
-        t = date,
-        outflows = individuals
-      ) |>
-      filter(day(t) == 1)
-  ) |>
-  mutate(
-    outflows = ifelse(is.na(outflows), 0, outflows),
-    outflows = outflows * pi_hat
-  )
+# # Visualise age-sex profile of flows to abroad
+# abroad_profile <- monthlyFlows_agesexMacroregion_hat_df |>
+#   filter(
+#     destination_macroregion == "Abroad" & origin_macroregion != "Abroad"
+#   ) |>
+#   group_by(t, a_name, s_name) |>
+#   summarise(
+#     monthlyFlow_hat = sum(monthlyFlow_hat),
+#     .groups = "drop"
+#   ) |>
+#   group_by(t) |>
+#   mutate(
+#     pi_hat = monthlyFlow_hat / sum(monthlyFlow_hat)
+#   ) |>
+#   left_join(
+#     borderCrossing |>
+#       rename(
+#         t = date,
+#         outflows = individuals
+#       ) |>
+#       filter(day(t) == 1)
+#   ) |>
+#   mutate(
+#     outflows = ifelse(is.na(outflows), 0, outflows),
+#     outflows = outflows * pi_hat
+#   )
 
-ggplot(
-  abroad_profile,
-  aes(x = t, y = pi_hat, col = a_name, linetype = s_name)
-) +
-  geom_line() +
-  theme_minimal() +
-  labs(title = "Flows to Abroad", x = "", y = "Proportion")
+# ggplot(
+#   abroad_profile,
+#   aes(x = t, y = pi_hat, col = a_name, linetype = s_name)
+# ) +
+#   geom_line() +
+#   theme_minimal() +
+#   labs(title = "Flows to Abroad", x = "", y = "Proportion")
 
 # Visualise national population with border crossing  by age and sex
 pop_names <- list(
@@ -1418,94 +1417,94 @@ pop_labeller <- function(variable, value) {
 }
 
 
-gg_national_agesex <- ggplot(
-  national_pop_minusOutflows_plusInflows |>
-    select(-pop, -ends_with("cum")) |>
-    pivot_longer(c(outflows, inflows, pop_updated)),
-  aes(x = t, y = value, col = a_name, linetype = s_name)
-) +
-  geom_line() +
-  theme_minimal() +
-  facet_grid(name ~ ., scales = "free_y", labeller = pop_labeller) +
-  labs(
-    title = "National totals by age and sex through time",
-    x = "",
-    linetype = "Gender",
-    col = "Age group",
-    y = ""
-  )
-gg_national_agesex
+# gg_national_agesex <- ggplot(
+#   national_pop_minusOutflows_plusInflows |>
+#     select(-pop, -ends_with("cum")) |>
+#     pivot_longer(c(outflows, inflows, pop_updated)),
+#   aes(x = t, y = value, col = a_name, linetype = s_name)
+# ) +
+#   geom_line() +
+#   theme_minimal() +
+#   facet_grid(name ~ ., scales = "free_y", labeller = pop_labeller) +
+#   labs(
+#     title = "National totals by age and sex through time",
+#     x = "",
+#     linetype = "Gender",
+#     col = "Age group",
+#     y = ""
+#   )
+# gg_national_agesex
 
-ggsave(
-  file.path(
-    out_dir,
-    "model",
-    "deterministic",
-    "figs",
-    "timeline_national_agesex.png"
-  ),
-  gg_national,
-  w = 8,
-  height = 6
-)
+# ggsave(
+#   file.path(
+#     out_dir,
+#     "model",
+#     "deterministic",
+#     "figs",
+#     "timeline_national_agesex.png"
+#   ),
+#   gg_national,
+#   w = 8,
+#   height = 6
+# )
 
-gg_national <- ggplot(
-  national_pop_minusOutflows_plusInflows |>
-    select(-pop, -ends_with("cum")) |>
-    pivot_longer(c(outflows, inflows, pop_updated)) |>
-    group_by(t, name) |>
-    summarise(value = sum(value)),
-  aes(x = t, y = value)
-) +
-  geom_line() +
-  theme_minimal() +
-  facet_grid(name ~ ., scales = "free_y", labeller = pop_labeller) +
-  labs(title = "National totals through time", x = "", y = "") +
-  scale_y_continuous(labels = scales::label_number())
-gg_national
+# gg_national <- ggplot(
+#   national_pop_minusOutflows_plusInflows |>
+#     select(-pop, -ends_with("cum")) |>
+#     pivot_longer(c(outflows, inflows, pop_updated)) |>
+#     group_by(t, name) |>
+#     summarise(value = sum(value)),
+#   aes(x = t, y = value)
+# ) +
+#   geom_line() +
+#   theme_minimal() +
+#   facet_grid(name ~ ., scales = "free_y", labeller = pop_labeller) +
+#   labs(title = "National totals through time", x = "", y = "") +
+#   scale_y_continuous(labels = scales::label_number())
+# gg_national
 
-ggsave(
-  file.path(out_dir, "model", "deterministic", "figs", "timeline_national.png"),
-  gg_national,
-  w = 8,
-  height = 6
-)
+# ggsave(
+#   file.path(out_dir, "model", "deterministic", "figs", "timeline_national.png"),
+#   gg_national,
+#   w = 8,
+#   height = 6
+# )
 
-ggplot(
-  national_pop_minusOutflows_plusInflows |>
-    mutate(
-      outflows_prop = outflows / pop,
-      inflows_prop = inflows / pop
-    ) |>
-    select(s_name, a_name, t, ends_with("prop")) |>
-    pivot_longer(c(ends_with("prop"))),
-  aes(x = t, y = value, col = a_name, linetype = s_name)
-) +
-  geom_line() +
-  theme_minimal() +
-  facet_grid(name ~ ., scales = "free_y") +
-  labs(title = "Age sex profiles of flows", x = "")
+# ggplot(
+#   national_pop_minusOutflows_plusInflows |>
+#     mutate(
+#       outflows_prop = outflows / pop,
+#       inflows_prop = inflows / pop
+#     ) |>
+#     select(s_name, a_name, t, ends_with("prop")) |>
+#     pivot_longer(c(ends_with("prop"))),
+#   aes(x = t, y = value, col = a_name, linetype = s_name)
+# ) +
+#   geom_line() +
+#   theme_minimal() +
+#   facet_grid(name ~ ., scales = "free_y") +
+#   labs(title = "Age sex profiles of flows", x = "")
 
 
 # Visualise scaling_factor
 
-monthlyFlows_agesex_rescaled_hat_df |>
-  distinct(t, a_name, s_name, scaling_factor) |>
-  mutate(inverse_scaling_factor = 1 / scaling_factor) |>
-  ggplot(aes(
-    x = t,
-    y = inverse_scaling_factor,
-    col = a_name,
-    linetype = s_name
-  )) +
-  geom_line() +
-  theme_minimal() +
-  labs(
-    title = paste("Inverse of the scaling factor by age and sex"),
-    x = "Time",
-    y = "Inverse of scaling factor=sum(estimated pop)/(pop-border_crossing)"
-  ) +
-  facet_grid(. ~ s_name)
+# monthlyFlows_agesex_rescaled_hat_df |>
+#   distinct(t, a_name, s_name, scaling_factor) |>
+#   mutate(inverse_scaling_factor = 1 / scaling_factor) |>
+#   ggplot(aes(
+#     x = t,
+#     y = inverse_scaling_factor,
+#     col = a_name,
+#     linetype = s_name
+#   )) +
+#   geom_line() +
+#   theme_minimal() +
+#   labs(
+#     title = paste("Inverse of the scaling factor by age and sex"),
+#     x = "Time",
+#     y = "Inverse of scaling factor=sum(estimated pop)/(pop-border_crossing)"
+#   ) +
+#   facet_grid(. ~ s_name)
 
 
 # Viualise final estimates
