@@ -205,22 +205,39 @@ def get_population(
     age_min_female: int | None = None,
     age_max_female: int | None = None,
 ) -> dict:
+    
+    # get age ranges for males and females (two db queries)
     age_ranges = get_age_ranges(country)
+    
     if age_min_male is not None and age_max_male is not None:
-        male_min_max = get_min_max_age_ranges(age_ranges, age_min_male, age_max_male)
+        male_min_max = get_min_max_age_ranges(
+            data = age_ranges, 
+            age_min = age_min_male, 
+            age_max = age_max_male
+        )
+    
     if age_min_female is not None and age_max_female is not None:
         female_min_max = get_min_max_age_ranges(
-            age_ranges, age_min_female, age_max_female
+            data = age_ranges, 
+            age_min = age_min_female, 
+            age_max = age_max_female
         )
 
+    # get population for males (one db query)
     pop_per_unit_per_sex: Dict[str, Dict[str, Any]] = {}
     m_pop_posteriors: list[int] | None = None
     f_pop_posteriors: list[int] | None = None
 
     if male_min_max:
         m_pop_posteriors, male_query, male_pop_pyramid_query = get_age_sex_population(
-            male_min_max, date, admin_level, country, 1, admin_id
+            min_max = male_min_max, 
+            date = date, 
+            admin_level = admin_level, 
+            country = country, 
+            sex = 1, 
+            admin_id = admin_id
         )
+        
         male_results = male_query.all()
         for pcode, population in male_results:
             if pcode in pop_per_unit_per_sex:
@@ -230,14 +247,17 @@ def get_population(
     else:
         male_results = []
 
+    # get population for females (one db query)
     if female_min_max:
-        (
-            f_pop_posteriors,
-            female_query,
-            female_pop_pyramid_query,
-        ) = get_age_sex_population(
-            female_min_max, date, admin_level, country, 2, admin_id
+        f_pop_posteriors, female_query, female_pop_pyramid_query = get_age_sex_population(
+            min_max = female_min_max, 
+            date = date, 
+            admin_level = admin_level, 
+            country = country, 
+            sex = 2, 
+            admin_id = admin_id
         )
+        
         female_results = female_query.all()
         for pcode, population in female_results:
             if pcode in pop_per_unit_per_sex:
@@ -246,18 +266,23 @@ def get_population(
                 pop_per_unit_per_sex[pcode] = {"female_population": population}
     else:
         female_results = []
+    
+    # derived results
     population_data: Dict[str, Union[Dict[str, Any], List[Any]]] = {}
     population_data["population_totals"] = {}
+    
     try:
         concatenated = np.concatenate([x for x in (f_pop_posteriors, m_pop_posteriors) if x is not None], axis=0)
     except ValueError:
         concatenated = None
+    
     if concatenated is not None:
         population_data["density_plots"] = get_population_density_plots(np.sum(concatenated, axis=0).tolist())
         population_data["pop_posteriors"] = np.sum(concatenated, axis=0).tolist()
     else:
         population_data["density_plots"] = []
         population_data["pop_posteriors"] = []
+    
     for (pcode, f_pop), (_, m_pop) in zip(female_results, male_results):
         population_data["population_totals"][pcode] = f_pop + m_pop
     population_data["population_totals_by_sex"] = pop_per_unit_per_sex
@@ -278,6 +303,7 @@ def get_population(
                 {"age_min": age_min, "age_max": age_max, "population": population}
             )
 
+    # total population (one db query)
     total_population_query = db.session.query(
         func.sum(Population.pop).label("population")
     ).filter(
@@ -416,6 +442,7 @@ def get_prob_count(
     ).filter(
         or_(*conditions),
         Migration.admin_level == admin_level,
+        Migration.day == date,
         # func.abs(func.date(date) - func.date(Migration.day)) == closest_date_subquery,
         Migration.country == country,
         Migration.origin == destination,

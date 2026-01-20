@@ -35,6 +35,8 @@ if psutil.virtual_memory().total / (1024**3) < 4:
 else:
     CHUNK_SIZE = 20000
 
+print("Inserting data for HOST: " + POSTGRES_HOST)
+
 
 def timer_and_log(func):
     def wrapper(*args, **kwargs):
