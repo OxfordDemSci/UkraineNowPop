@@ -256,7 +256,7 @@ fwrite(
   )
 )
 
-# adapt geographies
+# Adapt geographies -----
 
 geo <- st_read("./src/dashboard/api/app/data/db-data/GEODATA_full.gpkg")
 pop <- read_csv(file.path("./src/dashboard/api/app/data/db-data", pop_name)) |>
@@ -274,7 +274,8 @@ geo_3 <- geo |>
   mutate(
     pcode_1 = str_sub(pcode, 1, 4),
     pcode_2 = str_sub(pcode, 1, 6)
-  )
+  ) |>
+  st_simplify(preserveTopology = T, dTolerance = 1000)
 
 geo_ <- bind_rows(
   geo_3 |> select(pcode, geom, gct) |> mutate(admin_level = 3),
@@ -297,7 +298,7 @@ geo_ <- bind_rows(
 )
 
 geo_t <- geo_ |>
-  full_join(
+  left_join(
     geo |>
       st_drop_geometry()
   )
@@ -306,9 +307,9 @@ geo_t <- st_buffer(geo_t, 0.0)
 
 geo_t <- geo_t |>
   mutate(
-    country = "UKR"
-    # pcode = ifelse(is.na(gct), paste0("Missing ", pcode), pcode),
-    # name_en = ifelse(is.na(gct), paste0("Missing ", name_en), name_en)
+    country = "UKR",
+    pcode = ifelse(is.na(gct), paste0("Missing ", pcode), pcode),
+    name_en = ifelse(is.na(gct), paste0("Missing ", name_en), name_en)
   ) |>
   select(-gct)
 
@@ -319,29 +320,35 @@ st_write(
   layer = "UKR"
 )
 
+file.remove("./src/dashboard/www/public_html/data/admin_UKR_level_1.geojson")
 st_write(
   geo_t |> filter(admin_level == 1),
   "./src/dashboard/www/public_html/data/admin_UKR_level_1.geojson",
   append = FALSE
 )
 
+file.remove("./src/dashboard/www/public_html/data/admin_UKR_level_2.geojson")
 st_write(
   geo_t |> filter(admin_level == 2),
   "./src/dashboard/www/public_html/data/admin_UKR_level_2.geojson",
   append = FALSE
 )
 
+file.remove("./src/dashboard/www/public_html/data/admin_UKR_level_3.geojson")
 st_write(
   geo_t |> filter(admin_level == 3),
   "./src/dashboard/www/public_html/data/admin_UKR_level_3.geojson",
   append = FALSE
 )
 
+file.remove(
+  "./src/dashboard/www/public_html/data/admin_UKR_level_1_baseline.geojson"
+)
 st_write(
   geo |> filter(admin_level == 1),
   "./src/dashboard/www/public_html/data/admin_UKR_level_1_baseline.geojson",
   append = FALSE
 )
 
-tmap::tm_shape(geo_t |> filter(admin_level == 1)) +
-  tmap::tm_polygons("name_en")
+tmap::tm_shape(geo_3) +
+  tmap::tm_polygons()
