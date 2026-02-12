@@ -123,7 +123,7 @@ export function update_pop_probabilities(d) {
         ]
     };
 
-    var chartDom = document.getElementById('plotProbability');
+    //var chartDom = document.getElementById('plotProbability');
     var myChart = echarts.init(chartDom);
     option && myChart.setOption(option, true);
 

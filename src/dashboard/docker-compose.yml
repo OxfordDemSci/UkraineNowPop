@@ -6,9 +6,13 @@ services:
     build: 
       context: ./www/
       dockerfile: Dockerfile
+    mem_limit: 256m
+    cpus: "0.15"
     ports:
       - "80:80"
       - "443:443"
+    volumes:
+      - ./www/conf.d/nginx.conf:/etc/nginx/conf.d/nginx.conf:ro
     networks:
       - now_pop_net
     depends_on:
@@ -26,6 +30,8 @@ services:
       - now_pop_postgres
     networks:
       - now_pop_net
+    mem_limit: 1g
+    cpus: "0.8"
     ports:
       - "5000:5000"
       - "8000:8000"
@@ -37,6 +43,8 @@ services:
     image: memcached:latest
     networks:
       - now_pop_net
+    mem_limit: 128m
+    cpus: "0.05"
     ports:
       - "11211:11211"
     restart: unless-stopped
@@ -47,9 +55,14 @@ services:
     #image: postgis/postgis:15-3.4
     build: ./sql/
     env_file: ../../.env
+    mem_limit: 1536m  # 1.5g
+    cpus: "1.0"
+    shm_size: "512m"
     volumes:
       #- ./sql/init-scripts:/docker-entrypoint-initdb.d
       - now_pop_db_data:/var/lib/postgresql/data
+      - ./sql/postgresql.conf:/etc/postgresql/custom.conf:ro
+    command: ["postgres", "-c", "config_file=/etc/postgresql/custom.conf"]
     networks:
       - now_pop_net
     ports:

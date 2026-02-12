@@ -4,20 +4,20 @@ var API_URL = _env.get_api_url();
 //var API_URL = "http://127.0.0.1:8000/api";
 
 import * as _api from './api.js?version=0.98'
-import * as _init from './init.js?version=0.24'
+import * as _init from './init.js?version=0.25'
 import * as _utils from './utils.js?version=0.75'
 import * as _quartile from './quartile.js?version=1'
 import * as _popMap from './population_map.js?version=0.98'
 import * as _popPyramid from './population_pyramid.js?version=0.35'
 import * as _migrationProb from './migration_probabilities.js?version=2.06'
-import * as _popPprobabilities from './pop_probabilities.js?version=0.22'
+//import * as _popPprobabilities from './pop_probabilities.js?version=0.22'
 import * as _download from './download_csv.js?version=0.1'
 
 //_utils.progressMenuOn();
 
-let txt_Geo_DropDown = "Geo";
+let txt_Geo_DropDown = "Geography";
 let txt_Sex_DropDown = "Sex";
-let txt_Country_Total_Title = "National totals";
+let txt_Country_Total_Title = "Population totals";
 let txt_Title_Top_RightPanel = "Demographics";
 let txt_Title_Bottom_RightPanel = "Mobility";
 let txt_Date_Bottom_Panel = "&nbsp;";
@@ -76,9 +76,8 @@ var initBounding_centroid = initialCountries[0].centroid;
 let initialData = _init.getInitData(API_URL, country_ISO3);
 
 let admin_units_geo = _utils.get_admin_units_geo(API_URL, country_ISO3, admin_level);
+let admin_units_geo_baseline = _utils.get_admin_units_geo(API_URL, country_ISO3, '1_baseline');
 let adminunits_names_eng = _utils.get_adminunits_names(admin_units_geo);
-
-//let test  = adminunits_names.filter(entry => (entry.pcode === "UA07")).map(entry => entry.name);
 
 var admin_names = _utils.get_admin_names(initialData);
 var admin_names_total_count = Object.keys(admin_names).length;
@@ -122,19 +121,21 @@ var mapOptions = {
     attributionControl: false,
     center: [48.383022, 31.1828699],
     zoom: 1,
-    maxZoom: 8,
+    maxZoom: 9,
     minZoom: 5,
     layers: [basemaps.OpenStreetMaps]
 };
 
+
 var map = L.map("map", mapOptions);
+
 map.invalidateSize();
 
 var CopyrightLayer = L.control({ position: 'bottomleft' });
 
 CopyrightLayer.onAdd = function (map) {
     var div = L.DomUtil.create('div', 'Copyright_data');
-    div.innerHTML += '<div id="Copyright_info"><p class="pt-2"><small>&nbsp;&copy; 2024 Ukraine Pop - <a href="#" style="text-decoration: none;"> Website built by Oxford</a></small></p></div>';
+    div.innerHTML += '<div id="Copyright_info"><p class="pt-2"><small>&nbsp;&copy; University of Oxford - <a href="https://www.gisrede.com/" style="text-decoration: none;"> Website built by GISrede</a></small></p></div>';
     L.DomEvent.disableClickPropagation(div);
     L.DomEvent.disableScrollPropagation(div);
     return div;
@@ -237,7 +238,7 @@ var layerCountry = L.geoJson(null, {
                     _popMap.highlightFeaturePopulationMap(e, map);
                 }
 
-                layer.getPopup().setContent('<p class="m-0 p-0"><b>' + feature.properties.name_en + '</b><br/>code: ' + feature.properties.pcode + '</p>');
+                layer.getPopup().setContent('<p class="m-0 p-0"><b>' + feature.properties.name_en + '</b><br/>PCODE: ' + feature.properties.pcode + '</p>');
                 layer.getPopup().update();
 
             },
@@ -258,11 +259,11 @@ var layerCountry = L.geoJson(null, {
                 //                document.getElementById('adminTotalLabel').innerHTML = Number(e.target.feature.properties.population_totals).toLocaleString();;
                 document.getElementById('adminNameLabel').innerHTML = admin_name_en;
                 document.getElementById('adminPCodeLabel').innerHTML = admin_pcode;
-                document.getElementById('controlPanel_BottomRightID_label').innerHTML = txt_Title_Bottom_RightPanel + " to/from [ " + admin_pcode + " ]";
-                document.getElementById('controlPanel_TopRightID_label').innerHTML = txt_Title_Top_RightPanel + " [ " + admin_pcode + " ]";
+                document.getElementById('controlPanel_BottomRightID_label').innerHTML = txt_Title_Bottom_RightPanel + " to/from [" + admin_name_en + "]";
+                document.getElementById('controlPanel_TopRightID_label').innerHTML = txt_Title_Top_RightPanel + " [" + admin_name_en + "]";
 
-                var selGEO = document.getElementById("idSelectGeoLevel");
-                document.getElementById('infoGEOLabel').innerHTML = selGEO.options[selGEO.selectedIndex].text;
+                // var selGEO = document.getElementById("idSelectGeoLevel");
+                // document.getElementById('infoGEOLabel').innerHTML = selGEO.options[selGEO.selectedIndex].text;
 
                 _popMap.highlightFeaturePopulationMapSelected(e, map);
             }
@@ -271,8 +272,17 @@ var layerCountry = L.geoJson(null, {
     }.bind(this)
 }).addTo(map);
 
+var layerCountry_baseline = L.geoJson(null, {
+    style: {
+        weight: 3,
+        color: "black",
+        fill: false
+    }
+}).addTo(map);
+layerCountry_baseline.addData(admin_units_geo_baseline);
 
-
+layerCountry_baseline.bringToFront();
+layerCountry.bringToBack();
 
 var legendPopMap = L.control({ position: 'bottomright' });
 
@@ -330,7 +340,7 @@ $(".Date-slider")
     .slider("pips", {
         rest: "label",
         labels: dates_available_string,
-        step: Math.ceil(dates_available.length / 7)
+        step: Math.ceil(dates_available.length / 8)
     })
     .on("slidechange", function (e, ui) {
         if (e.originalEvent) {
@@ -343,7 +353,7 @@ $(".Date-slider")
 
 $("#btnExpand_ChordDiagrams").on("click", function () {
 
-    // when open a big windows start shoing animation
+//     // when open a big windows start shoing animation
     series_plotChordDiagramt_LG.bullets.push(function (_root, _series, dataItem) {
         var bullet = am5.Bullet.new(root_plotChordDiagramt_LG, {
             locationY: Math.random(),
@@ -364,6 +374,7 @@ $("#btnExpand_ChordDiagrams").on("click", function () {
         return bullet;
     });
 
+    series_plotChordDiagramt_LG.bulletsContainer._display.visible = false
     $('#idMdPlotChordDiagram').modal('show');
 });
 
@@ -386,7 +397,7 @@ $('#plotChordDiagramDisplaySelect input').on("click", function () {
 
     } else if (this.id === "btnradioPlotChordDiagramProbability") {
 
-        migrationProbRank_by = "probability";
+        migrationProbRank_by = "proportion";
         //document.getElementById('idMdPlotChordDiagram_lable').innerHTML = "Population Mobility (Probabilities)";
     }
 
@@ -475,7 +486,7 @@ function main_get_pop_migration(api_url, country, admin_level = 1, admin_id = nu
             //        _popPyramid.updatePopulationPyramid(result_pyramid, series_PopulationPyramid, initialData.age_ranges);
             _popPyramid.updatePopulationPyramid(root_PopulationPyramid, result_pyramid, initialData.age_ranges, denominator_PopulationPyramid);
 
-            _popPprobabilities.update_pop_probabilities(result.density_plots);
+            //_popPprobabilities.update_pop_probabilities(result.density_plots);
             _popMap.updatePopulationMap(map, layerCountry, admin_units_geo, preproces_results, palette_population, txt_Title_Legend_Population, admin_pcode);
 
             //        document.getElementById('cntrlTotalLabel').innerHTML = _utils.sumNumbersInJSON(result.population_totals).toLocaleString();

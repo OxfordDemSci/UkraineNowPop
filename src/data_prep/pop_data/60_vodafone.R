@@ -91,7 +91,7 @@ names(stocks_list) <- c(
 
 stocks <- lapply(stocks_list, function(x) {
   read_csv2(x) |>
-    mutate(file = str_split(x, "/")[[1]][8]) |>
+    mutate(file = basename(x)) |>
     rename(hromada_code = "Hromada") |>
     left_join(hromada_geo_names) |>
     mutate(t = as.Date(month, "%d.%m.%y") + months(3)) |>
@@ -121,10 +121,10 @@ stocks <- stocks[["without_ngct1"]] |>
       ) |>
       select(-file)
   ) |>
-  filter(t < as.Date('2025-06-01')) |>
+  filter(t < as.Date("2025-06-01")) |>
   bind_rows(
     stocks[["with_ngct_postJune"]] |>
-      filter(t >= as.Date('2025-06-01'))
+      filter(t >= as.Date("2025-06-01"))
   ) |>
   mutate(
     territory = ifelse(is.na(file), "ngct", "gct")
@@ -184,7 +184,7 @@ baselineFlows_preJune <- read_csv2(file.path(
 
 baselineFlows_preJune <- baselineFlows_preJune |>
   mutate(t = as.Date(month, "%d.%m.%y") + months(3)) |>
-  filter(t < as.Date('2025-06-01'))
+  filter(t < as.Date("2025-06-01"))
 
 baselineFlows_postJune <- read_csv2(file.path(
   in_dir,
@@ -728,11 +728,11 @@ monthlyFlows_imputed |>
   group_by(t) |>
   summarise(
     subscribers_monthlyFlow = sum(subscribers_monthlyFlow),
-    #subscribers_monthlyFlow_ = sum(subscribers_monthlyFlow_)
+    # subscribers_monthlyFlow_ = sum(subscribers_monthlyFlow_)
   ) |>
   ggplot(aes(x = t, y = subscribers_monthlyFlow)) +
   geom_line() +
-  #geom_line(aes(y = subscribers_monthlyFlow_), col = "red") +
+  # geom_line(aes(y = subscribers_monthlyFlow_), col = "red") +
   theme_minimal() +
   labs(title = "Evolution of subscribers across time")
 
@@ -759,11 +759,11 @@ monthlyFlows_ngct |>
   group_by(t) |>
   summarise(
     subscribers_monthlyFlow = sum(subscribers_monthlyFlow),
-    #subscribers_monthlyFlow_ = sum(subscribers_monthlyFlow_)
+    # subscribers_monthlyFlow_ = sum(subscribers_monthlyFlow_)
   ) |>
   ggplot(aes(x = t, y = subscribers_monthlyFlow)) +
   geom_line() +
-  #geom_line(aes(y = subscribers_monthlyFlow_), col = "red") +
+  # geom_line(aes(y = subscribers_monthlyFlow_), col = "red") +
   theme_minimal() +
   labs(title = "Evolution of subscribers ngct -> ngct across time")
 
@@ -1381,7 +1381,7 @@ stocks |>
 # Investigate the dip in users in June 2025 ------------------------------------------------
 
 stocks_arounddip <- monthlyFlows |>
-  filter(t > as.Date('2025-03-01')) |>
+  filter(t > as.Date("2025-03-01")) |>
   group_by(t, destination_oblast, a_name, s_name) |>
   summarise(
     n_users = sum(subscribers_monthlyFlow),
@@ -1408,7 +1408,7 @@ ggplot(
 
 # compute the relative change in users from May to June 2025 at raion level
 stocks_arounddip_raion <- monthlyFlows |>
-  filter(t %in% as.Date(c('2025-05-01', '2025-06-01'))) |>
+  filter(t %in% as.Date(c("2025-05-01", "2025-06-01"))) |>
   group_by(t, destination_oblast, destination_raion, a_name, s_name) |>
   summarise(n_users = sum(subscribers_monthlyFlow)) |>
   pivot_wider(names_from = t, values_from = n_users) |>

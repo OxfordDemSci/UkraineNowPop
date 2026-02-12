@@ -1,4 +1,4 @@
-.env
+*.env
 private*
 venv*
 *.exe
@@ -14,6 +14,9 @@ venv*
 data/dummy_tables/dummy_migration.*
 data/dummy_tables/dummy_pop.*
 
+#---- alembic ----#
+/alembic/
+alembic.ini
 
 #---- R ignore ----#
 
@@ -67,3 +70,6 @@ po/*~
 # RStudio Connect folder
 rsconnect/
 
+# Complete dataset
+*migration_full.csv
+*pop_full.csv

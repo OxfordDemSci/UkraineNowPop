@@ -92,7 +92,7 @@ def add_migration(db_session):
                 "age_min": "int8",
                 "age_max": "int8",
                 "sex": "int8",
-                "probability": "float32",
+                "proportion": "int16",
                 "count": "int32",            
         })
     data = []
@@ -106,7 +106,7 @@ def add_migration(db_session):
                     "age_min": row["age_min"],
                     "age_max": row["age_max"],
                     "sex": row["sex"],
-                    "probability": row["probability"],
+                    "proportion": row["proportion"],
                     "count": row["count"]
                 })
     db_session.bulk_insert_mappings(Migration, data)

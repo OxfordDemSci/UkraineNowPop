@@ -5,9 +5,10 @@ gc()
 # Load required helpers
 source(file.path(here::here(), "src", "helpers", "R_helpers", "generic.R"))
 library(data.table)
+library(sf)
 
 output_date <- "20251209"
-sample <- T
+sample <- F
 
 # Script parameter
 
@@ -38,6 +39,15 @@ flows <- fread(
   )
 )
 
+sensitive <- flows[
+  t == min(t),
+  length(unique(destination_hromada_PCODE)),
+  by = .(destination_oblast_PCODE)
+][
+  V1 < 3 & !(destination_oblast_PCODE %in% c("Abroad", "UA80")),
+  destination_oblast_PCODE
+]
+
 if (sample) {
   flows <- flows[t >= as.Date("2025-02-01") & t <= as.Date("2025-05-01")]
 }
@@ -60,6 +70,7 @@ parse_age_sex <- function(DT) {
 }
 
 agg_level <- function(DT, dest_col, level) {
+  DT[pop == 0, pop := 1]
   # Summarize to one admin level; renames destination_* into `pcode`
   DT[,
     .(pop = sum(pop)),
@@ -67,9 +78,11 @@ agg_level <- function(DT, dest_col, level) {
   ][,
     `:=`(admin_level = level, pop = as.integer(round(pop)))
   ]
+  # replace 0 by 1 in pop
 }
 
 agg_level_flows <- function(DT, dest_col, orig_col, level) {
+  DT[count == 0, count := 1]
   DT[
     get(dest_col) != get(orig_col),
     .(count = sum(count)),
@@ -107,7 +120,11 @@ stocks_lvl <- rbindlist(
   list(
     agg_level(stocks, "destination_hromada_PCODE", 3L),
     agg_level(stocks, "destination_raion_PCODE", 2L),
-    agg_level(stocks, "destination_oblast_PCODE", 1L)
+    agg_level(
+      stocks[!destination_oblast_PCODE %in% sensitive],
+      "destination_oblast_PCODE",
+      1L
+    )
   ),
   use.names = TRUE
 )
@@ -118,7 +135,7 @@ stocks_lvl[, `:=`(pop_upper = pop, pop_lower = pop)]
 # NOTE: Creating a 100-length posterior string per row is very costly.
 stocks_lvl[,
   pop_posterior := {
-    x <- as.integer(rnorm(50, mean = pop, sd = 1))
+    x <- as.integer(rnorm(2, mean = pop, sd = 1))
     paste0("[", paste(x, collapse = ", "), "]")
   },
   by = .(day, age_min, age_max, sex, country, pcode, admin_level)
@@ -140,6 +157,7 @@ setcolorder(
   )
 )
 
+pop_name <- "pop.csv"
 fwrite(
   stocks_lvl,
   file = file.path(
@@ -150,14 +168,13 @@ fwrite(
     "app",
     "data",
     "db-data",
-    "pop.csv"
+    pop_name
   )
 )
 
 # --- POP FLOWS ---------------------------------------------------------------
 flows_dt <- flows[
-  origin_hromada != "Unknown" &
-    destination_hromada != "Abroad",
+  origin_hromada != "Unknown",
   .(count = sum(as.integer(pop_estimated))),
   by = .(
     t,
@@ -189,7 +206,10 @@ flows_lvl <- rbindlist(
       2L
     ),
     agg_level_flows(
-      flows_dt,
+      flows_dt[
+        !(destination_oblast_PCODE %in% sensitive) &
+          !(origin_oblast_PCODE %in% sensitive)
+      ],
       "destination_oblast_PCODE",
       "origin_oblast_PCODE",
       1L
@@ -198,11 +218,12 @@ flows_lvl <- rbindlist(
   use.names = TRUE
 )
 
-# Probability within (day, age band, sex, admin_level)
+# Probability within (day, age band, sex, admin_level, destination)
 flows_lvl[,
-  probability := count / sum(count),
-  by = .(day, age_min, age_max, sex, admin_level)
+  proportion := round(count / sum(count) * 100 |> as.integer()),
+  by = .(day, age_min, age_max, sex, admin_level, destination)
 ]
+flows_lvl$proportion <- as.integer(flows_lvl$proportion)
 
 setcolorder(
   flows_lvl,
@@ -216,10 +237,11 @@ setcolorder(
     "origin",
     "destination",
     "count",
-    "probability"
+    "proportion"
   )
 )
 
+flow_name <- "migration.csv"
 fwrite(
   flows_lvl,
   file = file.path(
@@ -230,6 +252,103 @@ fwrite(
     "app",
     "data",
     "db-data",
-    "migration.csv"
+    flow_name
   )
 )
+
+# Adapt geographies -----
+
+geo <- st_read("./src/dashboard/api/app/data/db-data/GEODATA_full.gpkg")
+pop <- read_csv(file.path("./src/dashboard/api/app/data/db-data", pop_name)) |>
+  filter(admin_level == 3 & day == min(day)) |>
+  distinct(pcode)
+
+geo_3 <- geo |>
+  filter(admin_level == 3) |>
+  left_join(
+    pop |>
+      mutate(
+        gct = T
+      )
+  ) |>
+  mutate(
+    pcode_1 = str_sub(pcode, 1, 4),
+    pcode_2 = str_sub(pcode, 1, 6)
+  ) |>
+  st_simplify(preserveTopology = T, dTolerance = 1000)
+
+geo_ <- bind_rows(
+  geo_3 |> select(pcode, geom, gct) |> mutate(admin_level = 3),
+  geo_3 |>
+    group_by(
+      pcode_1,
+      gct
+    ) |>
+    summarise() |>
+    select(pcode = pcode_1, gct, geom) |>
+    mutate(admin_level = 1),
+  geo_3 |>
+    group_by(
+      pcode_2,
+      gct
+    ) |>
+    summarise(n = n()) |>
+    select(pcode = pcode_2, gct, geom) |>
+    mutate(admin_level = 2)
+)
+
+geo_t <- geo_ |>
+  left_join(
+    geo |>
+      st_drop_geometry()
+  )
+
+geo_t <- st_buffer(geo_t, 0.0)
+
+geo_t <- geo_t |>
+  mutate(
+    country = "UKR",
+    pcode = ifelse(is.na(gct), paste0("Missing ", pcode), pcode),
+    name_en = ifelse(is.na(gct), paste0("Missing ", name_en), name_en)
+  ) |>
+  select(-gct)
+
+st_write(
+  geo_t,
+  "./src/dashboard/api/app/data/db-data/GEODATA.gpkg",
+  append = FALSE,
+  layer = "UKR"
+)
+
+file.remove("./src/dashboard/www/public_html/data/admin_UKR_level_1.geojson")
+st_write(
+  geo_t |> filter(admin_level == 1),
+  "./src/dashboard/www/public_html/data/admin_UKR_level_1.geojson",
+  append = FALSE
+)
+
+file.remove("./src/dashboard/www/public_html/data/admin_UKR_level_2.geojson")
+st_write(
+  geo_t |> filter(admin_level == 2),
+  "./src/dashboard/www/public_html/data/admin_UKR_level_2.geojson",
+  append = FALSE
+)
+
+file.remove("./src/dashboard/www/public_html/data/admin_UKR_level_3.geojson")
+st_write(
+  geo_t |> filter(admin_level == 3),
+  "./src/dashboard/www/public_html/data/admin_UKR_level_3.geojson",
+  append = FALSE
+)
+
+file.remove(
+  "./src/dashboard/www/public_html/data/admin_UKR_level_1_baseline.geojson"
+)
+st_write(
+  geo |> filter(admin_level == 1),
+  "./src/dashboard/www/public_html/data/admin_UKR_level_1_baseline.geojson",
+  append = FALSE
+)
+
+tmap::tm_shape(geo_3) +
+  tmap::tm_polygons()
