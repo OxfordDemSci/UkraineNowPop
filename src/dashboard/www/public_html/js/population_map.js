@@ -118,10 +118,10 @@ export function RestyleLayerPopMap(_layer, palette, _admin_pcode) {
         if (propertyValue == undefined || propertyValue == null) {
             
             featureInstanceLayer.setStyle({
-                fillColor: "#EBEBE4",
-                fillOpacity: 0,
-                color: "#EBEBE4",
-                weight: 0
+                fillColor: "#fefec0ff",
+                fillOpacity: Opacity,
+                color: "black",
+                weight: 2
             });           
         }else{
 
@@ -170,7 +170,8 @@ export function updatePopulationMap(_map, _layer, geoJson, data, palette_colors,
     }    
 
    _layer.addTo(_map);
-   _layer.addData(geoJson); 
+    _layer.addData(geoJson); 
+    _layer.bringToBack();
    
    let palette  = getPalettePopMap(data, palette_colors);
    RestyleLayerPopMap(_layer, palette, _admin_pcode);
@@ -196,7 +197,9 @@ export function loadLagentPopMap(title, colors, breaks, subtitles) {
     subtitlesArray[colors.length-1] = subtitles[1];    
     
 //    html += '<div style="width:100px">' + subtitles[0] + '</div>';
-    
+    // reverse legend order
+    colors = colors.slice().reverse();
+    breaks = breaks.slice().reverse();
     html += '<ul style="list-style-type: none;margin-top: 2px;margin-bottom: 2px;padding-inline-start: 10px;">';
     for (var i = 0, len = colors.length; i < len; i++) {
         var rgb = _ImageFromRGB.hexToRGB(colors[i]);
@@ -214,7 +217,7 @@ export function highlightFeaturePopulationMap(e,  _map) {
 
     var layer = e.target;
     
-    var Opacity = 0.7;
+    var Opacity = 0.5;
     
     if (_map) {
   

@@ -25,7 +25,7 @@ class Configuration:
     SECRET_KEY = os.environ.get("SECRET_KEY")
     JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY")
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(
-        hours=2
+        hours=float(os.environ.get("JWT_ACCESS_TOKEN_EXPIRES"))
     )  # FIXME - This needs to be set in the env vars
 
 

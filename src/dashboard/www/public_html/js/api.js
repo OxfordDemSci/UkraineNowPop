@@ -93,7 +93,7 @@ export function get_migration_probabilities(api_url,
     if(document.getElementById('btnradioPlotChordDiagramCount').checked === true) {   
          rank_by="count";   
         } else {  
-         rank_by="probability";   
+         rank_by="proportion";   
     }  
     
     let date = dates_available[$(".Date-slider").slider("value")];   

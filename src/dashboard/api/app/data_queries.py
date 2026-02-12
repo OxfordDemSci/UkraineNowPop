@@ -11,8 +11,8 @@ from sqlalchemy.sql import text
 
 from app import db
 
-from .datatypes import RankBy, FileTypes, SexType
-from .models import AdminUnits, Countries, Languages, Migration, Population, User
+from app.datatypes import RankBy, FileTypes, SexType
+from app.models import AdminUnits, Countries, Languages, Migration, Population, User
 
 
 def get_user(username: str) -> Optional[User]:    
@@ -70,23 +70,47 @@ def get_age_ranges(country: str) -> list[dict]:
     return [{"age_min": age_min, "age_max": age_max} for age_min, age_max in age_ranges]
 
 
-def get_dates(country: str) -> dict[str, list[str]]:    
-    dates_pop: List[Row] = (
-        db.session.query(distinct(Population.day))
-        .filter(Population.country == country)
-        .order_by(Population.day)
-        .all()
-    )
-    dates_migration: List[Row] = (
-        db.session.query(distinct(Migration.day))
-        .filter(Migration.country == country)
-        .all()
-    )
-    return {
-        "dates_pop": [date for date, in dates_pop],
-        "dates_migration": [date for date, in dates_migration],
-    }
+# def get_dates_slow(country: str) -> dict[str, list[str]]:    
+#     dates_pop: List[Row] = (
+#         db.session.query(distinct(Population.day))
+#         .filter(Population.country == country)
+#         .order_by(Population.day)
+#         .all()
+#     )
+#     dates_migration: List[Row] = (
+#         db.session.query(distinct(Migration.day))
+#         .filter(Migration.country == country)
+#         .order_by(Migration.day)
+#         .all()
+#     )
+#     return {
+#         "dates_pop": [date for date, in dates_pop],
+#         "dates_migration": [date for date, in dates_migration],
+#     }
 
+def get_dates(country: str) -> dict[str, list[str]]:
+    def run_loose_scan(table_name: str):
+            # 1. Format the raw string with the table name
+            # 2. Wrap in text() for SQLAlchemy
+            sql = text(f"""
+                WITH RECURSIVE t AS (
+                (SELECT day FROM {table_name} WHERE country = :country ORDER BY day LIMIT 1)
+                UNION ALL
+                SELECT (SELECT day FROM {table_name} 
+                        WHERE country = :country AND day > t.day 
+                        ORDER BY day LIMIT 1)
+                FROM t WHERE t.day IS NOT NULL
+                )
+                SELECT day FROM t WHERE day IS NOT NULL;
+            """)
+            
+            # 3. Execute passing 'country' as a bind parameter
+            return db.session.execute(sql, {"country": country}).scalars().all()
+
+    return {
+        "dates_pop": list(run_loose_scan("population")),
+        "dates_migration": list(run_loose_scan("migration")),
+    }
 
 def init(country: str) -> dict:    
     init_data: Dict[str, Any] = {}
@@ -181,22 +205,39 @@ def get_population(
     age_min_female: int | None = None,
     age_max_female: int | None = None,
 ) -> dict:
+    
+    # get age ranges for males and females (two db queries)
     age_ranges = get_age_ranges(country)
+    
     if age_min_male is not None and age_max_male is not None:
-        male_min_max = get_min_max_age_ranges(age_ranges, age_min_male, age_max_male)
+        male_min_max = get_min_max_age_ranges(
+            data = age_ranges, 
+            age_min = age_min_male, 
+            age_max = age_max_male
+        )
+    
     if age_min_female is not None and age_max_female is not None:
         female_min_max = get_min_max_age_ranges(
-            age_ranges, age_min_female, age_max_female
+            data = age_ranges, 
+            age_min = age_min_female, 
+            age_max = age_max_female
         )
 
+    # get population for males (one db query)
     pop_per_unit_per_sex: Dict[str, Dict[str, Any]] = {}
     m_pop_posteriors: list[int] | None = None
     f_pop_posteriors: list[int] | None = None
 
     if male_min_max:
         m_pop_posteriors, male_query, male_pop_pyramid_query = get_age_sex_population(
-            male_min_max, date, admin_level, country, 1, admin_id
+            min_max = male_min_max, 
+            date = date, 
+            admin_level = admin_level, 
+            country = country, 
+            sex = 1, 
+            admin_id = admin_id
         )
+        
         male_results = male_query.all()
         for pcode, population in male_results:
             if pcode in pop_per_unit_per_sex:
@@ -206,14 +247,17 @@ def get_population(
     else:
         male_results = []
 
+    # get population for females (one db query)
     if female_min_max:
-        (
-            f_pop_posteriors,
-            female_query,
-            female_pop_pyramid_query,
-        ) = get_age_sex_population(
-            female_min_max, date, admin_level, country, 2, admin_id
+        f_pop_posteriors, female_query, female_pop_pyramid_query = get_age_sex_population(
+            min_max = female_min_max, 
+            date = date, 
+            admin_level = admin_level, 
+            country = country, 
+            sex = 2, 
+            admin_id = admin_id
         )
+        
         female_results = female_query.all()
         for pcode, population in female_results:
             if pcode in pop_per_unit_per_sex:
@@ -222,18 +266,23 @@ def get_population(
                 pop_per_unit_per_sex[pcode] = {"female_population": population}
     else:
         female_results = []
+    
+    # derived results
     population_data: Dict[str, Union[Dict[str, Any], List[Any]]] = {}
     population_data["population_totals"] = {}
+    
     try:
         concatenated = np.concatenate([x for x in (f_pop_posteriors, m_pop_posteriors) if x is not None], axis=0)
     except ValueError:
         concatenated = None
+    
     if concatenated is not None:
         population_data["density_plots"] = get_population_density_plots(np.sum(concatenated, axis=0).tolist())
         population_data["pop_posteriors"] = np.sum(concatenated, axis=0).tolist()
     else:
         population_data["density_plots"] = []
         population_data["pop_posteriors"] = []
+    
     for (pcode, f_pop), (_, m_pop) in zip(female_results, male_results):
         population_data["population_totals"][pcode] = f_pop + m_pop
     population_data["population_totals_by_sex"] = pop_per_unit_per_sex
@@ -254,6 +303,7 @@ def get_population(
                 {"age_min": age_min, "age_max": age_max, "population": population}
             )
 
+    # total population (one db query)
     total_population_query = db.session.query(
         func.sum(Population.pop).label("population")
     ).filter(
@@ -301,8 +351,8 @@ def get_migration_probabilities(
             age_ranges, age_min_female, age_max_female
         )
     rank_col = (
-        func.sum(Migration.probability)
-        if rank_by == RankBy.PROBABILITY
+        func.sum(Migration.proportion)
+        if rank_by == RankBy.PROPORTION
         else func.sum(Migration.count)
     )
     probabilities = defaultdict(list)
@@ -342,17 +392,21 @@ def get_migration_probabilities(
         db.session.query(
             Migration.origin,
             Migration.destination,
-            func.sum(Migration.probability).label("probability"),
+            func.avg(Migration.proportion).label("proportion"),
             func.sum(Migration.count).label("count"),
         )
         .filter(
-            or_(*conditions),
+            Migration.day == date,
+            Migration.country == country,
             Migration.admin_level == admin_level,
+            or_(
+                Migration.origin == admin_id if admin_id else True, 
+                Migration.destination == admin_id if admin_id else True
+            ),
+            or_(*conditions),
             # func.abs(func.date(date) - func.date(Migration.day))
             # == closest_date_subquery,
             # closest_date_subquery <= 7,
-            Migration.country == country,
-            Migration.origin == admin_id if admin_id else True,
         )
         .group_by(Migration.origin, Migration.destination)
         .order_by(rank_col.desc())
@@ -361,15 +415,15 @@ def get_migration_probabilities(
 
     results = sub_query.all()
     if results:
-        for origin, destination, probability, count in results:
+        for origin, destination, proportion, count in results:
             probabilities[origin].append(
-                {"destination": destination, "probability": probability, "count": count}
+                {"destination": destination, "proportion": proportion, "count": count}
             )
-            probabilities[destination].append(
-                get_prob_count(
-                    destination, origin, admin_level, conditions, date, country
-                )
-            )
+            # probabilities[destination].append(
+            #     get_prob_count(
+            #         destination, origin, admin_level, conditions, date, country
+            #     )
+            # )
 
     return dict(probabilities)
 
@@ -386,11 +440,12 @@ def get_prob_count(
     #     func.min(func.abs(func.date(date) - func.date(Migration.day)))
     # ).subquery()
     query = db.session.query(
-        func.sum(Migration.probability).label("probability"),
+        func.avg(Migration.proportion).label("proportion"),
         func.sum(Migration.count).label("count"),
     ).filter(
         or_(*conditions),
         Migration.admin_level == admin_level,
+        Migration.day == date,
         # func.abs(func.date(date) - func.date(Migration.day)) == closest_date_subquery,
         Migration.country == country,
         Migration.origin == destination,
@@ -399,7 +454,7 @@ def get_prob_count(
     result = query.one()
     return {
         "destination": origin,
-        "probability": result.probability,
+        "proportion": result.proportion,
         "count": result.count,
     }
 

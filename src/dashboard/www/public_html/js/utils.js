@@ -337,8 +337,8 @@ export function round5(x)
 
 export function resetSlider_age_selections(d, age_max_label)
 {
-    let age_min = d[0][0];    
-
+        let age_min = d[0][0];    
+        let age_max = d[0][d[0].length - 1];
     
         $(".slider_age_selections").slider({
             min: 0,
@@ -353,10 +353,9 @@ export function resetSlider_age_selections(d, age_max_label)
             labels: {first: age_min, last: age_max_label}
         });
         
-        let age_min = 0;    
-        let age_max = d[0][d[0].length - 1];
-        document.getElementById('label_Age_range').innerHTML = "Ages: "+ age_min +" - "+ age_max;
-        document.getElementById('idAgesLabelDownloadWindow').innerHTML = age_min +" - "+ age_max;
+
+        document.getElementById('label_Age_range').innerHTML = "Ages: "+ age_min +" - "+ age_max_label;
+        document.getElementById('idAgesLabelDownloadWindow').innerHTML = age_min +" - "+ age_max_label;
         event.preventDefault();
 }
 
@@ -494,7 +493,7 @@ export function preproces_results_for_updatePopulationMap(result)
 export function parsing_string_date_new_format(d)
 {
     var odate = new Date(d);
-    let ndate= odate.toISOString().replace(/^(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+).(\d+)Z$/, function (a,y,m,d) {return [d,['Jan','Feb','Mar','Apr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][m-1],y].join('-');});
+    let ndate= odate.toISOString().replace(/^(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+).(\d+)Z$/, function (a,y,m,d) {return [d,['Jan','Feb','Mar','Apr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dec'][m-1],y].join('-');});
     return ndate;
 }
 
@@ -510,6 +509,8 @@ export function get_adminunits_names(geoJson)
                );
             
     } 
+
+    adminunits_names.push({ pcode: 'Abroad', name: 'Abroad' });
     
     return adminunits_names;
 }

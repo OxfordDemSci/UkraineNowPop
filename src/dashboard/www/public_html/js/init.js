@@ -67,8 +67,8 @@ export function initialise_migration_probabilities_chart(root) {
             startAngle: 80,
             padAngle: 1,
             linkHeadRadius: 20,
-            sourceIdField: "from",
-            targetIdField: "to",
+            sourceIdField: "fromName",
+            targetIdField: "toName",
             valueField: "value",
             sourceNameField: "fromName",
             targetNameField: "toName",            
@@ -114,8 +114,8 @@ export function initialise_migration_probabilities_chart_LG(root) {
             startAngle: 80,
             padAngle: 1,
             linkHeadRadius: 20,
-            sourceIdField: "from",
-            targetIdField: "to",
+            sourceIdField: "fromName",
+            targetIdField: "toName",
             valueField: "value",
             sourceNameField: "fromName",
             targetNameField: "toName",  
@@ -129,7 +129,7 @@ export function initialise_migration_probabilities_chart_LG(root) {
 //});            
 
         series.links.template.setAll({
-            tooltipText: "From: {fromName}\nTo: {toName}\nValue: {value}"
+            tooltipText: "From: {fromName}\nTo: {toName}\nFlow: {value}"
         });     
 
 //        series.bullets.push(function (_root, _series, dataItem) {

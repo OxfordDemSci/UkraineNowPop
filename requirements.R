@@ -3,8 +3,12 @@
 install_if_missing <- function(packages) {
   for (pkg in packages) {
     if (!requireNamespace(pkg, quietly = TRUE)) {
+      message(paste("\nInstalling package:", pkg, "\n"))
       if (pkg == "cmdstanr") {
-        install.packages("cmdstanr", repos = c("https://stan-dev.r-universe.dev", getOption("repos")))
+        install.packages(
+          "cmdstanr",
+          repos = c("https://stan-dev.r-universe.dev", getOption("repos"))
+        )
       } else {
         install.packages(pkg, dependencies = TRUE)
       }
@@ -13,24 +17,22 @@ install_if_missing <- function(packages) {
 }
 
 pkgs <- c(
+  "tidyverse",
+  "tidyquant",
+  "data.table",
+  "sf",
+  "tmap",
   "cmdstanr",
   "posterior",
   "bayesplot",
-  "loo",
-  "sf",
-  "here",
-  "tidyverse",
-  "tidyquant",
   "jsonlite",
-  "httr",
-  "DBI",
   "RPostgres",
+  "here",
   "git2r",
   "future.apply",
   "paletteer",
   "corrplot",
-  "kableExtra",
-  "tidyquant"
+  "kableExtra"
 )
 
 install_if_missing(pkgs)
