@@ -393,7 +393,7 @@ export function update_Age_Range_labele(vFirst, vLast , age_ranges_available, ag
 {
     let age_min = age_ranges_available[0][vFirst];    
     let age_max = age_ranges_available[1][vLast];
-    if (vLast === age_ranges_available[1].length-1){
+    if (vLast === age_ranges_available[1].length-1 && age_ranges_available[1].length-1===999){
           age_max = age_ranges_available[0][age_ranges_available[0].length - 1] + "+";
     }    
     document.getElementById('label_Age_range').innerHTML = "Ages: "+ age_min +" - "+ age_max;

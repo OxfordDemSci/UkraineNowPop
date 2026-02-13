@@ -11,6 +11,7 @@
 - The `GEODATA.gpkg` should have a layer for each country in the project, with ALL admin levels in the same table. See `UKR` for example.
 - Two additional tables should be added before starting the service: `migration.csv` and `pop.csv`. These should either be generated randomly through the script `./scripts/make_dummy_pop_migration.py`, which will save the output to the `db-data` folder. This table should be added BEFORE launching the database container to prevent memory issues.
 - Once the tables are in place, the API can be run as a standalone service, or together with the UI container.
+- If you want to display some geographical unit that have no available data, add 'Missing' in front of both `pcode` and `name_en`.
 
 ## Running API as a standalone service for debugging and development
 - **NOTE** The environment variable for `ENV` should be set to `local` for this to work.
