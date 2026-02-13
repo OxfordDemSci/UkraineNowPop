@@ -39,7 +39,7 @@ query_sql <- function(con, sql, geom_col = NULL) {
 
 
 # Define query_api function
-query_api <- function(endpoint, args, max_attempts = 3, url = "http://18.135.72.18/api/v1/", token = env$sma_API_token) {
+query_api <- function(endpoint, args, max_attempts = 3, url = paste0("http://", Sys.getenv("smaDB_host"), "/api/v1/"), token = Sys.getenv("sma_API_token")) {
   args$token <- token
 
   # Submit query as GET request
