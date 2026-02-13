@@ -50,7 +50,7 @@ am5.ready(function () {
 
 });
 
-// last color: null
+// last color: data not avalaible
 let palette_population = ["#f7fbff", "#e9f2f9", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6", "#4292c6", "#2171b5", "#08519c", "#08306b", "#fefec0ff"];
 var country_ISO3 = "";
 var accessToken = "null";
