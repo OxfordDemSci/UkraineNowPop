@@ -812,6 +812,16 @@ for (idx in 1:n_distinct(monthlyFlows$t)) {
         by = c("t", "a_name", "s_name")
       ) |>
       group_by(t, a_name, s_name) |>
+      # TODO: check for a possible double subtraction of this month's outflows.
+      # pop_updated already subtracts cumsum(outflows), which includes month t,
+      # and the target below subtracts outflows again. If the flows of month t
+      # originate from where people were in month t-1, the domestic flows should
+      # sum to (pop_updated - inflows - ngct), and the in-country population is
+      # currently underestimated by one month of outflows. If confirmed, drop
+      # "- outflows" here and update the stock check comparing against
+      # (pop_updated - outflows) in Step 3. The resolution depends on the time
+      # reference of the Vodafone monthly flows and on the ceiling_date()
+      # labelling of border crossings in Step 1.
       mutate(
         scaling_factor = (pop_updated - inflows - outflows - ngct) /
           sum(monthlyFlow_hat_agesex),
