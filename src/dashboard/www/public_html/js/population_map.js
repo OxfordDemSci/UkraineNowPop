@@ -31,20 +31,29 @@ for (var key in data) {
         cont++;  
     }  
     
-    let breaks_unique = uniqueArray(breaks);
-    
+    // include actual min and max boundaries to form intervals
+    breaks.unshift(vls[0]);              // min
+    breaks.push(vls[vls.length - 1]);   // max
 
-    let palette_final = [];
-    let diference = palette_colors.length-breaks_unique.length;
-    for (var i = 0; i < breaks_unique.length; i++) {
-             palette_final.push(
-                    palette_colors[i+diference]
-            );
-    }  
-    
-    let palette = {"breaks":breaks_unique, "colors":palette_final};
+    // unique & sorted numeric breaks
+    const breaks_unique = Array.from(new Set(breaks)).sort((a, b) => a - b);
 
-    return palette;
+    // the number of intervals is breaks_unique.length - 1
+    const intervals = Math.max(1, breaks_unique.length - 1);
+
+    // palette_colors: last element is NA color, the rest are candidates
+    const baseColors = palette_colors.slice(0, palette_colors.length - 1);    
+
+     let palette_final;
+        const start = baseColors.length - intervals;
+        palette_final = baseColors.slice(start);
+ 
+
+    return {
+        breaks: breaks_unique,
+        colors: palette_final,
+        naColor: palette_colors[palette_colors.length - 1]
+    };
  
 }
 
@@ -52,41 +61,30 @@ for (var key in data) {
 export function getColor(v, palette) {
 
     if (v === undefined || v === null) {
-        return "#EBEBE4";
+        return palette.naColor;
     }
+    const val = +v;
+    const breaks = palette.breaks;
+    const colors = palette.colors;
 
-    let xcase = false;
-    let color;
-    let breaks = palette["breaks"];
-    let colors = palette["colors"];
-    let lp = breaks.length;
 
-    if (lp === 1) {
-        return colors[0];
-    }
-
-    if (breaks[lp - 2] === breaks[lp - 1]) {
-        lp--;
-        xcase = true;
-    }
-
-    for (let i = 0; i < lp - 1; i++) {
-
-        if (v >= breaks[i] && v <= breaks[i + 1]) {
-            color = colors[i];
+    // iterate intervals: [breaks[i], breaks[i+1]) except include last as >=
+    for (let i = 0; i < breaks.length - 1; i++) {
+        const low = breaks[i];
+        const high = breaks[i + 1];
+        if (i < breaks.length - 2) {
+            // all but final interval: inclusive low, exclusive high
+            if (val >= low && val < high) return colors[i];
+        } else {
+            // last interval: inclusive both sides (to include max)
+            if (val >= low && val <= high) return colors[i];
         }
     }
 
-    if (xcase && v >= breaks[lp - 1]) {
-        color = colors[lp - 1];
-    }
-
-    if (v < breaks[0]) {
-        color = colors[0];
-    }
-
-    return color;
-
+    // fallback: if smaller than first break
+    if (val < breaks[0]) return colors[0];
+    // fallback otherwise
+    return colors[colors.length - 1] || palette.naColor;
 }
 
 export function RestyleLayerPopMapOpacity(_layer) {
@@ -114,18 +112,18 @@ export function RestyleLayerPopMap(_layer, palette, _admin_pcode) {
     _layer.eachLayer(function(featureInstanceLayer) {
        var propertyValue = featureInstanceLayer.feature.properties[propertyName];
         
+        var mFillColor = getColor(propertyValue, palette);
 
         if (propertyValue == undefined || propertyValue == null) {
             
             featureInstanceLayer.setStyle({
-                fillColor: "#fefec0ff",
+                fillColor: mFillColor,
                 fillOpacity: Opacity,
                 color: "black",
                 weight: 2
             });           
         }else{
 
-            var mFillColor = getColor(propertyValue, palette);
             
                 if (_admin_pcode === featureInstanceLayer.feature.properties["pcode"]){
                     featureInstanceLayer.setStyle({
@@ -176,7 +174,7 @@ export function updatePopulationMap(_map, _layer, geoJson, data, palette_colors,
    let palette  = getPalettePopMap(data, palette_colors);
    RestyleLayerPopMap(_layer, palette, _admin_pcode);
     
-   loadLagentPopMap(title, palette["colors"], palette["breaks"], "subtitles");
+   loadLagentPopMap(title, palette);
     
     const resizeObserver = new ResizeObserver(() => {
         _map.invalidateSize();
@@ -188,18 +186,19 @@ export function updatePopulationMap(_map, _layer, geoJson, data, palette_colors,
 }
 
 
-export function loadLagentPopMap(title, colors, breaks, subtitles) {
+export function loadLagentPopMap(title, palette) {
+    const colors = palette.colors.slice().reverse();
+    const breaks = palette.breaks.slice().reverse();
 
     var html = '<div style="width:80px"><p>' + title + '</p></div>';
     
-    var subtitlesArray = Array(colors.length).fill('');
-    subtitlesArray[0] = subtitles[0];
-    subtitlesArray[colors.length-1] = subtitles[1];    
+    // var subtitlesArray = Array(colors.length+1).fill('');
+    // subtitlesArray[0] = subtitles[0];
+    // subtitlesArray[colors.length-1] = subtitles[1];    
     
 //    html += '<div style="width:100px">' + subtitles[0] + '</div>';
     // reverse legend order
-    colors = colors.slice().reverse();
-    breaks = breaks.slice().reverse();
+
     html += '<ul style="list-style-type: none;margin-top: 2px;margin-bottom: 2px;padding-inline-start: 10px;">';
     for (var i = 0, len = colors.length; i < len; i++) {
         var rgb = _ImageFromRGB.hexToRGB(colors[i]);
@@ -207,6 +206,15 @@ export function loadLagentPopMap(title, colors, breaks, subtitles) {
 
         html += '<li><img width="16px" height="16px" src="' + mCanvas.toDataURL() + '"><span>&#32;&#32;&#32;&#32; &nbsp;&nbsp;' + _utils.nFormatter_Space(breaks[i], 1) + '</span></li>';
     }
+        {
+        var rgbNA = _ImageFromRGB.hexToRGB(palette.naColor);
+        var mCanvasNA = _ImageFromRGB.createImageFromRGBdata(rgbNA.r, rgbNA.g, rgbNA.b, 20, 20);
+        html += '<li style="display:flex; align-items:center; margin-top:6px;">' +
+                `<img width="16" height="16" src="${mCanvasNA.toDataURL()}" style="margin-right:8px;">` +
+                `<span style="font-size:13px;">Data unavailable</span>` +
+                '</li>';
+    }
+
     html += '</ul>';
 
     document.getElementById('legend_PopMap_info').innerHTML = html;

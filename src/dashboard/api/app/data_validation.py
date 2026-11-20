@@ -15,38 +15,38 @@ def validate_input(f):
                     m.Countries.country == country
                 ).first()[0].name
             except TypeError:
-                return "Invalid country", 400
+                return  f"Data not available for country: {country}", 400
         if admin_level := kwargs.get("admin_level", None):
             if admin_level not in [1, 2, 3]:
-                return "Invalid admin level", 400
+                return  f"Data not available for admin level: {admin_level}", 400
         if admin_id := kwargs.get("admin_id", None):
             try:
                 db.session.query(m.AdminUnits.pcode).filter(
                     m.AdminUnits.pcode == admin_id
                 ).first()[0]
             except TypeError:
-                return "Invalid admin_id", 400
+                return f"Data not available for admin id: {admin_id}", 400
         age_ranges = get_age_ranges(country)
         age_mins = [age_range["age_min"] for age_range in age_ranges]
         age_maxs = [age_range["age_max"] for age_range in age_ranges]
         if age_min_male := kwargs.get("age_min_male", None):
             if not isinstance(age_min_male, int) or age_min_male not in age_mins:
-                return f"Invalid age_min -> Accepted values: {age_mins}", 400
+                return f"Data not available for this age_min -> Accepted values: {age_mins}", 400
         if age_max_male := kwargs.get("age_max_male", None):
             if not isinstance(age_max_male, int) or age_max_male not in age_maxs:
-                return f"Invalid age_max_male -> Accepted values: {age_maxs}", 400
+                return f"Data not available for this age_max_male -> Accepted values: {age_maxs}", 400
         if age_min_female := kwargs.get("age_min_female", None):
             if not isinstance(age_min_female, int) or age_min_female not in age_mins:
-                return f"Invalid age_min -> Accepted values: {age_mins}", 400
+                return f"Data not available for this age_min -> Accepted values: {age_mins}", 400
         if age_max_female := kwargs.get("age_max_female", None):
             if not isinstance(age_max_female, int) or age_max_female not in age_maxs:
-                return f"Invalid age_max_female -> Accepted values: {age_maxs}", 400
+                return f"Data not available for this age_max_female -> Accepted values: {age_maxs}", 400
         if age_min := kwargs.get("age_min", None):
             if not isinstance(age_min, int) or age_min not in age_mins:
-                return f"Invalid age_min -> Accepted values: {age_mins}", 400
+                return f"Data not available for this age_min -> Accepted values: {age_mins}", 400
         if age_max := kwargs.get("age_max", None):
             if not isinstance(age_max, int) or age_max not in age_maxs:
-                return f"Invalid age_max -> Accepted values: {age_maxs}", 400
+                return f"Data not available for this age_max -> Accepted values: {age_maxs}", 400
         return f(*args, **kwargs)
 
     return decorated_function

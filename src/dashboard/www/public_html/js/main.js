@@ -50,8 +50,8 @@ am5.ready(function () {
 
 });
 
-
-let palette_population = ["#f7fbff", "#e9f2f9", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6", "#4292c6", "#2171b5", "#08519c", "#08306b"];
+// last color: data not avalaible
+let palette_population = ["#f7fbff", "#e9f2f9", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6", "#4292c6", "#2171b5", "#08519c", "#08306b", "#fefec0ff"];
 var country_ISO3 = "";
 var accessToken = "null";
 var admin_level = 1;
@@ -251,6 +251,10 @@ var layerCountry = L.geoJson(null, {
 
                 admin_pcode = e.target.feature.properties.pcode;
                 admin_name_en = e.target.feature.properties.name_en;
+
+                    if (admin_name_en.includes('Missing')) {
+        return; // Do nothing if 'Missing' is found
+    }
 
                 main_get_pop_migration(API_URL, country_ISO3, admin_level, admin_pcode, dates_available, age_ranges_available, accessToken);
 
