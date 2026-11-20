@@ -2,6 +2,7 @@
 private*
 venv*
 *.exe
+*.log
 **/.idea/
 **/.DS_Store
 /wd/*

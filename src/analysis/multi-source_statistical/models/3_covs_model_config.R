@@ -14,6 +14,7 @@ model_data <- function(
   # set seed for random number generators
   seed <- round(runif(1, 1, 1e6))
   set.seed(seed)
+  md$seed <- seed
 
   #---- location and date filtering ----#
 
